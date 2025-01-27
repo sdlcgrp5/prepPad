@@ -2,7 +2,7 @@
 
 Software Development Project | S25
 
-Team:
+Team: <br>
 Cristian Mejia <br>
 Davey Renoid <br>
 Benita Chinemerem <br>
