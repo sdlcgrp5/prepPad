@@ -1,6 +1,6 @@
-# doe - a simplified job application aiding platform.
+# prepPad - Scale your Job Fit
 
-Software Development Project | S25
+**Software Development Project | S25**
 
 Team: <br>
 Cristian Mejia <br>
@@ -9,17 +9,10 @@ Benita Chinemerem <br>
 Olatunde Mojisola <br>
 
 **Problem Statement** <br>
-Students seeking internships face challenges in managing multiple applications, including tracking deadlines, statuses, and follow-ups, which often leads to missed opportunities. Manually organizing application details is error-prone and inefficient. Additionally, students struggle to assess how well their skills align with job requirements, resulting in wasted effort on unsuitable roles. The lack of a clear, visual overview of their application progress further hinders motivation and organization. A streamlined solution is needed to simplify application management and improve alignment with opportunities.
+Students face significant challenges in securing internships and entry-level roles due to skill mismatches, ineffective resume tailor, and managing multiple applications. Traditional platforms like LinkedIn Learning or paid resume-review services are cost-prohibitive for students, who often lack the budget for subscriptions, and organizing application details on these platforms often requires external documentation like spreadsheets. Additionally, existing tools fail to provide actionable, personalized learning plans tied directly to job requirements.  A streamlined solution is needed to simplify application management and improve alignment with opportunities.
 
 <br>
+
 **Overview** <br>
-doe is a centralized platform to help students efficiently manage, track, and evaluate their internship applications. The solution will automatically extract key details—such as deadlines, job titles, and required skills—from application links, enabling users to monitor progress and assess their alignment with role requirements in a structured and intuitive manner.
-
-**Objectives** <br>
-
-**Plan** <br>
-
-**Timeline** <br>
-
-**End Result** <br>
+prepPad addresses this by offering a student-centric, cost-free platform that automates resume-job matching and delivers curated learning steps to close gaps instantly. prepPad is a streamlined job-matching platform focused on helping users quickly compare their resumes to job postings and identify critical skill gaps. It prioritizes core functionality: resume parsing, job analysis, and actionable learning recommendations. The goal is to validate the product’s value proposition with minimal features while ensuring scalability. 
 
