@@ -21,7 +21,7 @@ It is entirely free for this MVP, with monetization planned only for premium fea
 #### Real-Time Skill Gap Analysis
 Uses Deepseek R1 to generate precise, context-aware gap summaries (e.g., "Learn Python for Data Analysis within 2 weeks") instead of generic keyword matching.
 
-#### Integrated Learning Pathways
+#### Integrated Learning Pathways (Tentative for MVP)
 Recommends free, student-accessible resources (YouTube, freeCodeCamp) rather than promoting paid courses.
 
 #### Application Timeline Tracking
@@ -185,6 +185,9 @@ Configures Azure deployment, sets up Docker containers, and performs end-to-end 
 ### Methodology
 Agile (1-week sprints) 2 30-minute standups (Zoom) for every sprint.
 **Reason**: Provides immediate feedback and is time efficient. It is very flexible and iterative as the project can be broken down into smaller parts and adjusted to changing requirements. Less documentation is required.
+
+### Timeline:
+
 
 ### Tools:
 - GitHub Issues for task tracking and sprint planning.
