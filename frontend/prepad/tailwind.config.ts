@@ -8,6 +8,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+         hanken: ['var(--font-hanken-grotesk)']
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
