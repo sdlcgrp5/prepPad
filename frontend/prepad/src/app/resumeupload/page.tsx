@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const { user, logout } = useAuth();
   //const [file, setFile] = useState(null);
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
@@ -17,7 +19,7 @@ export default function Home() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     
@@ -34,7 +36,7 @@ export default function Home() {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const fileType = selectedFile.type;
@@ -58,6 +60,19 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">
+       {/* User info and logout */}
+       <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
+        <div className="text-white">
+          {user?.email}
+        </div>
+        <button 
+          onClick={logout}
+          className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md transition"
+        >
+          Logout
+        </button>
+      </div>
+      
       {/* Logo */}
       <div className="mb-16 z-10">
         <Image

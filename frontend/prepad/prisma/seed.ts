@@ -1,40 +1,38 @@
-import { PrismaClient } from '@prisma/client'
+// prisma/seed.ts
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-    const user = await prisma.user.upsert({
-      where: {
-         email: 'test@example.com'
-      },
-      update: {},
-      create: {
+  // Check if test user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email: 'test@example.com' },
+  });
+
+  if (!existingUser) {
+    // Hash the password
+    const hashedPassword123 = await bcrypt.hash('password123', 10);
+
+    // Create test user
+    const user = await prisma.user.create({
+      data: {
         email: 'test@example.com',
-        password: 'hashedpassword123'
-      }
-    })
-    console.log({user})
+        password: hashedPassword123,
+      },
+    });
 
-   }
+    console.log(`Created test user with id: ${user.id}`);
+  } else {
+    console.log('Test user already exists, skipping creation');
+  }
+}
 
-   main()
-   .then(() => prisma.$disconnect())
-   .catch(async (e) => {
-      console.error(e)
-      await prisma.$disconnect()
-      process.exit(1)
-   })
-
-    // Test user query
-    //const users = await prisma.user.findMany()
-    //console.log('All users:', users)
-
-  //} catch (error) {
-    //console.error('Database test failed:', error)
-  //} finally {
-    // Always disconnect after tests
-    //await prisma.$disconnect()
-  //}
-//}
-
-//main()
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

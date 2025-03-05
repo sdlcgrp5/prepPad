@@ -1,6 +1,41 @@
+'use client';
+
 import Image from "next/image";
+import Link from 'next/link';
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+
+
+
+
 
 export default function Home() {
+   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { login } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    
+    try {
+      const success = await login(email, password);
+      
+      if (!success) {
+        setError("Invalid email or password");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
 <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">
@@ -82,13 +117,23 @@ export default function Home() {
       {/* Form */}
       <form 
         className="w-full max-w-md space-y-4 z-10"
+        onSubmit={handleSubmit}
       >
+         {error && (
+            <div className="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 rounded-sm">
+               {error}
+            </div>
+         )}
+
+
         <div>
           <input
             type="email"
             placeholder="Enter your email address"
             required
             className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         
@@ -98,18 +143,23 @@ export default function Home() {
             placeholder="Enter your password"
             required
             className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
         </div>
         
         <button
           type="submit"
-
-          className="w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md transition duration-300 flex justify-center items-center">
-           Get started
+          disabled={isLoading}
+          className={`w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md transition duration-300 flex justify-center items-center ${
+            isLoading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
+        >
+          {isLoading ? "Signing in..." : "Get started"}
         </button>
         
         <p className="text-center text-white mt-4">
-          Already have an account? <a href="/resumeupload" className="text-white font-semibold hover:text-amber-400 transition">Sign in</a>
+          New here? <Link href="/" className="text-white font-semibold hover:text-amber-400 transition">Get Started</Link>
         </p>
       </form>
     </main>

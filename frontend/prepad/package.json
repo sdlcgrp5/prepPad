@@ -9,13 +9,15 @@
     "lint": "next lint"
   },
   "prisma": {
-   "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
-  
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "bcryptjs": "^3.0.2",
+    "jose": "^5.10.0",
+    "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "next": "15.1.7",
     "prisma": "^6.4.1",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
