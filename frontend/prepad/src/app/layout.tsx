@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-hanken-grotesk",
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body
         className={`${hankenGrotesk.variable}antialiased`}
       >
+          <AuthProvider>
         {children}
+        </AuthProvider>
       </body>
     </html>
   );
