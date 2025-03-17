@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
 type User = {
-  id: string;
+  id: number;
   email: string;
   name?: string;
 };
