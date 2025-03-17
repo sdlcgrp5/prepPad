@@ -155,7 +155,7 @@ export default function Home() {
             isLoading ? "opacity-70 cursor-not-allowed" : ""
           }`}
         >
-          {isLoading ? "Signing in..." : "Get started"}
+          {isLoading ? "Signing in..." : "Sign in"}
         </button>
         
         <p className="text-center text-white mt-4">
