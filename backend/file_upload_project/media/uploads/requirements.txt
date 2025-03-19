@@ -1,0 +1,7 @@
+pydparser
+nltk
+spacy
+bs4
+requests
+Django
+psycopg2

@@ -1,0 +1,25 @@
+# Web Framework
+Django==4.2.8
+
+# NLP Libraries
+nltk==3.8.1
+spacy==3.7.2
+pydparser
+
+# Database Connector - Apple Silicon compatible version
+psycopg2-binary==2.9.9  # Works on M1/M2/M3 Macs
+
+# Scientific and Data Processing 
+# These packages have optimized wheels for Apple Silicon
+numpy==1.26.2
+pandas==2.1.4
+scipy==1.11.4
+
+# Additional Dependencies
+python-dateutil==2.8.2
+requests==2.31.0
+
+# Development Tools
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0

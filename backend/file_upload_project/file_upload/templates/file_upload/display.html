@@ -1,0 +1,10 @@
+{% extends 'file_upload/base.html' %}
+
+{% block content %}
+<h1>File: {{ filename }}</h1>
+<h3>Content:</h3>
+<pre>{{ content }}</pre>
+<h3>Processed Content:</h3>
+<pre>{{ processed_content }}</pre>
+<a href="{% url 'file_list' %}">Back to list</a>
+{% endblock %}
