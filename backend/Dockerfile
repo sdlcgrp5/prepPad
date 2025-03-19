@@ -20,6 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt && python -m spacy download e
 # Copy project files
 COPY . .
 
+WORKDIR /app/file_upload_project
+
 # Expose port
 EXPOSE 8000
 
