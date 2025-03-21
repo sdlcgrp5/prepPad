@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+:root {
+   --foreground-rgb: 255, 255, 255;
+   --background-rgb: 24, 22, 38;
+   --cream-color: 255, 230, 190;
+   --mint-color: 191, 255, 211;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+   color: rgb(var(--foreground-rgb));
+   background: rgb(var(--background-rgb));
+   font-family: 'Hanken Grotesk', sans-serif;
+}
+
+@layer components {
+   .bg-dark {
+     background-color: rgb(var(--background-rgb));
+   }
+   
+   .text-cream {
+     color: rgb(var(--cream-color));
+   }
+   
+   .bg-cream {
+     background-color: rgb(var(--cream-color));
+   }
+ 
+   .bg-mint {
+     background-color: rgb(var(--mint-color));
+   }
+ }
+
