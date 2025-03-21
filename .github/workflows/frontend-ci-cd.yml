@@ -1,0 +1,49 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Build
+      run: |
+        cd frontend
+        npm run build
+    
+    - name: Build and Push Docker Image
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+        username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+        password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+    
+    - run: |
+        docker build ./frontend -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/preppad-frontend:${{ github.sha }}
+        docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/preppad-frontend:${{ github.sha }}
+    
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'preppad-frontend'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
+        images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/preppad-frontend:${{ github.sha }}
