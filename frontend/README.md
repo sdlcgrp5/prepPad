@@ -8,7 +8,7 @@ This repository contains a Next.js frontend application. Follow the instructions
 - npm (comes with Node.js)
 
 
-cd frontend
+cd frontend <br>
 cd prepad
 ```
 
@@ -17,6 +17,7 @@ cd prepad
 
 ```open terminal
 npm install
+npm install @prisma/client
 ```
 
 ### 3. Environment Variables Setup
