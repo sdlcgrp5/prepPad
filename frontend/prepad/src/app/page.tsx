@@ -100,7 +100,15 @@ export default function Home() {
             className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
         </div>
-        
+        <div>
+          <input
+            type="password"
+            placeholder="Confirm your password"
+            required
+            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+        </div>
+
         <button
           type="submit"
 
