@@ -6,9 +6,41 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { user, logout } = useAuth();
   //const [file, setFile] = useState(null);
+  
+  // Form state
+  const [formStep, setFormStep] = useState(1); // Track the form step (1 = basic info, 2 = experience, 3 = education, 4 = skills)
+  const [basicInfo, setBasicInfo] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    zipCode: ''
+  });
+
+  const [experienceInfo, setExperienceInfo] = useState({
+    jobTitle: '',
+    company: '',
+    yearsOfExperience: '',
+    linkedinUrl: ''
+  });
+  
+  const [educationInfo, setEducationInfo] = useState({
+    highestDegree: '',
+    fieldOfStudy: '',
+    institution: '',
+    graduationYear: ''
+  });
+  
+  const [skillsInfo, setSkillsInfo] = useState({
+    skills: [] as string[],
+    newSkill: ''
+  });
+  
+  const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -56,6 +88,117 @@ export default function Home() {
 
   const closeModal = () => {
     setIsModalOpen(false);
+  };
+  
+  const closeExperienceModal = () => {
+    setIsExperienceModalOpen(false);
+  };
+
+  const handleBasicInfoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Move to the next step - professional experience
+    setIsModalOpen(false);
+    setIsExperienceModalOpen(true);
+  };
+  
+  const handleBasicInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setBasicInfo({
+      ...basicInfo,
+      [name]: value
+    });
+  };
+  
+  const handleExperienceInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setExperienceInfo({
+      ...experienceInfo,
+      [name]: value
+    });
+  };
+  
+  const handleBackToBasicInfo = () => {
+    setIsExperienceModalOpen(false);
+    setIsModalOpen(true);
+  };
+  
+  const handleExperienceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Move to the next form (education)
+    setIsExperienceModalOpen(false);
+    setIsEducationModalOpen(true);
+  };
+  
+  const closeEducationModal = () => {
+    setIsEducationModalOpen(false);
+  };
+  
+  const handleBackToExperience = () => {
+    setIsEducationModalOpen(false);
+    setIsExperienceModalOpen(true);
+  };
+  
+  const handleEducationInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setEducationInfo({
+      ...educationInfo,
+      [name]: value
+    });
+  };
+  
+  const handleEducationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Move to the next form (skills)
+    setIsEducationModalOpen(false);
+    setIsSkillsModalOpen(true);
+  };
+  
+  const closeSkillsModal = () => {
+    setIsSkillsModalOpen(false);
+  };
+  
+  const handleBackToEducation = () => {
+    setIsSkillsModalOpen(false);
+    setIsEducationModalOpen(true);
+  };
+  
+  const handleAddSkill = () => {
+    if (skillsInfo.newSkill.trim() !== '') {
+      setSkillsInfo({
+        skills: [...skillsInfo.skills, skillsInfo.newSkill.trim()],
+        newSkill: ''
+      });
+    }
+  };
+  
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setSkillsInfo({
+      ...skillsInfo,
+      skills: skillsInfo.skills.filter(skill => skill !== skillToRemove)
+    });
+  };
+  
+  const handleSkillInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSkillsInfo({
+      ...skillsInfo,
+      newSkill: e.target.value
+    });
+  };
+  
+  const handleSkillsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Process the complete form data
+    console.log('Complete profile submitted', { 
+      basicInfo, 
+      experienceInfo, 
+      educationInfo,
+      skills: skillsInfo.skills 
+    });
+    
+    // Close the modal and finish the process
+    setIsSkillsModalOpen(false);
+    
+    // Here you would typically submit the data to your backend
   };
 
   return (
@@ -166,8 +309,6 @@ export default function Home() {
           height={24}
           priority
         />
-
-
             </div>
           </div>
           <p className="mb-2 text-sm text-gray-400">
@@ -217,19 +358,25 @@ export default function Home() {
               <h2 className="text-xl font-semibold text-white mb-2">Basic Information</h2>
             </div>
             
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleBasicInfoSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <input
                     type="text"
+                    name="firstName"
                     placeholder="First name"
+                    value={basicInfo.firstName}
+                    onChange={handleBasicInfoChange}
                     className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
                   <input
                     type="text"
+                    name="lastName"
                     placeholder="Last name"
+                    value={basicInfo.lastName}
+                    onChange={handleBasicInfoChange}
                     className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -239,14 +386,20 @@ export default function Home() {
                 <div>
                   <input
                     type="tel"
+                    name="phone"
                     placeholder="Phone number"
+                    value={basicInfo.phone}
+                    onChange={handleBasicInfoChange}
                     className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
                   <input
                     type="text"
+                    name="zipCode"
                     placeholder="Zip code"
+                    value={basicInfo.zipCode}
+                    onChange={handleBasicInfoChange}
                     className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -264,6 +417,290 @@ export default function Home() {
             
             <div className="mt-6 text-center">
               <span className="text-gray-500 text-sm">01/04</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Professional Experience */}
+      {isExperienceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-gray-800 rounded-lg w-full max-w-lg p-6 relative">
+            <button
+              onClick={closeExperienceModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </button>
+            
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold text-white mb-2">Professional Experience</h2>
+            </div>
+            
+            <form className="space-y-4" onSubmit={handleExperienceSubmit}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <input
+                    type="text"
+                    name="jobTitle"
+                    placeholder="Current Job Title"
+                    value={experienceInfo.jobTitle}
+                    onChange={handleExperienceInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="company"
+                    placeholder="Company"
+                    value={experienceInfo.company}
+                    onChange={handleExperienceInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <input
+                    type="text"
+                    name="yearsOfExperience"
+                    placeholder="Years of Experience"
+                    value={experienceInfo.yearsOfExperience}
+                    onChange={handleExperienceInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="linkedinUrl"
+                    placeholder="LinkedIn URL"
+                    value={experienceInfo.linkedinUrl}
+                    onChange={handleExperienceInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={handleBackToBasicInfo}
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                >
+                  Next
+                </button>
+              </div>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <span className="text-gray-500 text-sm">02/04</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal for Education */}
+      {isEducationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-gray-800 rounded-lg w-full max-w-lg p-6 relative">
+            <button
+              onClick={closeEducationModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </button>
+            
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold text-white mb-2">Education</h2>
+            </div>
+            
+            <form className="space-y-4" onSubmit={handleEducationSubmit}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <select
+                    name="highestDegree"
+                    value={educationInfo.highestDegree}
+                    onChange={handleEducationInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
+                  >
+                    <option value="" disabled>Highest Degree</option>
+                    <option value="high_school">High School</option>
+                    <option value="associate">Associate's</option>
+                    <option value="bachelor">Bachelor's</option>
+                    <option value="master">Master's</option>
+                    <option value="doctorate">Doctorate</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="fieldOfStudy"
+                    placeholder="Field of Study"
+                    value={educationInfo.fieldOfStudy}
+                    onChange={handleEducationInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <input
+                    type="text"
+                    name="institution"
+                    placeholder="Institution"
+                    value={educationInfo.institution}
+                    onChange={handleEducationInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    name="graduationYear"
+                    placeholder="Graduation Year"
+                    value={educationInfo.graduationYear}
+                    onChange={handleEducationInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={handleBackToExperience}
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                >
+                  Next
+                </button>
+              </div>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <span className="text-gray-500 text-sm">03/04</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal for Skills */}
+      {isSkillsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-gray-800 rounded-lg w-full max-w-lg p-6 relative">
+            <button
+              onClick={closeSkillsModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </button>
+            
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-semibold text-white mb-2">Skills</h2>
+            </div>
+            
+            <form className="space-y-4" onSubmit={handleSkillsSubmit}>
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {skillsInfo.skills.length > 0 ? (
+                    skillsInfo.skills.map((skill, index) => (
+                      <div 
+                        key={index} 
+                        className="inline-flex items-center bg-purple-800 text-white px-3 py-1 rounded"
+                      >
+                        <span>{skill}</span>
+                        <button 
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="ml-2 text-purple-300 hover:text-white"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-sm">Add your professional skills below</div>
+                  )}
+                </div>
+                
+                <div className="flex">
+                  <input
+                    type="text"
+                    placeholder="Add Skills"
+                    value={skillsInfo.newSkill}
+                    onChange={handleSkillInputChange}
+                    className="flex-grow p-3 bg-gray-700 text-white rounded-l focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSkill();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSkill}
+                    className="bg-gray-600 text-white px-4 rounded-r hover:bg-gray-500 transition"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={handleBackToEducation}
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300 border border-purple-500"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                >
+                  Create Profile
+                </button>
+              </div>
+            </form>
+            
+            <div className="mt-6 text-center">
+              <span className="text-gray-500 text-sm">04/04</span>
             </div>
           </div>
         </div>
