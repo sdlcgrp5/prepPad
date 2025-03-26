@@ -1,0 +1,21 @@
+{% extends "file_upload/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Job Description Parser</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.job_posting_url.label_tag }}
+            {{ form.job_posting_url }}
+            {% if form.job_posting_url.errors %}
+            <div class="text-danger">
+                {{ form.job_posting_url.errors }}
+            </div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Parse Job Description</button>
+    </form>
+</div>
+{% endblock %}

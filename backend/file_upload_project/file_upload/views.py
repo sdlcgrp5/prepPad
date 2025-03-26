@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .models import UploadedFile
-from .forms import fileUploadForm
-from .utils import process_resume
+from .forms import fileUploadForm, jobPostingForm
+from .utils import process_resume, extract_job_description
 import os
 
 
@@ -30,7 +30,39 @@ def upload_file(request):
 
     return render(request, "file_upload/upload.html", {"form": form})
 
-
+def job_description_parse(request):
+    """
+    View to handle job description parsing
+    """
+    if request.method == "POST":
+        form = jobPostingForm(request.POST)
+        if form.is_valid():
+            job_url = form.cleaned_data['job_posting_url']
+            
+            try:
+                # Extract job description
+                job_details = extract_job_description(job_url)
+                
+                return render(
+                    request, 
+                    "file_upload/job_description_results.html", 
+                    {
+                        "job_details": job_details,
+                        "form": form
+                    }
+                )
+            
+            except Exception as e:
+                return HttpResponse(f"Error parsing job description: {str(e)}")
+    
+    else:
+        form = jobPostingForm()
+    
+    return render(
+        request, 
+        "file_upload/job_description_parse.html", 
+        {"form": form}
+    )
 def display_file(request, file_id):
     try:
         file_obj = UploadedFile.objects.get(pk=file_id)
