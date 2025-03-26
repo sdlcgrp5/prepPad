@@ -5,10 +5,16 @@ from transformers import (
     pipeline,
 )
 import requests
+import pdfplumber
 from lxml import html
 
 
-def analyze_resume(resume_text):
+def process_resume(resume_file_path):
+    resume_text = ""
+    with pdfplumber.open(f"{resume_file_path}") as pdf:
+        for page in pdf.pages:
+            resume_text += page.extract_text()
+    
     API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
@@ -135,22 +141,22 @@ def extract_qa_fields(text):
     return {k: ask_question(text, q) for k, q in questions.items()}
 
 
-def process_resume(file_path):
-    """
-    Custom function to process the uploaded file.
-    Modify this function to implement your specific processing logic.
+# def process_resume(file_path):
+#     """
+#     Custom function to process the uploaded file.
+#     Modify this function to implement your specific processing logic.
 
-    Args:
-        file_path: Path to the uploaded file
+#     Args:
+#         file_path: Path to the uploaded file
 
-    Returns:
-        Processed content as a JSON object
-    """
-    # Run the resume through the resume processor
-    print(file_path)
-    processed_resume = ResumeParser(file_path).get_extracted_data()
+#     Returns:
+#         Processed content as a JSON object
+#     """
+#     # Run the resume through the resume processor
+#     print(file_path)
+#     processed_resume = ResumeParser(file_path).get_extracted_data()
 
-    return str(processed_resume)
+#     return str(processed_resume)
 
 
 def extract_job_description(url):
