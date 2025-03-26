@@ -1,3 +1,5 @@
+import re
+from xml.dom.minidom import Document
 from pydparser import ResumeParser
 from transformers import (
     AutoTokenizer,
@@ -6,15 +8,63 @@ from transformers import (
 )
 import requests
 import pdfplumber
+from docx import Document
 from lxml import html
+
+
+def resume_job_desc_analysis(resume_file_path, job_posting_url):
+    # Process the resume
+    resume_text = process_resume(resume_file_path)
+
+    # Extract job description details
+    job_details = extract_job_description(job_posting_url)
+
+    # Implement job description and resume comparison here
+    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
+    url = "https://api.deepseek.com/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
+    data = {
+        "model": "deepseek-chat",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. Look through the resume analysis that was given and provide feedback to the applicant. Let the applicant know the strengths and weaknesses of their resume compared to the job posting. Also, provide the applicant with any tips that you think would be helpful for them to improve their resume.",
+            },
+            {
+                "role": "user",
+                "content": f"""
+                Here is the analysis of the applicant's resume: {resume_text}
+                Here is the analysis of the job posting: {job_details}
+                Now, run a comparison between the two analyses to provide feedback to the applicant.
+                1. What are the strengths of the applicant's resume compared to the job posting?
+                2. What are the weaknesses of the applicant's resume compared to the job posting?
+                3. What tips would you give the applicant to improve their resume?    
+                    """,
+            },
+        ],
+        "stream": False,
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        result = response.json()
+        print(result["choices"][0]["message"]["content"])
+        return result["choices"][0]["message"]["content"]
+    else:
+        print("Request failed, error code:", response.status_code)
 
 
 def process_resume(resume_file_path):
     resume_text = ""
-    with pdfplumber.open(f"{resume_file_path}") as pdf:
-        for page in pdf.pages:
-            resume_text += page.extract_text()
-    
+    if resume_file_path.endswith(".pdf"):
+        with pdfplumber.open(f"{resume_file_path}") as pdf:
+            for page in pdf.pages:
+                resume_text += page.extract_text()
+    elif resume_file_path.endswith(".docx"):
+        doc = Document(resume_file_path)
+        resume_text = "\n".join([p.text for p in doc.paragraphs])
+    else:
+        raise ValueError("Unsupported file format. Use PDF or DOCX.")
+
     API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
@@ -47,9 +97,11 @@ def process_resume(resume_file_path):
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
+        # ner_results = ner(resume_text)
+        # qa_results = extract_qa_fields(resume_text)
         result = response.json()
         print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"]
+        return result["choices"][0]["message"]["content"] # + "\nNER Results:\n" + str(ner_results) + "\nQA Results:\n" + str(qa_results)
     else:
         print("Request failed, error code:", response.status_code)
 

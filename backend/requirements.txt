@@ -6,8 +6,9 @@ nltk==3.8.1
 spacy==3.7.2
 pydparser
 
-# Reading PDFs
+# Parsing files
 pdfplumber
+python-docx
 
 # Hugging Face Transformers
 transformers
