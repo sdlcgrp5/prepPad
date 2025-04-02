@@ -3,12 +3,14 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { user, logout } = useAuth();
+  const router = useRouter();
   //const [file, setFile] = useState(null);
   
   // Form state
@@ -185,20 +187,48 @@ export default function Home() {
     });
   };
   
-  const handleSkillsSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+// This is the updated handleSkillsSubmit function
+
+  const handleSkillsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Process the complete form data
-    console.log('Complete profile submitted', { 
-      basicInfo, 
-      experienceInfo, 
-      educationInfo,
-      skills: skillsInfo.skills 
-    });
     
-    // Close the modal and finish the process
-    setIsSkillsModalOpen(false);
+    // Combine all data from the form steps
+    const profileData = {
+      ...basicInfo,
+      ...experienceInfo,
+      ...educationInfo,
+      skills: skillsInfo.skills
+    };
     
-    // Here you would typically submit the data to your backend
+    try {
+      // Show loading state
+      // You could add a loading state here if desired
+      
+      // Submit profile data to the API
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Close the modal and show success message
+        setIsSkillsModalOpen(false);
+        
+        // Redirect to profile page
+        router.push('/profile');
+      } else {
+        console.error('Error creating profile:', data.error);
+        alert('Failed to create profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting profile:', error);
+      alert('An error occurred. Please try again later.');
+    }
   };
 
   return (
