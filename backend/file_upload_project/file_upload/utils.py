@@ -1,4 +1,5 @@
 import re
+import json
 from xml.dom.minidom import Document
 from pydparser import ResumeParser
 from transformers import (
@@ -90,18 +91,19 @@ def process_resume(resume_file_path):
                     8. Your publications
                     9. Your projects
                     10. Your languages
+
+                    Once you have found the details, please put them into a JSON object.
                     """,
             },
         ],
+        "response_format": {"type": "json_object"},
         "stream": False,
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
-        # ner_results = ner(resume_text)
-        # qa_results = extract_qa_fields(resume_text)
         result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"] # + "\nNER Results:\n" + str(ner_results) + "\nQA Results:\n" + str(qa_results)
+        print(json.loads(result["choices"][0]["message"]["content"]))
+        return json.loads(result["choices"][0]["message"]["content"])
     else:
         print("Request failed, error code:", response.status_code)
 
@@ -122,7 +124,7 @@ def analyze_job_posting(job_posting):
             {
                 "role": "user",
                 "content": f"""
-                        Look through the text that is given to find the following details:
+                        Look through the text that is given to find the following details and include as much information as possible:
                         1. The job description
                         2. The qualifications required
                         3. The skills required
@@ -130,9 +132,12 @@ def analyze_job_posting(job_posting):
                         5. The salary range
                         6. The location of the job"
                         Here is the given text: {job_posting}
+
+                        Once you have found the details, please put them into a JSON object.
                         """,
             },
         ],
+        "response_format": {"type": "json_object"},
         "stream": False,  # Disable streaming
     }
 
@@ -140,8 +145,8 @@ def analyze_job_posting(job_posting):
 
     if response.status_code == 200:
         result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"]
+        print(json.loads(result["choices"][0]["message"]["content"]))
+        return json.loads(result["choices"][0]["message"]["content"])
     else:
         print("Request failed, error code:", response.status_code)
 
@@ -238,13 +243,15 @@ def extract_job_description(url):
             print(job_posting)
 
             job_details_deepseek = analyze_job_posting(job_posting)
-            job_details_ner = ner(job_posting)
-            job_details_qa = extract_qa_fields(job_posting)
-            result = {
-                "url": url,
-                "status_code": response.status_code,
-                "full_text": job_posting,
-            }
+            if job_details_deepseek:
+                return job_details_deepseek
+            # job_details_ner = ner(job_posting)
+            # job_details_qa = extract_qa_fields(job_posting)
+            # result = {
+            #     "url": url,
+            #     "status_code": response.status_code,
+            #     "full_text": job_posting,
+            # }
 
             # Extract job description text
             if job_posting:
