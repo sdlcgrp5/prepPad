@@ -1,5 +1,6 @@
 # Web Framework
 Django
+djangorestframework
 
 # NLP Libraries
 nltk==3.8.1

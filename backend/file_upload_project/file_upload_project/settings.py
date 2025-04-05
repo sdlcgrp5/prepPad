@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'file_upload',
+    'rest_framework',
 ]
 
 # Configure media settings for file uploads
