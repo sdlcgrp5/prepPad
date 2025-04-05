@@ -1,11 +1,12 @@
 # Web Framework
 Django
 djangorestframework
+django-cors-headers
 
 # NLP Libraries
 nltk==3.8.1
 spacy==3.7.2
-pydparser
+# pydparser
 
 # Parsing files
 pdfplumber

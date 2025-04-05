@@ -1,7 +1,7 @@
 import re
 import json
 from xml.dom.minidom import Document
-from pydparser import ResumeParser
+# from pydparser import ResumeParser
 from transformers import (
     AutoTokenizer,
     AutoModelForTokenClassification,
