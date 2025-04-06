@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
-import { generateMonthYearOptions } from '@/utils/dateUtils';
+import HybridDateSelector from '@/components/HybridDateSelector';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -499,47 +499,22 @@ export default function Home() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <select
-                      name="startDate"
-                      value={experienceInfo.startDate}
-                      onChange={handleExperienceInfoChange}
-                      className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
-                    >
-                      <option value="" disabled>Start date</option>
-                      {generateMonthYearOptions().map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.display}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <select
-                      name="endDate"
-                      value={experienceInfo.endDate}
-                      onChange={handleExperienceInfoChange}
-                      className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
-                    >
-                      <option value="" disabled>End date</option>
-                      <option value="present">Present</option>
-                      {generateMonthYearOptions().map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.display}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </div>
-                  </div>
+                  {/* Start Date Selector */}
+                  <HybridDateSelector
+                    name="startDate"
+                    value={experienceInfo.startDate}
+                    onChange={handleExperienceInfoChange}
+                    placeholder="Start date (MM/YYYY)"
+                  />
+                  
+                  {/* End Date Selector */}
+                  <HybridDateSelector
+                    name="endDate"
+                    value={experienceInfo.endDate}
+                    onChange={handleExperienceInfoChange}
+                    placeholder="End date (MM/YYYY)"
+                    allowPresent={true}
+                  />
                 </div>
                 
                 <div>
