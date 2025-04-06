@@ -507,8 +507,10 @@ export default function Home() {
                       className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
                     >
                       <option value="" disabled>Start date</option>
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year.toString()}>{year}</option>
+                      {generateMonthYearOptions().map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.display}
+                        </option>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -526,8 +528,10 @@ export default function Home() {
                     >
                       <option value="" disabled>End date</option>
                       <option value="present">Present</option>
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year.toString()}>{year}</option>
+                      {generateMonthYearOptions().map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.display}
+                        </option>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
