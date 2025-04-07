@@ -6,15 +6,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
-  //const [file, setFile] = useState(null);
-  
+
   // Form state
-  const [formStep, setFormStep] = useState(1); // Track the form step (1 = basic info, 2 = experience, 3 = education, 4 = skills)
   const [basicInfo, setBasicInfo] = useState({
     firstName: '',
     lastName: '',
@@ -40,9 +41,6 @@ export default function Home() {
     skills: [] as string[],
     newSkill: ''
   });
-  
-  const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
-  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -53,7 +51,7 @@ export default function Home() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     
@@ -63,24 +61,53 @@ export default function Home() {
       
       if (fileType === "application/pdf" || 
           fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-       // setFile(droppedFile);
+        await handleFileUpload(droppedFile);
       } else {
         alert("Please upload a .pdf or .docx file");
       }
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const fileType = selectedFile.type;
       
       if (fileType === "application/pdf" || 
           fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-       // setFile(selectedFile);
+        await handleFileUpload(selectedFile);
       } else {
         alert("Please upload a .pdf or .docx file");
       }
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Send directly to Django backend
+      const response = await fetch('http://localhost:8000/api/resume-upload/', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Upload successful:', data);
+      
+      // Redirect to profile page
+      router.push('/profile');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -187,8 +214,6 @@ export default function Home() {
     });
   };
   
-// This is the updated handleSkillsSubmit function
-
   const handleSkillsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -201,11 +226,8 @@ export default function Home() {
     };
     
     try {
-      // Show loading state
-      // You could add a loading state here if desired
-      
       // Submit profile data to the API
-      const response = await fetch('/api/profile', {
+      const response = await fetch('http://localhost:8000/api/profile/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +237,7 @@ export default function Home() {
       
       const data = await response.json();
       
-      if (data.success) {
+      if (response.ok) {
         // Close the modal and show success message
         setIsSkillsModalOpen(false);
         
@@ -233,8 +255,8 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">
-       {/* User info and logout */}
-       <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
+      {/* User info and logout */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
         <div className="text-white">
           {user?.email}
         </div>
@@ -245,9 +267,9 @@ export default function Home() {
           Logout
         </button>
       </div>
-      
-      {/* Logo */}
-      <div className="mb-16 z-10">
+
+       {/* Logo */}
+       <div className="mb-16 z-10">
         <Image
           src="/prepadlight.svg"
           alt="PrepPad Logo"
@@ -312,7 +334,7 @@ export default function Home() {
       
       {/* Main heading */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl md:text-6xl font-semibold mb-4 max-w-3xl">
+        <h1 className="text-5xl md:text-6xl font-semibold mb-4 max-w-3xl text-white">
           Upload resume
         </h1>
         <p className="text-gray-300 max-w-md mx-auto">
@@ -332,28 +354,31 @@ export default function Home() {
         >
           <div className="mb-4 flex justify-center">
             <div className="w-16 h-16 rounded-lg bg-gray-700/60 flex items-center justify-center">
-            <Image className="fill-purple-400"
-          src="/fileplus.svg"
-          alt="profile"
-          width={24}
-          height={24}
-          priority
-        />
+              <Image 
+                className="fill-purple-400"
+                src="/fileplus.svg"
+                alt="profile"
+                width={24}
+                height={24}
+                priority
+              />
             </div>
           </div>
+          
           <p className="mb-2 text-sm text-gray-400">
-            Drag and drop resume file to upload (.docx, .pdf)
+            {isUploading ? 'Uploading...' : 'Drag and drop resume file to upload (.docx, .pdf)'}
           </p>
           <p className="text-xs text-gray-500 mb-4">
             Your profile will be created once you upload
           </p>
-          <label className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition">
-            Select file
+          <label className={`bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {isUploading ? 'Uploading...' : 'Select file'}
             <input
               type="file"
               className="hidden"
               accept=".pdf,.docx"
               onChange={handleFileChange}
+              disabled={isUploading}
             />
           </label>
         </div>
@@ -541,7 +566,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      
+
       {/* Modal for Education */}
       {isEducationModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
@@ -572,9 +597,9 @@ export default function Home() {
                   >
                     <option value="" disabled>Highest Degree</option>
                     <option value="high_school">High School</option>
-                    <option value="associate">Associate's</option>
-                    <option value="bachelor">Bachelor's</option>
-                    <option value="master">Master's</option>
+                    <option value="associate">Associate&apos;s</option>
+                    <option value="bachelor">Bachelor&apos;s</option>
+                    <option value="master">Master&apos;s</option>
                     <option value="doctorate">Doctorate</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
