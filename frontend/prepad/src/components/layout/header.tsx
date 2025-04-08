@@ -22,8 +22,8 @@ export default function Header({ title }: HeaderProps) {
             </div>
           </div>
           <div>
-            <p className="font-semibold">John Doe</p>
-            <p className="text-sm text-gray-400">{user?.email || 'johndoe09@gmail.com'}</p>
+            <p className="font-semibold">-- --</p>
+            <p className="text-sm text-gray-400">{user?.email || 'test@example.com'}</p>
           </div>
         </div>
       </div>
