@@ -100,6 +100,30 @@ export default function Home() {
 
       const data = await response.json();
       console.log('Upload successful:', data);
+
+      // Handle the response as needed
+      // Create profile object and parse JSON into the fields
+      // Create new profile with skills
+      //       profile = await prisma.profile.create({
+      //         data: {
+      //           firstName: data.firstName,
+      //           lastName: data.lastName,
+      //           phone: data.phone || null,
+      //           zipCode: data.zipCode || null,
+      //           jobTitle: data.jobTitle || null,
+      //           company: data.company || null,
+      //           yearsOfExperience: data.yearsOfExperience || null,
+      //           linkedinUrl: data.linkedinUrl || null,
+      //           highestDegree: data.highestDegree || null,
+      //           fieldOfStudy: data.fieldOfStudy || null,
+      //           institution: data.institution || null,
+      //           graduationYear: data.graduationYear || null,
+      //           userId: user.id,
+      //           skills: {
+      //             create: skillsToAdd.map(name => ({ name }))
+      //           }
+      //         }
+      //       });
       
       // Redirect to profile page
       router.push('/profile');
