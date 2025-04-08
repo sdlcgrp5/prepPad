@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-// import EmptyState from './EmptyState';
+import EmptyState from './EmptyState';
 import { JobAnalysis } from '@/types';
 
 interface JobAnalysisTableProps {
@@ -13,7 +13,9 @@ interface JobAnalysisTableProps {
 }
 
 export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick }: JobAnalysisTableProps) {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
   
@@ -107,14 +109,14 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
     </div>
   );
   
-  // if (analyses.length === 0) {
-    // return (
-      // <div className="bg-gray-800 rounded-lg overflow-hidden">
-        // <TableHeader />
-        // <EmptyState onAnalyzeClick={onAnalyzeClick} />
-      // </div>
-   // );
- // }
+  if (analyses.length === 0) {
+    return (
+      <div className="bg-gray-800 rounded-lg overflow-hidden">
+        <TableHeader />
+        <EmptyState onAnalyzeClick={onAnalyzeClick} />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden">

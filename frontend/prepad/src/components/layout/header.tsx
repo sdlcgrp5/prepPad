@@ -11,7 +11,7 @@ export default function Header({ title }: HeaderProps) {
   const { user } = useAuth();
   
   return (
-    <div className="mb-8 flex items-center justify-between">
+    <div className="mb-8 flex items-center justify-between border-b-white/60 border-b-2 pb-5">
       <h1 className="text-3xl font-bold">{title}</h1>
       
       <div className="flex items-center space-x-3">

@@ -3,23 +3,19 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
+import AnalysisCard from '@/components/dashboard/AnalysisCard';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
 import { useAuth } from '@/context/AuthContext';
-import { jobApplicationApi } from '@/services/apiservices';
-import { JobAnalysis, DashboardStats } from '@/types';
+// import { jobApplicationApi } from '@/services/apiservices';
+import { JobAnalysis } from '@/types';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+   const { user } = useAuth(); // fix user lint error
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalAnalyses: 0,
-    averageScore: 0,
-    recentAnalyses: [],
-    topMissingSkills: []
-  });
+
   
   // Fetch dashboard data on load
   useEffect(() => {
@@ -34,34 +30,20 @@ export default function Dashboard() {
       setTimeout(() => {
         // Empty state for the MVP
         setJobAnalyses([]);
-        setStats({
-          totalAnalyses: 0,
-          averageScore: 0,
-          recentAnalyses: [],
-          topMissingSkills: []
-        });
+
         setIsLoading(false);
       }, 1500);
       
-      // Uncomment these lines when your API is ready
-      // const analysesResponse = await jobApplicationApi.getJobAnalyses();
-      // setJobAnalyses(analysesResponse.data || []);
-      // const statsResponse = await jobApplicationApi.getDashboardStats();
-      // setStats(statsResponse.data || {
+  
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setJobAnalyses([]);
+      // setStats({
       //   totalAnalyses: 0,
       //   averageScore: 0,
       //   recentAnalyses: [],
       //   topMissingSkills: []
       // });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setJobAnalyses([]);
-      setStats({
-        totalAnalyses: 0,
-        averageScore: 0,
-        recentAnalyses: [],
-        topMissingSkills: []
-      });
       setIsLoading(false);
     }
   };
@@ -88,6 +70,12 @@ export default function Dashboard() {
       <div className="ml-36 p-8">
         {/* Header */}
         <Header title="Dashboard" />
+
+        {/* Analysis Card */}
+        <AnalysisCard
+          onAnalyzeClick={handleOpenModal}
+          loading={isLoading}
+        />
         
         {/* Job Analysis Table */}
         <JobAnalysisTable 
