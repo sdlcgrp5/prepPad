@@ -101,104 +101,30 @@ export default function Home() {
       const data = await response.json();
       console.log('Upload successful:', data);
 
-      // Handle the response as needed
-      // Here is what the reponse looks like:
-      /*
-      {
-    "file": "/media/uploads/functionalsample_ct7Jo9M_3IPka0J_DBcI3Rk.pdf",
-    "processed_content": {
-        "name": "John W. Smith",
-        "contact_information": {
-            "address": "2002 Front Range Way Fort Collins, CO 80525",
-            "email": "jwsmith@colostate.edu"
-        },
-        "work_experience": [
-            {
-                "position": "Counseling Supervisor",
-                "employer": "The Wesley Center",
-                "location": "Little Rock, Arkansas",
-                "duration": "1999-2002"
-            },
-            {
-                "position": "Client Specialist",
-                "employer": "Rainbow Special Care Center",
-                "location": "Little Rock, Arkansas",
-                "duration": "1997-1999"
-            },
-            {
-                "position": "Teacher’s Assistant",
-                "employer": "Cowell Elementary",
-                "location": "Conway, Arkansas",
-                "duration": "1996-1997"
-            }
-        ],
-        "education": [
-            {
-                "degree": "BS in Early Childhood Development",
-                "institution": "University of Arkansas at Little Rock",
-                "location": "Little Rock, AR",
-                "year": "1999",
-                "GPA": "3.8"
-            },
-            {
-                "degree": "BA in Elementary Education",
-                "institution": "University of Arkansas at Little Rock",
-                "location": "Little Rock, AR",
-                "year": "1998",
-                "GPA": "3.5"
-            },
-            {
-                "overall_GPA": "3.4",
-                "honors": [
-                    "Dean’s List",
-                    "Chancellor’s List"
-                ]
-            }
-        ],
-        "skills": [
-            "Early childhood development",
-            "Care of special needs children and adults",
-            "Client database and records maintenance",
-            "Coordination with health care professionals",
-            "Volunteer management",
-            "Service assignment coordination",
-            "Activity planning",
-            "Financial assistance and healthcare research",
-            "Classroom activity management"
-        ],
-        "certifications": [],
-        "awards": [
-            "Dean’s List",
-            "Chancellor’s List"
-        ],
-        "publications": [],
-        "projects": [],
-        "languages": []
-    }
-}
-      */
       // Create profile object and parse JSON into the fields
       // Create new profile with skills
+      // const profileData = data['processed_content'];
       //       profile = await prisma.profile.create({
       //         data: {
-      //           firstName: data.firstName,
-      //           lastName: data.lastName,
-      //           phone: data.phone || null,
-      //           zipCode: data.zipCode || null,
-      //           jobTitle: data.jobTitle || null,
-      //           company: data.company || null,
-      //           yearsOfExperience: data.yearsOfExperience || null,
-      //           linkedinUrl: data.linkedinUrl || null,
-      //           highestDegree: data.highestDegree || null,
-      //           fieldOfStudy: data.fieldOfStudy || null,
-      //           institution: data.institution || null,
-      //           graduationYear: data.graduationYear || null,
+      //           firstName: profileData.firstName,
+      //           lastName: profileData.lastName,
+      //           phone: profileData.phone || null,
+      //           zipCode: profileData.zipCode || null,
+      //           jobTitle: profileData.jobTitle || null,
+      //           company: profileData.company || null,
+      //           yearsOfExperience: profileData.yearsOfExperience || null,
+      //           linkedinUrl: profileData.linkedinUrl || null,
+      //           highestDegree: profileData.highestDegree || null,
+      //           fieldOfStudy: profileData.fieldOfStudy || null,
+      //           institution: profileData.institution || null,
+      //           graduationYear: profileData.graduationYear || null,
       //           userId: user.id,
       //           skills: {
       //             create: skillsToAdd.map(name => ({ name }))
       //           }
       //         }
       //       });
+      // Handle uploaded the created profile to the database
 
       // Redirect to profile page
       router.push('/profile');
