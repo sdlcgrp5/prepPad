@@ -1,8 +1,6 @@
 import re
 import json
 from xml.dom.minidom import Document
-
-# from pydparser import ResumeParser
 from transformers import (
     AutoTokenizer,
     AutoModelForTokenClassification,
@@ -15,8 +13,9 @@ from lxml import html
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-import time
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait        
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def analysisPrompt(resume_text, job_details):
@@ -71,7 +70,6 @@ def resumeProcessorPrompt(resume_text):
                     """,
         },
     ]
-
     return prompt
 
 
@@ -120,10 +118,10 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
         API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
         url = "https://api.deepseek.com/chat/completions"
         headers = {
-            "Content-Type": "application/json", 
-            "Authorization": f"Bearer {API_KEY}"
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {API_KEY}",
         }
-        
+
         analysis_prompt = analysisPrompt(resume_data, job_data)
         data = {
             "model": "deepseek-chat",
@@ -131,16 +129,16 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
             "response_format": {"type": "json_object"},
             "stream": False,
         }
-        
-        print(f"Sending request to DeepSeek API...")
+
+        # Send the request to the API
         response = requests.post(url, headers=headers, json=data)
-        
+
         print(f"Response status code: {response.status_code}")
         print(f"Response content: {response.text}")
-        
+
         if response.status_code == 200:
             result = response.json()
-            return json.loads(result["choices"][0]["message"]["content"])
+            return json.loads(result["choices"][0]["message"]["content"]) # Need to convert to JSON twice for some reason
         else:
             error_msg = f"Request failed with status code: {response.status_code}"
             error_msg += f"\nResponse: {response.text}"
@@ -152,7 +150,7 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
             "error": str(e),
             "status": "failed",
             "resume_processed": bool(resume_data),
-            "job_data_processed": bool(job_data)
+            "job_data_processed": bool(job_data),
         }
 
 
@@ -180,7 +178,29 @@ def process_resume(resume_file_path):
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
-        print(json.loads(result["choices"][0]["message"]["content"]))
+        try:
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                print(json.loads(result["choices"][0]["message"]["content"]))
+            else:
+                raise KeyError("Missing expected keys in API response")
+        except KeyError as e:
+            print(f"Error processing API response: {str(e)}")
+            choices = result.get("choices", [])
+            if (
+                choices
+                and "message" in choices[0]
+                and "content" in choices[0]["message"]
+            ):
+                print(json.loads(choices[0]["message"]["content"]))
+            else:
+                print("Unexpected response format: Missing 'choices' or nested keys.")
+        except Exception as e:
+            print(f"Error processing API response: {str(e)}")
         return json.loads(result["choices"][0]["message"]["content"])
     else:
         print("Request failed, error code:", response.status_code)
@@ -206,7 +226,7 @@ def analyze_job_posting(job_posting):
         print(json.loads(result["choices"][0]["message"]["content"]))
         return json.loads(result["choices"][0]["message"]["content"])
     else:
-        print("Request failed, error code:", response.status_code)
+        print(f"Error: analyze_job_posting\nRequest failed, error code:{response.status_code}\n")
 
 
 def clean_text(tree):
@@ -214,7 +234,7 @@ def clean_text(tree):
     for tag in tree.xpath("//script | //style | //noscript | //svg"):
         tag.getparent().remove(tag)
     raw_text = tree.text_content()  # Extracts all text, including whitespace
-    text = raw_text.replace("\n", "").replace("\t", "").strip()
+    text = re.sub(r"\s+", " ", raw_text).strip() # Normalize whitespace
     return text
 
 
@@ -247,33 +267,20 @@ def ask_question(text, question):
 # Extract qualifications, responsibilities, and salary range from job description
 def extract_qa_fields(text):
     questions = {
+        # Question to extract the overall job description
         "description": "What is the job description?",
+        # Question to identify the qualifications required for the job
         "qualifications": "What are the required qualifications from the job description?",
+        # Question to list the skills needed for the job
         "skills": "What are the required skills from the job description?",
+        # Question to determine the key responsibilities of the job
         "responsibilities": "What are the key responsibilities from the job description?",
+        # Question to extract the salary range offered for the job
         "salary": "What is the salary range?",
     }
     return {k: ask_question(text, q) for k, q in questions.items()}
 
-
-# def process_resume(file_path):
-#     """
-#     Custom function to process the uploaded file.
-#     Modify this function to implement your specific processing logic.
-
-#     Args:
-#         file_path: Path to the uploaded file
-
-#     Returns:
-#         Processed content as a JSON object
-#     """
-#     # Run the resume through the resume processor
-#     print(file_path)
-#     processed_resume = ResumeParser(file_path).get_extracted_data()
-
-#     return str(processed_resume)
-
-
+# Extract job description from a URL using Selenium
 def extract_job_description(url):
     try:
         # Set up Chrome options
@@ -286,14 +293,15 @@ def extract_job_description(url):
 
         # Initialize the driver with explicit service
         service = Service(executable_path="/usr/bin/chromedriver")
-        driver = webdriver.Chrome(
-            service=service,
-            options=chrome_options
-        )
+        driver = webdriver.Chrome(service=service, options=chrome_options)
 
         # Load the page and wait for content to load
         driver.get(url)
-        time.sleep(5)  # Wait for dynamic content to load
+
+        # Wait for the page to load by checking for the presence of a specific element
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
 
         # Get the page source after JavaScript execution
         job_posting_html = driver.page_source
@@ -302,7 +310,7 @@ def extract_job_description(url):
         # Parse HTML and extract text
         tree = html.fromstring(job_posting_html)
         job_posting = clean_text(tree)
-        
+
         # Process with your existing analysis
         job_details_deepseek = analyze_job_posting(job_posting)
         if job_details_deepseek:
