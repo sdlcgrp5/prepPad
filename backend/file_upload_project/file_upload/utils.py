@@ -23,7 +23,7 @@ def analysisPrompt(resume_text, job_details):
     prompt = [
         {
             "role": "system",
-            "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. Look through the resume analysis that was given and provide feedback to the applicant. Let the applicant know the strengths and weaknesses of their resume compared to the job posting. Also, provide the applicant with any tips that you think would be helpful for them to improve their resume.",
+            "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. You will provide feedback in JSON format.",
         },
         {
             "role": "user",
@@ -31,9 +31,13 @@ def analysisPrompt(resume_text, job_details):
                 Here is the analysis of the applicant's resume: {resume_text}
                 Here is the analysis of the job posting: {job_details}
                 Now, run a comparison between the two analyses to provide feedback to the applicant.
-                1. What are the strengths of the applicant's resume compared to the job posting?
-                2. What are the weaknesses of the applicant's resume compared to the job posting?
-                3. What tips would you give the applicant to improve their resume?    
+                Create a JSON response with the following structure:
+                {{
+                    "strengths": [list of strengths compared to job posting],
+                    "weaknesses": [list of weaknesses compared to job posting],
+                    "improvement_tips": [list of tips to improve resume],
+                    "match_score": number between 0 and 100
+                }}
                     """,
         },
     ]
@@ -101,29 +105,55 @@ def jobProcessorPrompt(job_posting):
 
 
 def resume_job_desc_analysis(resume_file_path, job_posting_url):
-    # Process the resume
-    resume_data = process_resume(resume_file_path)
+    try:
+        # Process the resume
+        resume_data = str(process_resume(resume_file_path))
+        if not resume_data:
+            raise ValueError("Failed to process resume")
 
-    # Extract job description details
-    job_data = extract_job_description(job_posting_url)
+        # Extract job description details
+        job_data = str(analyze_job_posting(job_posting_url))
+        if not job_data:
+            raise ValueError("Failed to analyze job posting")
 
-    # Implement job description and resume comparison here
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
-    data = {
-        "model": "deepseek-chat",
-        "messages": analysisPrompt(resume_data, job_data),
-        "response_format": {"type": "json_object"},
-        "stream": False,
-    }
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"]
-    else:
-        print("Request failed, error code:", response.status_code)
+        # Implement job description and resume comparison here
+        API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
+        url = "https://api.deepseek.com/chat/completions"
+        headers = {
+            "Content-Type": "application/json", 
+            "Authorization": f"Bearer {API_KEY}"
+        }
+        
+        analysis_prompt = analysisPrompt(resume_data, job_data)
+        data = {
+            "model": "deepseek-chat",
+            "messages": analysis_prompt,
+            "response_format": {"type": "json_object"},
+            "stream": False,
+        }
+        
+        print(f"Sending request to DeepSeek API...")
+        response = requests.post(url, headers=headers, json=data)
+        
+        print(f"Response status code: {response.status_code}")
+        print(f"Response content: {response.text}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            return json.loads(result["choices"][0]["message"]["content"])
+        else:
+            error_msg = f"Request failed with status code: {response.status_code}"
+            error_msg += f"\nResponse: {response.text}"
+            raise ValueError(error_msg)
+
+    except Exception as e:
+        print(f"Error in resume_job_desc_analysis: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed",
+            "resume_processed": bool(resume_data),
+            "job_data_processed": bool(job_data)
+        }
 
 
 def process_resume(resume_file_path):

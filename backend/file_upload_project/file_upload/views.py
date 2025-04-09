@@ -6,22 +6,29 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from yaml import serialize
-from .serializers import FileUploadSerializer, JobPostingSerializer, ProfileCreationSerializer
+from .serializers import (
+    FileUploadSerializer,
+    JobPostingSerializer,
+    AnalysisSerializer,
+)
 
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
-from .utils import process_resume, extract_job_description
+from .utils import process_resume, extract_job_description, resume_job_desc_analysis
 import os
+
 
 class AnalysisAPIView(APIView):
     """
     API view to handle file analysis
     """
-    parser_classes = {
+
+    parser_classes = (
         MultiPartParser,
         FormParser,
-    }
-    serializer_class = ProfileCreationSerializer
+    )
+    serializer_class = AnalysisSerializer
+
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
@@ -32,19 +39,21 @@ class AnalysisAPIView(APIView):
                 processed_content="",  # Temporary placeholder
             )
 
-            processed_content = process_resume(f"{instance.file_path()}")
-            instance.processed_content = processed_content
-            instance.save()
+            job_url = request.data["job_posting_url"]
+            analysis = resume_job_desc_analysis(f"{instance.file_path()}", job_url)
+
             return Response(
                 {
                     "file": instance.file.url,
-                    "processed_content": instance.processed_content,
+                    "url": job_url,
+                    "analysis": analysis,
                 },
                 status=status.HTTP_201_CREATED,
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
 class FileUploadAPIView(APIView):
     parser_classes = (
         MultiPartParser,
@@ -90,10 +99,13 @@ class JobPostingAPIView(APIView):
             job_details = extract_job_description(job_url)
             print(job_details)
 
-            return Response({
+            return Response(
+                {
                     "url": job_url,
                     "job_details": job_details,
-                }, status=status.HTTP_200_OK)
+                },
+                status=status.HTTP_200_OK,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

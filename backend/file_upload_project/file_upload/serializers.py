@@ -1,4 +1,4 @@
-from rest_framework.serializers import Serializer, ModelSerializer, URLField
+from rest_framework.serializers import Serializer, ModelSerializer, URLField, FileField
 from .models import UploadedFile
 
 
@@ -11,8 +11,6 @@ class FileUploadSerializer(ModelSerializer):
 class JobPostingSerializer(Serializer):
     job_posting_url = URLField(max_length=500)
 
-class ProfileCreationSerializer(ModelSerializer, Serializer):
+class AnalysisSerializer(Serializer):
     job_posting_url = URLField(max_length=500)
-    class Meta:
-        model = UploadedFile
-        fields = ["file"]
+    file = FileField()
