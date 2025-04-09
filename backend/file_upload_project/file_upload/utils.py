@@ -12,6 +12,11 @@ import requests
 import pdfplumber
 from docx import Document
 from lxml import html
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 
 def analysisPrompt(resume_text, job_details):
@@ -76,17 +81,19 @@ def jobProcessorPrompt(job_posting):
             "role": "user",
             "content": f"""
                         Look through the text that is given to find the following details and include as much information as possible:
-                        title = models.CharField(max_length=255)
-                        description = models.TextField()
-                        qualifications = models.TextField()
-                        skills = models.TextField()
-                        responsibilities = models.TextField()
-                        salary_range = models.CharField(max_length=100)
-                        location = models.CharField(max_length=255)
-                        posted_date = models.DateField(auto_now_add=True)
+                        
+                        title = string
+                        description = string
+                        qualifications = list[string]
+                        skills = list[string]
+                        responsibilities =list[string]
+                        salary_range = string
+                        location = string
+                        posted_date = string
+                        company_name = string
                         Here is the given text: {job_posting}
 
-                        Once you have found the details, please put them into a JSON object.
+                        Once you have found the details, please put them into a JSON object. If nothing can be found for a field, set it to null.
                         """,
         },
     ]
@@ -238,61 +245,39 @@ def extract_qa_fields(text):
 
 
 def extract_job_description(url):
-    """
-    Extract job description text from a given URL
-
-    Args:
-        url (str): URL of the job posting
-
-    Returns:
-        dict: Extracted job description details
-    """
-    # Send a request to the website
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    response = requests.get(url, headers=headers)
     try:
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Parse HTML and extract all raw text
-            job_posting_html = response.text
-            tree = html.fromstring(job_posting_html)
+        # Set up Chrome options
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.binary_location = "/usr/bin/chromium"
 
-            # Extract job description text
-            job_posting = clean_text(tree)
-            print(job_posting)
+        # Initialize the driver with explicit service
+        service = Service(executable_path="/usr/bin/chromedriver")
+        driver = webdriver.Chrome(
+            service=service,
+            options=chrome_options
+        )
 
-            job_details_deepseek = analyze_job_posting(job_posting)
-            if job_details_deepseek:
-                return job_details_deepseek
-            # job_details_ner = ner(job_posting)
-            # job_details_qa = extract_qa_fields(job_posting)
-            # result = {
-            #     "url": url,
-            #     "status_code": response.status_code,
-            #     "full_text": job_posting,
-            # }
+        # Load the page and wait for content to load
+        driver.get(url)
+        time.sleep(5)  # Wait for dynamic content to load
 
-            # Extract job description text
-            if job_posting:
-                result["deepseek_results"] = job_details_deepseek
-                result["ner_results"] = job_details_ner
-                result["qa_results"] = job_details_qa
-                result["html"] = str(job_posting_html)
-            else:
-                result["description"] = "Job description could not be extracted"
-                result["html"] = ""
+        # Get the page source after JavaScript execution
+        job_posting_html = driver.page_source
+        driver.quit()
 
-            return result
-        else:
-            return {
-                "url": url,
-                "status_code": response.status_code,
-                "description": f"Failed to retrieve the webpage: {response.status_code}",
-                "full_text": "",
-                "html": "",
-            }
+        # Parse HTML and extract text
+        tree = html.fromstring(job_posting_html)
+        job_posting = clean_text(tree)
+        
+        # Process with your existing analysis
+        job_details_deepseek = analyze_job_posting(job_posting)
+        if job_details_deepseek:
+            return job_details_deepseek
+
     except Exception as e:
         return {
             "url": url,
