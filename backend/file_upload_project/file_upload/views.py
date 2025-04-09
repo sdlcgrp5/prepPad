@@ -5,14 +5,46 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
-from .serializers import FileUploadSerializer, JobPostingSerializer
+from yaml import serialize
+from .serializers import FileUploadSerializer, JobPostingSerializer, ProfileCreationSerializer
 
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
 from .utils import process_resume, extract_job_description
 import os
 
+class AnalysisAPIView(APIView):
+    """
+    API view to handle file analysis
+    """
+    parser_classes = {
+        MultiPartParser,
+        FormParser,
+    }
+    serializer_class = ProfileCreationSerializer
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            print("Serializer is valid!")
+            # Save to model
+            instance = UploadedFile.objects.create(
+                file=request.FILES["file"],
+                processed_content="",  # Temporary placeholder
+            )
 
+            processed_content = process_resume(f"{instance.file_path()}")
+            instance.processed_content = processed_content
+            instance.save()
+            return Response(
+                {
+                    "file": instance.file.url,
+                    "processed_content": instance.processed_content,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class FileUploadAPIView(APIView):
     parser_classes = (
         MultiPartParser,

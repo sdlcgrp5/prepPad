@@ -1,6 +1,7 @@
 import re
 import json
 from xml.dom.minidom import Document
+
 # from pydparser import ResumeParser
 from transformers import (
     AutoTokenizer,
@@ -13,27 +14,15 @@ from docx import Document
 from lxml import html
 
 
-def resume_job_desc_analysis(resume_file_path, job_posting_url):
-    # Process the resume
-    resume_text = process_resume(resume_file_path)
-
-    # Extract job description details
-    job_details = extract_job_description(job_posting_url)
-
-    # Implement job description and resume comparison here
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
-    data = {
-        "model": "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. Look through the resume analysis that was given and provide feedback to the applicant. Let the applicant know the strengths and weaknesses of their resume compared to the job posting. Also, provide the applicant with any tips that you think would be helpful for them to improve their resume.",
-            },
-            {
-                "role": "user",
-                "content": f"""
+def analysisPrompt(resume_text, job_details):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. Look through the resume analysis that was given and provide feedback to the applicant. Let the applicant know the strengths and weaknesses of their resume compared to the job posting. Also, provide the applicant with any tips that you think would be helpful for them to improve their resume.",
+        },
+        {
+            "role": "user",
+            "content": f"""
                 Here is the analysis of the applicant's resume: {resume_text}
                 Here is the analysis of the job posting: {job_details}
                 Now, run a comparison between the two analyses to provide feedback to the applicant.
@@ -41,8 +30,84 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
                 2. What are the weaknesses of the applicant's resume compared to the job posting?
                 3. What tips would you give the applicant to improve their resume?    
                     """,
-            },
-        ],
+        },
+    ]
+    return prompt
+
+
+def resumeProcessorPrompt(resume_text):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a job applicant looking to see what information is in your resume.",
+        },
+        {
+            "role": "user",
+            "content": f"""Here is the text from your resume: {resume_text}
+
+                    Look through the text that is given to find the following details:
+                    
+                    name = string
+                    contact_info = list['email', 'phone_number', 'address']
+                    work_experience = list['company', 'position', 'start_date', 'end_date', 'description']
+                    education = list['institution', 'degree', 'start_date', 'end_date']
+                    skills = list[string]
+                    certifications = list[string]
+                    awards = list[string]
+                    publications = list[string]
+                    projects = list['project_name', 'description'] 
+                    languages = list[string]
+
+                    Once you have found the details, please put them into a JSON object. If a field is empty, set it to null.
+                    """,
+        },
+    ]
+
+    return prompt
+
+
+def jobProcessorPrompt(job_posting):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a job applicant seeking information from a job posting.",
+        },
+        {
+            "role": "user",
+            "content": f"""
+                        Look through the text that is given to find the following details and include as much information as possible:
+                        title = models.CharField(max_length=255)
+                        description = models.TextField()
+                        qualifications = models.TextField()
+                        skills = models.TextField()
+                        responsibilities = models.TextField()
+                        salary_range = models.CharField(max_length=100)
+                        location = models.CharField(max_length=255)
+                        posted_date = models.DateField(auto_now_add=True)
+                        Here is the given text: {job_posting}
+
+                        Once you have found the details, please put them into a JSON object.
+                        """,
+        },
+    ]
+    return prompt
+
+
+def resume_job_desc_analysis(resume_file_path, job_posting_url):
+    # Process the resume
+    resume_data = process_resume(resume_file_path)
+
+    # Extract job description details
+    job_data = extract_job_description(job_posting_url)
+
+    # Implement job description and resume comparison here
+    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
+    url = "https://api.deepseek.com/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
+    data = {
+        "model": "deepseek-chat",
+        "messages": analysisPrompt(resume_data, job_data),
+        "response_format": {"type": "json_object"},
         "stream": False,
     }
     response = requests.post(url, headers=headers, json=data)
@@ -71,31 +136,7 @@ def process_resume(resume_file_path):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
     data = {
         "model": "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a job applicant looking to see what information is in your resume.",
-            },
-            {
-                "role": "user",
-                "content": f"""Here is the text from your resume: {resume_text}
-
-                    Look through the text that is given to find the following details:
-                    1. Your name
-                    2. Your contact information
-                    3. Your work experience
-                    4. Your education
-                    5. Your skills
-                    6. Your certifications
-                    7. Your awards
-                    8. Your publications
-                    9. Your projects
-                    10. Your languages
-
-                    Once you have found the details, please put them into a JSON object.
-                    """,
-            },
-        ],
+        "messages": resumeProcessorPrompt(resume_text),
         "response_format": {"type": "json_object"},
         "stream": False,
     }
@@ -116,27 +157,7 @@ def analyze_job_posting(job_posting):
 
     data = {
         "model": "deepseek-chat",  # Use 'deepseek-reasoner' for R1 model or 'deepseek-chat' for V3 model
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a job applicant seeking information from a job posting.",
-            },
-            {
-                "role": "user",
-                "content": f"""
-                        Look through the text that is given to find the following details and include as much information as possible:
-                        1. The job description
-                        2. The qualifications required
-                        3. The skills required
-                        4. The key responsibilities
-                        5. The salary range
-                        6. The location of the job"
-                        Here is the given text: {job_posting}
-
-                        Once you have found the details, please put them into a JSON object.
-                        """,
-            },
-        ],
+        "messages": jobProcessorPrompt(job_posting),
         "response_format": {"type": "json_object"},
         "stream": False,  # Disable streaming
     }

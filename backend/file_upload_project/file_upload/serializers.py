@@ -10,3 +10,9 @@ class FileUploadSerializer(ModelSerializer):
 
 class JobPostingSerializer(Serializer):
     job_posting_url = URLField(max_length=500)
+
+class ProfileCreationSerializer(ModelSerializer, Serializer):
+    job_posting_url = URLField(max_length=500)
+    class Meta:
+        model = UploadedFile
+        fields = ["file"]
