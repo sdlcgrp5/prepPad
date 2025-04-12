@@ -35,6 +35,8 @@ def analysisPrompt(resume_text, job_details):
                     "strengths": [list of strengths compared to job posting],
                     "weaknesses": [list of weaknesses compared to job posting],
                     "improvement_tips": [list of tips to improve resume],
+                    "keywords_missing": [list of keywords from job posting not found in resume],
+                    "keywords_found": [list of keywords from job posting found in resume],
                     "match_score": number between 0 and 100
                 }}
                     """,
