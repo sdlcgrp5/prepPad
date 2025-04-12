@@ -53,32 +53,34 @@ def resumeProcessorPrompt(resume_text):
             "role": "user",
             "content": f"""Here is the text from your resume: {resume_text}
 
-                    Look through the text that is given to find the following details:
+                    Look through the text that is given to find the following details and format them as a JSON object:
                     
-                    name = string
-                    contact_info = {
-                        'email': string,
-                        'phone': string,
-                        'zipCode': string
-                    }
-                    work_experience = {
-                        'company': string,
-                        'jobTitle': string,
-                        'startDate': string,
-                        'endDate': string,
-                        'jobDescription': string,
-                        'yearsOfExperience': string
-                    }
-                    education = {
-                        'institution': string,
-                        'highestDegree': string,
-                        'fieldOfStudy': string,
-                        'graduationYear': string
-                    }
-                    linkedinUrl = string
-                    skills = list[string]
+                    {{
+                        "name": "",
+                        "contact_info": {{
+                            "email": "",
+                            "phone": "",
+                            "zipCode": ""
+                        }},
+                        "work_experience": {{
+                            "company": "",
+                            "jobTitle": "",
+                            "startDate": "",
+                            "endDate": "",
+                            "jobDescription": "",
+                            "yearsOfExperience": ""
+                        }},
+                        "education": {{
+                            "institution": "",
+                            "highestDegree": "",
+                            "fieldOfStudy": "",
+                            "graduationYear": ""
+                        }},
+                        "linkedinUrl": "",
+                        "skills": []
+                    }}
 
-                    Once you have found the details, please put them into a JSON object that matches the structure above exactly. If a field is empty, set it to null.
+                    For each field, include If a field has no value, set it to null. For skills, provide an array of strings.
                     """,
         },
     ]
@@ -206,6 +208,7 @@ def process_resume(resume_file_path):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
     
+    resume_text = re.sub(r"\s+", " ", resume_text).strip()
     prompt = resumeProcessorPrompt(resume_text)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
     
