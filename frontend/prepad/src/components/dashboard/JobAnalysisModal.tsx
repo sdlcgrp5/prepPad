@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { resumeApi, jobApplicationApi } from '@/services/apiservices';
+// import { resumeApi, jobApplicationApi } from '@/services/apiservices';
 import { ResumeFile } from '@/types';
 
 interface JobAnalysisModalProps {

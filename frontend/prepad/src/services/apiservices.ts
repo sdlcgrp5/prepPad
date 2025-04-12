@@ -123,6 +123,7 @@ export const resumeApi = {
   },
   
   // Manually create or update resume profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateResumeProfile: async (profileData: any) => {
     const response = await fetch(`${API_BASE_URL}/resumes/profile`, {
       method: 'POST',
@@ -155,6 +156,7 @@ export const userApi = {
   },
   
   // Update the current user's profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateProfile: async (profileData: any) => {
     const response = await fetch(`${API_BASE_URL}/users/me`, {
       method: 'PUT',

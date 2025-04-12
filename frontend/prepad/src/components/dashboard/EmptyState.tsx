@@ -1,8 +1,6 @@
 // components/dashboard/emptystate.tsx
 'use client';
 
-import React from 'react';
-
 interface EmptyStateProps {
   onAnalyzeClick: () => void;
 }
