@@ -5,10 +5,21 @@ import jwt from 'jsonwebtoken';
 import type { Prisma } from '@prisma/client';
 
 // Define a type for the profile with skills as a string array
-type ProfileWithStringSkills = Omit<Prisma.ProfileGetPayload<{
-  include: { skills: true }
-}>, 'skills' | 'createdAt' | 'updatedAt'> & {
+type ProfileWithStringSkills = Omit<
+  Prisma.ProfileGetPayload<{
+    include: { 
+      skills: true;
+      user: {
+        select: {
+          email: true;
+        }
+      }
+    }
+  }>,
+  'skills' | 'createdAt' | 'updatedAt' | 'user'
+> & {
   skills: string[];
+  email: string;
 };
 
 const profileSchema = z.object({
@@ -164,7 +175,8 @@ export async function POST(request: NextRequest) {
       // Construct response with the profile and skills
       const profileResponse: ProfileWithStringSkills = {
         ...user.profile,
-        skills: user.profile.skills.map(skill => skill.name)
+        skills: user.profile.skills.map(skill => skill.name),
+        email: user.user.email
       };
       
       return NextResponse.json({ 
@@ -207,7 +219,12 @@ export async function GET(request: NextRequest) {
       const profile = await tx.profile.findUnique({
         where: { userId },
         include: {
-          skills: true
+          skills: true,
+          user: {
+            select: {
+              email: true
+            }
+          }
         }
       });
       
@@ -221,6 +238,7 @@ export async function GET(request: NextRequest) {
     // Construct response with the profile and skills
     const profileResponse: ProfileWithStringSkills = {
       ...result,
+      email: result.user.email,
       skills: result.skills.map(skill => skill.name)
     };
     

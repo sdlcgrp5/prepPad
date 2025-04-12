@@ -10,6 +10,7 @@ interface ProfileData {
   id: number;
   firstName: string;
   lastName: string;
+  email: string;
   phone: string | null;
   zipCode: string | null;
   jobTitle: string | null;
@@ -150,10 +151,12 @@ export default function Profile() {
                   <p className="text-sm text-gray-400">Phone</p>
                   <p>{profile.phone || 'Not specified'}</p>
                 </div>
-                <p className="text-sm text-gray-400 mb-1">Email address</p>
-                  <p>{profile.email || 'Not Specified'}</p>
                 <div>
+                  <p className="text-sm text-gray-400 mb-1">Email address</p>
+                  <p>{profile.email || 'Not Specified'}</p>
+                </div>
 
+                <div>
                 <p className="text-sm text-gray-400 mb-1">Location</p>
                   <p>{profile.location || 'Not Specified'}</p>
                 </div>

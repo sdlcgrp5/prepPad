@@ -39,6 +39,11 @@ model Profile {
   yearsOfExperience String?
   linkedinUrl       String?
   
+  // Resume
+  resumeFile      String?
+  resumeFileName  String?
+  resumeFileType  String?
+  
   // Education
   highestDegree    String?
   fieldOfStudy     String?

@@ -1,9 +1,10 @@
 // components/dashboard/JobAnalysisModal.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 // import { resumeApi, jobApplicationApi } from '@/services/apiservices';
 import { ResumeFile } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface JobAnalysisModalProps {
   isOpen: boolean;
@@ -16,45 +17,44 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
+  const { token } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resumes, setResumes] = useState<ResumeFile[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+  const [resumes, setResumes] = useState<ResumeFile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const fetchResumes = useCallback(async () => {
+    setIsLoadingResumes(true);
+    try {
+      const response = await fetch('/api/resume', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.resume) {
+        setResumes([data.resume]);
+        setSelectedResumeId(data.resume.id.toString());
+      } else {
+        setError('No resume found. Please upload a resume first.');
+      }
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
+      setError('Failed to load resume');
+    } finally {
+      setIsLoadingResumes(false);
+    }
+  }, [token]);
   
   useEffect(() => {
     if (isOpen) {
       fetchResumes();
     }
-  }, [isOpen]);
-  
-  const fetchResumes = async () => {
-    setIsLoadingResumes(true);
-    try {
-      // In a real app, this would call the API
-      // For demonstration, simulate some resumes
-      setTimeout(() => {
-        setResumes([
-          { id: 1, fileName: 'My Resume.pdf', fileType: 'application/pdf', uploadedAt: new Date().toISOString(), fileUrl: '' },
-          { id: 2, fileName: 'Software Developer Resume.docx', fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', uploadedAt: new Date().toISOString(), fileUrl: '' }
-        ]);
-        setSelectedResumeId('1'); // Select the first resume by default
-        setIsLoadingResumes(false);
-      }, 500);
-      
-      // Uncomment when API is ready
-      // const response = await resumeApi.getCurrentResume();
-      // setResumes(response.data || []);
-      // if (response.data && response.data.length > 0) {
-      //   setSelectedResumeId(response.data[0].id.toString());
-      // }
-      // setIsLoadingResumes(false);
-    } catch (error) {
-      console.error('Error fetching resumes:', error);
-      setIsLoadingResumes(false);
-    }
-  };
+  }, [isOpen, fetchResumes]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

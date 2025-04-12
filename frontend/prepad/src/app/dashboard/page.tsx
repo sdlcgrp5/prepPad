@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
+import AnalysisCard from '@/components/dashboard/AnalysisCard';
 import { useAuth } from '@/context/AuthContext';
 import { JobAnalysis } from '@/types';
 
@@ -98,6 +99,9 @@ export default function Dashboard() {
       <div className="ml-36 p-8">
         {/* Header */}
         <Header title="Dashboard" />
+
+        {/* Analysis Card */}
+        <AnalysisCard onAnalyzeClick={handleOpenModal} loading={isLoading} />
 
         {/* Job Analysis Table */}
         <JobAnalysisTable

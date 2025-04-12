@@ -20,6 +20,7 @@ export default function Home() {
   const [basicInfo, setBasicInfo] = useState({
     firstName: '',
     lastName: '',
+    email: '',
     phone: '',
     zipCode: ''
   });
@@ -148,6 +149,7 @@ export default function Home() {
           firstName,
           lastName,
           phone: phone || '',
+          email: email || '',
           zipCode: address || '',
           jobTitle: workExp.job_title || '',
           company: workExp.company || '',
