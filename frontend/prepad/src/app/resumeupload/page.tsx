@@ -7,15 +7,16 @@ import { useRouter } from 'next/navigation';
 import HybridDateSelector from '@/components/HybridDateSelector';
 
 export default function Home() {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
-  //const [file, setFile] = useState(null);
-  
+
   // Form state
-  const [formStep, setFormStep] = useState(1); // Track the form step (1 = basic info, 2 = experience, 3 = education, 4 = skills)
   const [basicInfo, setBasicInfo] = useState({
     firstName: '',
     lastName: '',
@@ -31,21 +32,18 @@ export default function Home() {
     location: '',
     jobDescription: ''
   });
-  
+
   const [educationInfo, setEducationInfo] = useState({
     highestDegree: '',
     fieldOfStudy: '',
     institution: '',
     graduationYear: ''
   });
-  
+
   const [skillsInfo, setSkillsInfo] = useState({
     skills: [] as string[],
     newSkill: ''
   });
-  
-  const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
-  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -56,34 +54,88 @@ export default function Home() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       const fileType = droppedFile.type;
-      
-      if (fileType === "application/pdf" || 
-          fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-       // setFile(droppedFile);
+
+      if (fileType === "application/pdf" ||
+        fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        await handleFileUpload(droppedFile);
       } else {
         alert("Please upload a .pdf or .docx file");
       }
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       const fileType = selectedFile.type;
-      
-      if (fileType === "application/pdf" || 
-          fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-       // setFile(selectedFile);
+
+      if (fileType === "application/pdf" ||
+        fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        await handleFileUpload(selectedFile);
       } else {
         alert("Please upload a .pdf or .docx file");
       }
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Send directly to Django backend
+      const response = await fetch('http://localhost:8000/api/resume-upload/', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Upload successful:', data);
+
+      // Create profile object and parse JSON into the fields
+      // Create new profile with skills
+      // const profileData = data['processed_content'];
+      //       profile = await prisma.profile.create({
+      //         data: {
+      //           firstName: profileData.firstName,
+      //           lastName: profileData.lastName,
+      //           phone: profileData.phone || null,
+      //           zipCode: profileData.zipCode || null,
+      //           jobTitle: profileData.jobTitle || null,
+      //           company: profileData.company || null,
+      //           yearsOfExperience: profileData.yearsOfExperience || null,
+      //           linkedinUrl: profileData.linkedinUrl || null,
+      //           highestDegree: profileData.highestDegree || null,
+      //           fieldOfStudy: profileData.fieldOfStudy || null,
+      //           institution: profileData.institution || null,
+      //           graduationYear: profileData.graduationYear || null,
+      //           userId: user.id,
+      //           skills: {
+      //             create: skillsToAdd.map(name => ({ name }))
+      //           }
+      //         }
+      //       });
+      // Handle uploaded the created profile to the database
+
+      // Redirect to profile page
+      router.push('/profile');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -94,7 +146,7 @@ export default function Home() {
   const closeModal = () => {
     setIsModalOpen(false);
   };
-  
+
   const closeExperienceModal = () => {
     setIsExperienceModalOpen(false);
   };
@@ -105,7 +157,7 @@ export default function Home() {
     setIsModalOpen(false);
     setIsExperienceModalOpen(true);
   };
-  
+
   const handleBasicInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setBasicInfo({
@@ -121,28 +173,28 @@ export default function Home() {
       [name]: value
     });
   };
-  
+
   const handleBackToBasicInfo = () => {
     setIsExperienceModalOpen(false);
     setIsModalOpen(true);
   };
-  
+
   const handleExperienceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Move to the next form (education)
     setIsExperienceModalOpen(false);
     setIsEducationModalOpen(true);
   };
-  
+
   const closeEducationModal = () => {
     setIsEducationModalOpen(false);
   };
-  
+
   const handleBackToExperience = () => {
     setIsEducationModalOpen(false);
     setIsExperienceModalOpen(true);
   };
-  
+
   const handleEducationInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEducationInfo({
@@ -150,23 +202,23 @@ export default function Home() {
       [name]: value
     });
   };
-  
+
   const handleEducationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Move to the next form (skills)
     setIsEducationModalOpen(false);
     setIsSkillsModalOpen(true);
   };
-  
+
   const closeSkillsModal = () => {
     setIsSkillsModalOpen(false);
   };
-  
+
   const handleBackToEducation = () => {
     setIsSkillsModalOpen(false);
     setIsEducationModalOpen(true);
   };
-  
+
   const handleAddSkill = () => {
     if (skillsInfo.newSkill.trim() !== '') {
       setSkillsInfo({
@@ -175,26 +227,24 @@ export default function Home() {
       });
     }
   };
-  
+
   const handleRemoveSkill = (skillToRemove: string) => {
     setSkillsInfo({
       ...skillsInfo,
       skills: skillsInfo.skills.filter(skill => skill !== skillToRemove)
     });
   };
-  
+
   const handleSkillInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSkillsInfo({
       ...skillsInfo,
       newSkill: e.target.value
     });
   };
-  
-// This is the updated handleSkillsSubmit function
 
   const handleSkillsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Combine all data from the form steps
     const profileData = {
       ...basicInfo,
@@ -202,26 +252,23 @@ export default function Home() {
       ...educationInfo,
       skills: skillsInfo.skills
     };
-    
+
     try {
-      // Show loading state
-      // You could add a loading state here if desired
-      
       // Submit profile data to the API
-      const response = await fetch('/api/profile', {
+      const response = await fetch('http://localhost:8000/api/profile/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(profileData),
       });
-      
+
       const data = await response.json();
-      
-      if (data.success) {
+
+      if (response.ok) {
         // Close the modal and show success message
         setIsSkillsModalOpen(false);
-        
+
         // Redirect to profile page
         router.push('/profile');
       } else {
@@ -236,19 +283,19 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">
-       {/* User info and logout */}
-       <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
+      {/* User info and logout */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-4">
         <div className="text-white">
           {user?.email}
         </div>
-        <button 
+        <button
           onClick={logout}
           className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md transition"
         >
           Logout
         </button>
       </div>
-      
+
       {/* Logo */}
       <div className="mb-16 z-10">
         <Image
@@ -273,7 +320,7 @@ export default function Home() {
           />
         </div>
       </div>
-      
+
       <div className="absolute bottom-0 left-0 z-0 w-[120px] md:w-[280px] pointer-events-none">
         <div className="relative w-full aspect-square">
           <Image
@@ -285,7 +332,7 @@ export default function Home() {
           />
         </div>
       </div>
-      
+
       <div className="absolute right-0 top-1/4 z-0 w-[120px] md:w-[320px] pointer-events-none">
         <div className="relative w-full aspect-square">
           <Image
@@ -312,55 +359,57 @@ export default function Home() {
       <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm">
         We are currently on beta
       </div>
-      
+
       {/* Main heading */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl md:text-6xl font-semibold mb-4 max-w-3xl">
+        <h1 className="text-5xl md:text-6xl font-semibold mb-4 max-w-3xl text-white">
           Upload resume
         </h1>
         <p className="text-gray-300 max-w-md mx-auto">
           Provide your resume to help us create your concise profile
         </p>
       </div>
-      
+
       {/* Resume Upload Section */}
       <div className="w-full max-w-md z-10">
-        <div 
-          className={`border-2 border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${
-            isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-600 hover:border-purple-500"
-          }`}
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-600 hover:border-purple-500"
+            }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
           <div className="mb-4 flex justify-center">
             <div className="w-16 h-16 rounded-lg bg-gray-700/60 flex items-center justify-center">
-            <Image className="fill-purple-400"
-          src="/fileplus.svg"
-          alt="profile"
-          width={24}
-          height={24}
-          priority
-        />
+              <Image
+                className="fill-purple-400"
+                src="/fileplus.svg"
+                alt="profile"
+                width={24}
+                height={24}
+                priority
+              />
             </div>
           </div>
+
           <p className="mb-2 text-sm text-gray-400">
-            Drag and drop resume file to upload (.docx, .pdf)
+            {isUploading ? 'Uploading...' : 'Drag and drop resume file to upload (.docx, .pdf)'}
           </p>
           <p className="text-xs text-gray-500 mb-4">
             Your profile will be created once you upload
           </p>
-          <label className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition">
-            Select file
+          <label className={`bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {isUploading ? 'Uploading...' : 'Select file'}
             <input
               type="file"
               className="hidden"
               accept=".pdf,.docx"
               onChange={handleFileChange}
+              disabled={isUploading}
             />
           </label>
         </div>
-        
+
         <div className="text-center">
           <button
             onClick={openModal}
@@ -386,11 +435,11 @@ export default function Home() {
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </button>
-            
+
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold text-white mb-2">Basic Information</h2>
             </div>
-            
+
             <form className="space-y-4" onSubmit={handleBasicInfoSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -414,7 +463,7 @@ export default function Home() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <input
@@ -437,7 +486,7 @@ export default function Home() {
                   />
                 </div>
               </div>
-              
+
               <div className="pt-4">
                 <button
                   type="submit"
@@ -447,7 +496,7 @@ export default function Home() {
                 </button>
               </div>
             </form>
-            
+
             <div className="mt-6 text-center">
               <span className="text-gray-500 text-sm">01/04</span>
             </div>
@@ -503,6 +552,7 @@ export default function Home() {
                   <HybridDateSelector
                     name="startDate"
                     value={experienceInfo.startDate}
+
                     onChange={handleExperienceInfoChange}
                     placeholder="Start date (MM/YYYY)"
                   />
@@ -516,7 +566,6 @@ export default function Home() {
                     allowPresent={true}
                   />
                 </div>
-                
                 <div>
                   <input
                     type="text"
@@ -580,11 +629,11 @@ export default function Home() {
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </button>
-            
+
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold text-white mb-2">Recent Education</h2>
             </div>
-            
+
             <form className="space-y-4" onSubmit={handleEducationSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
@@ -596,9 +645,9 @@ export default function Home() {
                   >
                     <option value="" disabled>Highest Degree</option>
                     <option value="high_school">High School</option>
-                    <option value="associate">Associate's</option>
-                    <option value="bachelor">Bachelor's</option>
-                    <option value="master">Master's</option>
+                    <option value="associate">Associate&apos;s</option>
+                    <option value="bachelor">Bachelor&apos;s</option>
+                    <option value="master">Master&apos;s</option>
                     <option value="doctorate">Doctorate</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
@@ -618,7 +667,7 @@ export default function Home() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <input
@@ -641,7 +690,7 @@ export default function Home() {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <button
                   type="button"
@@ -658,14 +707,14 @@ export default function Home() {
                 </button>
               </div>
             </form>
-            
+
             <div className="mt-6 text-center">
               <span className="text-gray-500 text-sm">03/04</span>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Modal for Skills */}
       {isSkillsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
@@ -680,22 +729,22 @@ export default function Home() {
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
             </button>
-            
+
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold text-white mb-2">Skills</h2>
             </div>
-            
+
             <form className="space-y-4" onSubmit={handleSkillsSubmit}>
               <div className="mb-4">
                 <div className="flex flex-wrap gap-2 mb-4">
                   {skillsInfo.skills.length > 0 ? (
                     skillsInfo.skills.map((skill, index) => (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className="inline-flex items-center bg-purple-800 text-white px-3 py-1 rounded"
                       >
                         <span>{skill}</span>
-                        <button 
+                        <button
                           type="button"
                           onClick={() => handleRemoveSkill(skill)}
                           className="ml-2 text-purple-300 hover:text-white"
@@ -711,7 +760,7 @@ export default function Home() {
                     <div className="text-gray-400 text-sm">Add your professional skills below</div>
                   )}
                 </div>
-                
+
                 <div className="flex">
                   <input
                     type="text"
@@ -735,7 +784,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <button
                   type="button"
@@ -752,7 +801,7 @@ export default function Home() {
                 </button>
               </div>
             </form>
-            
+
             <div className="mt-6 text-center">
               <span className="text-gray-500 text-sm">04/04</span>
             </div>
