@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { JobAnalysis } from '@/types';
 
 export default function Dashboard() {
-  const { user, token } = useAuth();
+  const { user, token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +19,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const checkProfile = async () => {
+      if (!token) {
+        router.push('/');
+        return;
+      }
+
       try {
         const response = await fetch('/api/profile', {
           method: 'GET',
@@ -41,8 +46,11 @@ export default function Dashboard() {
       }
     };
 
-    checkProfile();
-  }, [router, token]);
+    // Only check profile after auth is loaded and if we have a token
+    if (!authLoading) {
+      checkProfile();
+    }
+  }, [router, token, authLoading]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -72,7 +80,8 @@ export default function Dashboard() {
     fetchDashboardData();
   };
 
-  if (!hasProfile) {
+  // Show loading state while auth is being checked
+  if (authLoading || !hasProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-100"></div>
