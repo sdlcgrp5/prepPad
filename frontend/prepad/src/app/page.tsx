@@ -117,7 +117,7 @@ export default function Home() {
         </button>
         
         <p className="text-center text-white mt-4">
-          Already have an account? <a href="/resumeupload" className="text-white font-semibold hover:text-amber-400 transition">Sign in</a>
+          Already have an account? <a href="/signin" className="text-white font-semibold hover:text-amber-400 transition">Sign in</a>
         </p>
       </form>
     </main>

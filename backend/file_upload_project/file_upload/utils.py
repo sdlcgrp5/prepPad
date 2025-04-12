@@ -56,17 +56,29 @@ def resumeProcessorPrompt(resume_text):
                     Look through the text that is given to find the following details:
                     
                     name = string
-                    contact_info = list['email', 'phone_number', 'address']
-                    work_experience = list['company', 'position', 'start_date', 'end_date', 'description']
-                    education = list['institution', 'degree', 'start_date', 'end_date']
+                    contact_info = {
+                        'email': string,
+                        'phone': string,
+                        'zipCode': string
+                    }
+                    work_experience = {
+                        'company': string,
+                        'jobTitle': string,
+                        'startDate': string,
+                        'endDate': string,
+                        'jobDescription': string,
+                        'yearsOfExperience': string
+                    }
+                    education = {
+                        'institution': string,
+                        'highestDegree': string,
+                        'fieldOfStudy': string,
+                        'graduationYear': string
+                    }
+                    linkedinUrl = string
                     skills = list[string]
-                    certifications = list[string]
-                    awards = list[string]
-                    publications = list[string]
-                    projects = list['project_name', 'description'] 
-                    languages = list[string]
 
-                    Once you have found the details, please put them into a JSON object. If a field is empty, set it to null.
+                    Once you have found the details, please put them into a JSON object that matches the structure above exactly. If a field is empty, set it to null.
                     """,
         },
     ]
@@ -123,26 +135,50 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
         }
 
         analysis_prompt = analysisPrompt(resume_data, job_data)
+        print("Sending prompt to API:", json.dumps(analysis_prompt, indent=2))
+        
         data = {
             "model": "deepseek-chat",
             "messages": analysis_prompt,
             "response_format": {"type": "json_object"},
             "stream": False,
         }
-
-        # Send the request to the API
         response = requests.post(url, headers=headers, json=data)
-
-        print(f"Response status code: {response.status_code}")
-        print(f"Response content: {response.text}")
-
         if response.status_code == 200:
             result = response.json()
-            return json.loads(result["choices"][0]["message"]["content"]) # Need to convert to JSON twice for some reason
+            print("Raw API response:", json.dumps(result, indent=2))
+            try:
+                if (
+                    "choices" in result
+                    and len(result["choices"]) > 0
+                    and "message" in result["choices"][0]
+                    and "content" in result["choices"][0]["message"]
+                ):
+                    content = json.loads(result["choices"][0]["message"]["content"])
+                    print("Parsed content:", json.dumps(content, indent=2))
+                    return content
+                else:
+                    raise KeyError("Missing expected keys in API response")
+            except KeyError as e:
+                print(f"Error processing API response: {str(e)}")
+                choices = result.get("choices", [])
+                if (
+                    choices
+                    and "message" in choices[0]
+                    and "content" in choices[0]["message"]
+                ):
+                    content = json.loads(choices[0]["message"]["content"])
+                    print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                    return content
+                else:
+                    print("Unexpected response format: Missing 'choices' or nested keys.")
+            except Exception as e:
+                print(f"Error processing API response: {str(e)}")
+                print("Response content:", result["choices"][0]["message"]["content"])
+            return json.loads(result["choices"][0]["message"]["content"])
         else:
-            error_msg = f"Request failed with status code: {response.status_code}"
-            error_msg += f"\nResponse: {response.text}"
-            raise ValueError(error_msg)
+            print("Request failed, error code:", response.status_code)
+            print("Response content:", response.text)
 
     except Exception as e:
         print(f"Error in resume_job_desc_analysis: {str(e)}")
@@ -169,15 +205,20 @@ def process_resume(resume_file_path):
     API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
+    
+    prompt = resumeProcessorPrompt(resume_text)
+    print("Sending prompt to API:", json.dumps(prompt, indent=2))
+    
     data = {
         "model": "deepseek-chat",
-        "messages": resumeProcessorPrompt(resume_text),
+        "messages": prompt,
         "response_format": {"type": "json_object"},
         "stream": False,
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
+        print("Raw API response:", json.dumps(result, indent=2))
         try:
             if (
                 "choices" in result
@@ -185,7 +226,9 @@ def process_resume(resume_file_path):
                 and "message" in result["choices"][0]
                 and "content" in result["choices"][0]["message"]
             ):
-                print(json.loads(result["choices"][0]["message"]["content"]))
+                content = json.loads(result["choices"][0]["message"]["content"])
+                print("Parsed content:", json.dumps(content, indent=2))
+                return content
             else:
                 raise KeyError("Missing expected keys in API response")
         except KeyError as e:
@@ -196,14 +239,18 @@ def process_resume(resume_file_path):
                 and "message" in choices[0]
                 and "content" in choices[0]["message"]
             ):
-                print(json.loads(choices[0]["message"]["content"]))
+                content = json.loads(choices[0]["message"]["content"])
+                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                return content
             else:
                 print("Unexpected response format: Missing 'choices' or nested keys.")
         except Exception as e:
             print(f"Error processing API response: {str(e)}")
+            print("Response content:", result["choices"][0]["message"]["content"])
         return json.loads(result["choices"][0]["message"]["content"])
     else:
         print("Request failed, error code:", response.status_code)
+        print("Response content:", response.text)
 
 
 def analyze_job_posting(job_posting):
@@ -212,9 +259,12 @@ def analyze_job_posting(job_posting):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
+    prompt = jobProcessorPrompt(job_posting)
+    print("Sending prompt to API:", json.dumps(prompt, indent=2))
+    
     data = {
         "model": "deepseek-chat",  # Use 'deepseek-reasoner' for R1 model or 'deepseek-chat' for V3 model
-        "messages": jobProcessorPrompt(job_posting),
+        "messages": prompt,
         "response_format": {"type": "json_object"},
         "stream": False,  # Disable streaming
     }
@@ -223,7 +273,35 @@ def analyze_job_posting(job_posting):
 
     if response.status_code == 200:
         result = response.json()
-        print(json.loads(result["choices"][0]["message"]["content"]))
+        print("Raw API response:", json.dumps(result, indent=2))
+        try:
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                content = json.loads(result["choices"][0]["message"]["content"])
+                print("Parsed content:", json.dumps(content, indent=2))
+                return content
+            else:
+                raise KeyError("Missing expected keys in API response")
+        except KeyError as e:
+            print(f"Error processing API response: {str(e)}")
+            choices = result.get("choices", [])
+            if (
+                choices
+                and "message" in choices[0]
+                and "content" in choices[0]["message"]
+            ):
+                content = json.loads(choices[0]["message"]["content"])
+                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                return content
+            else:
+                print("Unexpected response format: Missing 'choices' or nested keys.")
+        except Exception as e:
+            print(f"Error processing API response: {str(e)}")
+            print("Response content:", result["choices"][0]["message"]["content"])
         return json.loads(result["choices"][0]["message"]["content"])
     else:
         print(f"Error: analyze_job_posting\nRequest failed, error code:{response.status_code}\n")

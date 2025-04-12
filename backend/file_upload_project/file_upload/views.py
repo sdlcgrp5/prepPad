@@ -6,8 +6,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 import logging
 import os
+import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
@@ -98,28 +101,39 @@ class JobPostingAPIView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-def upload_file(request):
-    """View to handle file uploads through web interface"""
-    if request.method == "POST":
-        form = fileUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                uploaded_file = form.save(commit=False)
-                uploaded_file.save()
-                
-                logger.info("Processing uploaded file")
-                processed_content = process_resume(uploaded_file.file_path())
-                uploaded_file.processed_content = str(processed_content)
-                uploaded_file.save()
-                
-                return redirect("display_file", file_id=uploaded_file.id)
-            except Exception as e:
-                logger.error(f"Error processing file: {str(e)}")
-                messages.error(request, f"Error processing file: {str(e)}")
-    else:
-        form = fileUploadForm()
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
-    return render(request, "file_upload/upload.html", {"form": form})
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def upload_file(request):
+    try:
+        if 'file' not in request.FILES:
+            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        file = request.FILES['file']
+        
+        # Save the file
+        uploaded_file = UploadedFile.objects.create(file=file)
+        
+        # Process the resume
+        processed_data = process_resume(uploaded_file.file.path)
+        print("Processed resume data:", json.dumps(processed_data, indent=2))
+        
+        # Delete the file after processing
+        os.remove(uploaded_file.file.path)
+        uploaded_file.delete()
+        
+        return Response({
+            'success': True,
+            'processed_data': processed_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error in upload_file view: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def job_description_parse(request):

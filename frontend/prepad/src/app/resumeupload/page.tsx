@@ -13,7 +13,7 @@ export default function Home() {
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const router = useRouter();
 
   // Form state
@@ -91,49 +91,117 @@ export default function Home() {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Send directly to Django backend
+      console.log('Token before resume upload:', token); // Debug log
+
+      // Send to Django backend for resume parsing
       const response = await fetch('http://localhost:8000/api/resume-upload/', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}` // Use token from context
+        },
         body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json();
+        console.error('Resume upload error:', errorData);
+        throw new Error('Resume upload failed');
       }
 
       const data = await response.json();
-      console.log('Upload successful:', data);
+      console.log('Resume upload response data:', data);
 
-      // Create profile object and parse JSON into the fields
-      // Create new profile with skills
-      // const profileData = data['processed_content'];
-      //       profile = await prisma.profile.create({
-      //         data: {
-      //           firstName: profileData.firstName,
-      //           lastName: profileData.lastName,
-      //           phone: profileData.phone || null,
-      //           zipCode: profileData.zipCode || null,
-      //           jobTitle: profileData.jobTitle || null,
-      //           company: profileData.company || null,
-      //           yearsOfExperience: profileData.yearsOfExperience || null,
-      //           linkedinUrl: profileData.linkedinUrl || null,
-      //           highestDegree: profileData.highestDegree || null,
-      //           fieldOfStudy: profileData.fieldOfStudy || null,
-      //           institution: profileData.institution || null,
-      //           graduationYear: profileData.graduationYear || null,
-      //           userId: user.id,
-      //           skills: {
-      //             create: skillsToAdd.map(name => ({ name }))
-      //           }
-      //         }
-      //       });
-      // Handle uploaded the created profile to the database
+      // Extract profile data from the processed content
+      const processedContent = data.processed_content || data.processed_data || data;
+      console.log('Raw processed content:', processedContent);
+      console.log('Contact info:', processedContent.contact_info);
+      console.log('Work experience:', processedContent.work_experience);
+      console.log('Education:', processedContent.education);
+      console.log('Skills:', processedContent.skills);
+      
+      if (!processedContent) {
+        console.error('No processed content in response:', data);
+        throw new Error('No processed content received from resume');
+      }
 
-      // Redirect to profile page
-      router.push('/profile');
+      try {
+        // Extract name into first and last name
+        const fullName = processedContent.name || '';
+        console.log('Full name from resume:', fullName);
+
+        // Split name into first and last name (basic implementation)
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        // Extract contact info from array
+        const [email, phone, address] = processedContent.contact_info || [];
+
+        // Extract work experience from array
+        const workExp = processedContent.work_experience?.[0] || {};
+
+        // Extract education from array
+        const edu = processedContent.education?.[0] || {};
+
+        // Prepare profile data
+        const profileData = {
+          firstName,
+          lastName,
+          phone: phone || '',
+          zipCode: address || '',
+          jobTitle: workExp.job_title || '',
+          company: workExp.company || '',
+          jobDescription: workExp.job_description || '',
+          yearsOfExperience: workExp.years_of_experience || '',
+          linkedinUrl: email?.includes('linkedin.com') ? email : '',
+          highestDegree: edu.degree || '',
+          fieldOfStudy: edu.field_of_study || '',
+          institution: edu.institution || '',
+          graduationYear: edu.graduation_year || '',
+          skills: processedContent.skills || []
+        };
+
+        console.log('Prepared profile data:', profileData);
+        console.log('Using token from context:', token); // Debug log
+        console.log('Token type:', typeof token); // Debug log
+        console.log('Token length:', token?.length); // Debug log
+
+        if (!token) {
+          throw new Error('Not authenticated. Please log in first.');
+        }
+
+        // Send profile data to create/update profile
+        const profileResponse = await fetch('/api/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Use token from context
+          },
+          body: JSON.stringify(profileData)
+        });
+
+        if (!profileResponse.ok) {
+          const errorData = await profileResponse.json();
+          console.error('Profile creation error details:', errorData);
+          throw new Error(errorData.error || errorData.details?.issues?.[0]?.message || 'Failed to create profile');
+        }
+
+        const profileResult = await profileResponse.json();
+        console.log('Profile created successfully:', profileResult);
+
+        // Show success message
+        alert('Resume uploaded and profile created successfully!');
+
+        // Redirect to dashboard
+        router.push('/dashboard');
+
+      } catch (error) {
+        console.error('Error processing resume data:', error);
+        throw error;
+      }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload file. Please try again.');
+      console.error('Error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to process resume');
     } finally {
       setIsUploading(false);
     }
@@ -259,6 +327,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Add Bearer token
         },
         body: JSON.stringify(profileData),
       });

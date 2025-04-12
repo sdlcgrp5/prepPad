@@ -41,7 +41,22 @@ INSTALLED_APPS = [
     'file_upload',
     'rest_framework',
     'corsheaders',
+    'rest_framework_simplejwt',
 ]
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+# JWT settings
+SIMPLE_JWT = {
+    'SIGNING_KEY': '6cda850181db5a3fd270fcf222fbd345efe3b9aa3eb12519e466c808964c2128f5b9efcae03fd78edce675cb92c7e514b3ab1db7471525c42b6e6b79bb122909',  # Use the same key as frontend
+    'ALGORITHM': 'HS256',
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 # Configure media settings for file uploads
 MEDIA_URL = '/media/'
