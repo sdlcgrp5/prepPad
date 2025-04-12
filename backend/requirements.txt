@@ -2,6 +2,7 @@
 Django
 djangorestframework
 django-cors-headers
+djangorestframework-simplejwt
 
 # NLP Libraries
 nltk==3.8.1
