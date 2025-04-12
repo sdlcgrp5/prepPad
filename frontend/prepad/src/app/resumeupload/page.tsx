@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
+import HybridDateSelector from '@/components/HybridDateSelector';
 
 export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
@@ -26,8 +27,10 @@ export default function Home() {
   const [experienceInfo, setExperienceInfo] = useState({
     jobTitle: '',
     company: '',
-    yearsOfExperience: '',
-    linkedinUrl: ''
+    startDate: '',
+    endDate: '',
+    location: '',
+    jobDescription: ''
   });
 
   const [educationInfo, setEducationInfo] = useState({
@@ -162,8 +165,8 @@ export default function Home() {
       [name]: value
     });
   };
-
-  const handleExperienceInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  
+  const handleExperienceInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement |     HTMLSelectElement>) => {
     const { name, value } = e.target;
     setExperienceInfo({
       ...experienceInfo,
@@ -502,95 +505,116 @@ export default function Home() {
       )}
 
       {/* Modal for Professional Experience */}
-      {isExperienceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-          <div className="bg-gray-800 rounded-lg w-full max-w-lg p-6 relative">
-            <button
-              onClick={closeExperienceModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="15" y1="9" x2="9" y2="15"></line>
-                <line x1="9" y1="9" x2="15" y2="15"></line>
-              </svg>
-            </button>
-
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">Professional Experience</h2>
-            </div>
-
-            <form className="space-y-4" onSubmit={handleExperienceSubmit}>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <input
-                    type="text"
-                    name="jobTitle"
-                    placeholder="Current Job Title"
-                    value={experienceInfo.jobTitle}
-                    onChange={handleExperienceInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    name="company"
-                    placeholder="Company"
-                    value={experienceInfo.company}
-                    onChange={handleExperienceInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+        {isExperienceModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+            <div className="bg-gray-800 rounded-lg w-full max-w-lg p-6 relative">
+              <button
+                onClick={closeExperienceModal}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </button>
+              
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-semibold text-white mb-2">Recent Professional Experience</h2>
               </div>
+              
+              <form className="space-y-4" onSubmit={handleExperienceSubmit}>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <input
+                      type="text"
+                      name="jobTitle"
+                      placeholder="Current Job Title"
+                      value={experienceInfo.jobTitle}
+                      onChange={handleExperienceInfoChange}
+                      className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      name="company"
+                      placeholder="Company"
+                      value={experienceInfo.company}
+                      onChange={handleExperienceInfoChange}
+                      className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Start Date Selector */}
+                  <HybridDateSelector
+                    name="startDate"
+                    value={experienceInfo.startDate}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <input
-                    type="text"
-                    name="yearsOfExperience"
-                    placeholder="Years of Experience"
-                    value={experienceInfo.yearsOfExperience}
                     onChange={handleExperienceInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Start date (MM/YYYY)"
+                  />
+                  
+                  {/* End Date Selector */}
+                  <HybridDateSelector
+                    name="endDate"
+                    value={experienceInfo.endDate}
+                    onChange={handleExperienceInfoChange}
+                    placeholder="End date (MM/YYYY)"
+                    allowPresent={true}
                   />
                 </div>
                 <div>
                   <input
                     type="text"
-                    name="linkedinUrl"
-                    placeholder="LinkedIn URL"
-                    value={experienceInfo.linkedinUrl}
+                    name="location"
+                    placeholder="Location"
+                    value={experienceInfo.location}
                     onChange={handleExperienceInfoChange}
                     className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
+                
+                <div>
+                  <textarea
+                    name="jobDescription"
+                    placeholder="Job Description"
+                    maxLength={300}
+                    value={experienceInfo.jobDescription || ''}
+                    onChange={handleExperienceInfoChange}
+                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none h-24"
+                  ></textarea>
+                  <div className="text-right text-xs text-gray-400 mt-1">
+                    {(experienceInfo.jobDescription?.length || 0)}/300 characters
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleBackToBasicInfo}
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  >
+                    Next
+                  </button>
+                </div>
+              </form>
+              
+              <div className="mt-6 text-center">
+                <span className="text-gray-500 text-sm">02/04</span>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={handleBackToBasicInfo}
-                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
-                >
-                  Next
-                </button>
-              </div>
-            </form>
-
-            <div className="mt-6 text-center">
-              <span className="text-gray-500 text-sm">02/04</span>
             </div>
           </div>
-        </div>
-      )}
-
+        )}
+      
       {/* Modal for Education */}
       {isEducationModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
@@ -607,7 +631,7 @@ export default function Home() {
             </button>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">Education</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">Recent Education</h2>
             </div>
 
             <form className="space-y-4" onSubmit={handleEducationSubmit}>
