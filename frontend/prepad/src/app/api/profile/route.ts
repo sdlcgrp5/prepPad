@@ -2,58 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
-
-// Define types for our database models
-type User = {
-  id: number;
-  email: string;
-  password: string;
-  profile?: Profile;
-};
-
-type Profile = {
-  id: number;
-  userId: number;
-  firstName: string;
-  lastName: string;
-  phone: string | null;
-  zipCode: string | null;
-  jobTitle: string | null;
-  company: string | null;
-  yearsOfExperience: string | null;
-  linkedinUrl: string | null;
-  highestDegree: string | null;
-  fieldOfStudy: string | null;
-  institution: string | null;
-  graduationYear: string | null;
-  skills: Skill[];
-  user: User;
-};
-
-type Skill = {
-  id: number;
-  name: string;
-  profileId: number;
-  profile: Profile;
-};
+import type { Prisma } from '@prisma/client';
 
 // Define a type for the profile with skills as a string array
-interface ProfileWithStringSkills {
-  id: number;
-  firstName: string;
-  lastName: string;
-  phone: string | null;
-  zipCode: string | null;
-  jobTitle: string | null;
-  company: string | null;
-  yearsOfExperience: string | null;
-  linkedinUrl: string | null;
-  highestDegree: string | null;
-  fieldOfStudy: string | null;
-  institution: string | null;
-  graduationYear: string | null;
+type ProfileWithStringSkills = Omit<Prisma.ProfileGetPayload<{
+  include: { skills: true }
+}>, 'skills' | 'createdAt' | 'updatedAt'> & {
   skills: string[];
-}
+};
 
 const profileSchema = z.object({
   firstName: z.string(),
@@ -109,15 +65,93 @@ export async function POST(request: NextRequest) {
       const data = validationResult.data;
       
       // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          profile: {
+      const user = await prisma.$transaction(async (tx) => {
+        const foundUser = await tx.user.findUnique({
+          where: { id: userId },
+          include: {
+            profile: {
+              include: {
+                skills: true
+              }
+            }
+          }
+        });
+        
+        if (!foundUser) {
+          return null;
+        }
+
+        // Create or update profile
+        let profile;
+        const skillsToAdd = data.skills || [];
+        
+        if (foundUser.profile) {
+          // Update existing profile
+          profile = await tx.profile.update({
+            where: { id: foundUser.profile.id },
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone || null,
+              zipCode: data.zipCode || null,
+              jobTitle: data.jobTitle || null,
+              company: data.company || null,
+              yearsOfExperience: data.yearsOfExperience || null,
+              linkedinUrl: data.linkedinUrl || null,
+              highestDegree: data.highestDegree || null,
+              fieldOfStudy: data.fieldOfStudy || null,
+              institution: data.institution || null,
+              graduationYear: data.graduationYear || null,
+            },
             include: {
               skills: true
             }
+          });
+          
+          // Delete existing skills and add new ones
+          await tx.skill.deleteMany({
+            where: { profileId: profile.id }
+          });
+          
+          // Add skills if they exist
+          if (skillsToAdd.length > 0) {
+            await Promise.all(skillsToAdd.map(skillName => 
+              tx.skill.create({
+                data: {
+                  name: skillName,
+                  profileId: profile.id
+                }
+              })
+            ));
           }
+        } else {
+          // Create new profile with skills
+          profile = await tx.profile.create({
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone || null,
+              zipCode: data.zipCode || null,
+              jobTitle: data.jobTitle || null,
+              company: data.company || null,
+              yearsOfExperience: data.yearsOfExperience || null,
+              linkedinUrl: data.linkedinUrl || null,
+              highestDegree: data.highestDegree || null,
+              fieldOfStudy: data.fieldOfStudy || null,
+              institution: data.institution || null,
+              graduationYear: data.graduationYear || null,
+              userId: foundUser.id,
+              skills: {
+                create: skillsToAdd.map(name => ({ name }))
+              }
+            },
+            include: {
+              skills: true
+            }
+          });
         }
+        
+        return { user: foundUser, profile };
       });
       
       if (!user) {
@@ -125,82 +159,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
       
-      console.log('Found user:', { id: user.id, hasProfile: !!user.profile });
-      
-      // Create or update profile
-      let profile;
-      const skillsToAdd = data.skills || [];
-      
-      if (user.profile) {
-        // Update existing profile
-        profile = await prisma.profile.update({
-          where: { id: user.profile.id },
-          data: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone || null,
-            zipCode: data.zipCode || null,
-            jobTitle: data.jobTitle || null,
-            company: data.company || null,
-            yearsOfExperience: data.yearsOfExperience || null,
-            linkedinUrl: data.linkedinUrl || null,
-            highestDegree: data.highestDegree || null,
-            fieldOfStudy: data.fieldOfStudy || null,
-            institution: data.institution || null,
-            graduationYear: data.graduationYear || null,
-          },
-          include: {
-            skills: true
-          }
-        });
-        
-        // Delete existing skills and add new ones
-        await prisma.skill.deleteMany({
-          where: { profileId: profile.id }
-        });
-        
-        // Add skills if they exist
-        if (skillsToAdd.length > 0) {
-          await Promise.all(skillsToAdd.map(skillName => 
-            prisma.skill.create({
-              data: {
-                name: skillName,
-                profileId: profile.id
-              }
-            })
-          ));
-        }
-      } else {
-        // Create new profile with skills
-        profile = await prisma.profile.create({
-          data: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone || null,
-            zipCode: data.zipCode || null,
-            jobTitle: data.jobTitle || null,
-            company: data.company || null,
-            yearsOfExperience: data.yearsOfExperience || null,
-            linkedinUrl: data.linkedinUrl || null,
-            highestDegree: data.highestDegree || null,
-            fieldOfStudy: data.fieldOfStudy || null,
-            institution: data.institution || null,
-            graduationYear: data.graduationYear || null,
-            userId: user.id,
-            skills: {
-              create: skillsToAdd.map(name => ({ name }))
-            }
-          },
-          include: {
-            skills: true
-          }
-        });
-      }
+      console.log('Found user:', { id: user.user.id, hasProfile: !!user.profile });
       
       // Construct response with the profile and skills
       const profileResponse: ProfileWithStringSkills = {
-        ...profile,
-        skills: profile.skills.map(skill => skill.name)
+        ...user.profile,
+        skills: user.profile.skills.map(skill => skill.name)
       };
       
       return NextResponse.json({ 
@@ -239,21 +203,25 @@ export async function GET(request: NextRequest) {
     const userId = decodedToken.id;
     
     // Get user profile with skills
-    const profile = await prisma.profile.findUnique({
-      where: { userId },
-      include: {
-        skills: true
-      }
+    const result = await prisma.$transaction(async (tx) => {
+      const profile = await tx.profile.findUnique({
+        where: { userId },
+        include: {
+          skills: true
+        }
+      });
+      
+      return profile;
     });
     
-    if (!profile) {
+    if (!result) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
     
     // Construct response with the profile and skills
     const profileResponse: ProfileWithStringSkills = {
-      ...profile,
-      skills: profile.skills.map(skill => skill.name)
+      ...result,
+      skills: result.skills.map(skill => skill.name)
     };
     
     // Return the profile data

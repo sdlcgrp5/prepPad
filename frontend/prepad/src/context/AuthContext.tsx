@@ -66,8 +66,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.set('auth_token', data.token, { expires: 1 }); // 1 day
       Cookies.set('user', JSON.stringify(data.user), { expires: 1 });
       
-      // Redirect to resume upload page
-      router.push('/resumeupload');
+      // Check if profile exists
+      try {
+        const profileResponse = await fetch('/api/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${data.token}`
+          }
+        });
+        
+        // If profile exists, go to dashboard, otherwise go to resume upload
+        router.push(profileResponse.ok ? '/dashboard' : '/resumeupload');
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // On error, default to resume upload
+        router.push('/resumeupload');
+      }
+      
       return true;
     } catch (error) {
       console.error('Login error:', error);
