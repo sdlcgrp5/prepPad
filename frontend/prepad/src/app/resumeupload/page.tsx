@@ -1,10 +1,11 @@
 'use client';
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
 import HybridDateSelector from '@/components/HybridDateSelector';
+import Cookies from 'js-cookie';
 
 // Define validation error type
 interface ValidationErrors {
@@ -140,10 +141,10 @@ export default function Home() {
         throw new Error('File size should be less than 10MB');
       }
 
+      // Step 1: Upload and Parse Resume
       const formData = new FormData();
       formData.append('file', file);
 
-      // Step 1: Upload and Parse Resume
       const parseResponse = await fetch('http://localhost:8000/api/resume-upload/', {
         method: 'POST',
         body: formData
@@ -526,40 +527,67 @@ export default function Home() {
       return;
     }
 
-    // Combine all data from the form steps
-    const profileData = {
-      ...basicInfo,
-      ...experienceInfo,
-      ...educationInfo,
-      skills: skillsInfo.skills
-    };
-
     try {
-      // Submit profile data to the API
-      const response = await fetch('http://localhost:8000/api/profile/', {
+      // Prepare the profile data
+      const profileData = {
+        firstName: basicInfo.firstName,
+        lastName: basicInfo.lastName,
+        email: basicInfo.email,
+        phone: basicInfo.phone,
+        zipCode: basicInfo.zipCode,
+        jobTitle: experienceInfo.jobTitle,
+        company: experienceInfo.company,
+        yearsOfExperience: experienceInfo.startDate && experienceInfo.endDate ? 
+          calculateYearsOfExperience(experienceInfo.startDate, experienceInfo.endDate).toString() : null,
+        linkedinUrl: null,
+        highestDegree: educationInfo.highestDegree,
+        fieldOfStudy: educationInfo.fieldOfStudy,
+        institution: educationInfo.institution,
+        graduationYear: educationInfo.graduationYear,
+        skills: skillsInfo.skills
+      };
+
+      // Get the auth token
+      const token = Cookies.get('auth_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Create profile using the profile API
+      const response = await fetch('/api/profile', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(profileData),
+        body: JSON.stringify(profileData)
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Close the modal and show success message
-        setIsSkillsModalOpen(false);
-
-        // Redirect to profile page
-        router.push('/profile');
-      } else {
-        console.error('Error creating profile:', data.error);
-        alert('Failed to create profile. Please try again.');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error creating profile:', errorData);
+        throw new Error(errorData.error || 'Failed to create profile');
       }
+
+      const data = await response.json();
+      console.log('Profile created successfully:', data);
+
+      // Close the modal and show success message
+      setIsSkillsModalOpen(false);
+
+      // Redirect to profile page
+      router.push('/profile');
     } catch (error) {
       console.error('Error submitting profile:', error);
-      alert('An error occurred. Please try again later.');
+      alert(error instanceof Error ? error.message : 'An error occurred. Please try again later.');
     }
+  };
+
+  const calculateYearsOfExperience = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = endDate === 'Present' ? new Date() : new Date(endDate);
+    const diffInYears = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+    return Math.round(diffInYears);
   };
 
   return (

@@ -12,7 +12,7 @@ import logging
 import os
 import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
-from .models import UploadedFile
+from .models import UploadedFile, Profile, Experience, Education, Skills
 from .forms import fileUploadForm, jobPostingForm
 from .utils import process_resume, extract_job_description, resume_job_desc_analysis
 
@@ -50,7 +50,7 @@ class AnalysisAPIView(APIView):
 
 
 class FileUploadAPIView(APIView):
-    """API view to handle file uploads"""
+    """API view to handle file uploads and profile creation"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
 
@@ -60,6 +60,7 @@ class FileUploadAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Upload and process the file
             instance = UploadedFile.objects.create(
                 file=request.FILES["file"],
                 processed_content=""
@@ -68,10 +69,75 @@ class FileUploadAPIView(APIView):
             instance.processed_content = processed_content
             instance.save()
 
+            # Create profile from processed content
+            try:
+                content = json.loads(processed_content)
+                if not content:
+                    raise ValueError("No content parsed from resume")
+
+                # Extract name
+                name_parts = content.get('name', '').split() if content.get('name') else []
+                first_name = name_parts[0] if name_parts else ''
+                last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+                # Create Profile
+                profile = Profile.objects.create(
+                    firstName=first_name,
+                    lastName=last_name,
+                    email=content.get('contact_info', {}).get('email', ''),
+                    phone=content.get('contact_info', {}).get('phone', ''),
+                    zipCode=content.get('contact_info', {}).get('zipCode', '')
+                )
+
+                # Create Experience
+                if content.get('work_experience'):
+                    Experience.objects.create(
+                        profile=profile,
+                        jobTitle=content['work_experience'].get('jobTitle', ''),
+                        company=content['work_experience'].get('company', ''),
+                        startDate=content['work_experience'].get('startDate', ''),
+                        endDate=content['work_experience'].get('endDate', ''),
+                        location=content['work_experience'].get('location', ''),
+                        jobDescription=content['work_experience'].get('jobDescription', '')
+                    )
+
+                # Create Education
+                if content.get('education'):
+                    Education.objects.create(
+                        profile=profile,
+                        highestDegree=content['education'].get('highestDegree', ''),
+                        fieldOfStudy=content['education'].get('fieldOfStudy', ''),
+                        institution=content['education'].get('institution', ''),
+                        graduationYear=content['education'].get('graduationYear', '')
+                    )
+
+                # Create Skills
+                if content.get('skills'):
+                    Skills.objects.create(
+                        profile=profile,
+                        skills=content['skills']
+                    )
+
+                logger.info(f"Created profile for {profile.firstName} {profile.lastName}")
+
+            except Exception as e:
+                logger.error(f"Error creating profile: {str(e)}")
+                # Don't fail the request if profile creation fails
+                # Just log the error and continue
+
+            # Clean up the uploaded file
+            try:
+                os.remove(instance.file_path())
+                instance.delete()
+            except Exception as e:
+                logger.error(f"Error cleaning up file: {str(e)}")
+                # Don't fail if cleanup fails
+
             return Response({
                 "file": instance.file.url,
-                "processed_content": instance.processed_content
+                "processed_content": processed_content
             }, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             logger.error(f"Error in file upload: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -99,6 +165,48 @@ class JobPostingAPIView(APIView):
         except Exception as e:
             logger.error(f"Error in job posting analysis: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileAPIView(APIView):
+    def get(self, request):
+        try:
+            # Get the most recent profile
+            profile = Profile.objects.latest('id')
+            
+            # Get related data
+            experiences = Experience.objects.filter(profile=profile)
+            education = Education.objects.filter(profile=profile)
+            skills = Skills.objects.filter(profile=profile)
+
+            # Format the response
+            response_data = {
+                'firstName': profile.firstName,
+                'lastName': profile.lastName,
+                'email': profile.email,
+                'phone': profile.phone,
+                'zipCode': profile.zipCode,
+                'experience': [{
+                    'jobTitle': exp.jobTitle,
+                    'company': exp.company,
+                    'startDate': exp.startDate,
+                    'endDate': exp.endDate,
+                    'location': exp.location,
+                    'jobDescription': exp.jobDescription
+                } for exp in experiences],
+                'education': [{
+                    'highestDegree': edu.highestDegree,
+                    'fieldOfStudy': edu.fieldOfStudy,
+                    'institution': edu.institution,
+                    'graduationYear': edu.graduationYear
+                } for edu in education],
+                'skills': [skill.skills for skill in skills]
+            }
+            
+            return Response(response_data)
+        except Profile.DoesNotExist:
+            return Response({'error': 'Profile not found'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes

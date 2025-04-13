@@ -43,16 +43,20 @@ export async function POST(request: NextRequest) {
     // Get the JWT token from the Authorization header
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    console.log('Received token:', token ? 'Present' : 'Missing');
     
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
     
-    // Decode and verify the token to get the user ID
-    const secret = process.env.JWT_SECRET;
-    console.log('JWT Secret:', secret ? 'Present' : 'Missing');
-    
+    // Decode and verify the token
+    const secret = process.env.JWT_SECRET as string;
     if (!secret) {
       return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { status: 500 });
     }
@@ -60,22 +64,18 @@ export async function POST(request: NextRequest) {
     try {
       const decodedToken = jwt.verify(token, secret) as { id: number };
       const userId = decodedToken.id;
-      console.log('Decoded user ID:', userId);
-    
+      
       // Parse request body
       const body = await request.json();
-      console.log('Received profile data:', body);
-      
       const validationResult = profileSchema.safeParse(body);
       
       if (!validationResult.success) {
-        console.error('Validation error:', validationResult.error);
         return NextResponse.json({ error: 'Invalid data', details: validationResult.error }, { status: 400 });
       }
       
       const data = validationResult.data;
       
-      // Check if user exists
+      // Check if user exists and update/create profile
       const user = await prisma.$transaction(async (tx) => {
         const foundUser = await tx.user.findUnique({
           where: { id: userId },
@@ -124,7 +124,6 @@ export async function POST(request: NextRequest) {
             where: { profileId: profile.id }
           });
           
-          // Add skills if they exist
           if (skillsToAdd.length > 0) {
             await Promise.all(skillsToAdd.map(skillName => 
               tx.skill.create({
@@ -166,11 +165,8 @@ export async function POST(request: NextRequest) {
       });
       
       if (!user) {
-        console.error('User not found:', userId);
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
-      
-      console.log('Found user:', { id: user.user.id, hasProfile: !!user.profile });
       
       // Construct response with the profile and skills
       const profileResponse: ProfileWithStringSkills = {
@@ -182,6 +178,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         profile: profileResponse
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
       });
       
     } catch (error) {
@@ -202,7 +204,14 @@ export async function GET(request: NextRequest) {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
     
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
     }
     
     // Decode and verify the token
@@ -215,41 +224,54 @@ export async function GET(request: NextRequest) {
     const userId = decodedToken.id;
     
     // Get user profile with skills
-    const result = await prisma.$transaction(async (tx) => {
-      const profile = await tx.profile.findUnique({
-        where: { userId },
-        include: {
-          skills: true,
-          user: {
-            select: {
-              email: true
-            }
+    const profile = await prisma.profile.findFirst({
+      where: { userId },
+      include: {
+        skills: true,
+        user: {
+          select: {
+            email: true
           }
         }
-      });
-      
-      return profile;
+      }
     });
     
-    if (!result) {
+    if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
     
     // Construct response with the profile and skills
     const profileResponse: ProfileWithStringSkills = {
-      ...result,
-      email: result.user.email,
-      skills: result.skills.map(skill => skill.name)
+      ...profile,
+      skills: profile.skills.map(skill => skill.name),
+      email: profile.user.email
     };
     
-    // Return the profile data
+    // Return the profile data with CORS headers
     return NextResponse.json({ 
       success: true, 
       profile: profileResponse
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
     });
     
   } catch (error) {
     console.error('Profile fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(_request: NextRequest) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
 }

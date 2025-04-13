@@ -14,6 +14,51 @@ class UploadedFile(models.Model):
         return self.file.path
 
 
+class Profile(models.Model):
+    firstName = models.CharField(max_length=255)
+    lastName = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    zipCode = models.CharField(max_length=10, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.firstName} {self.lastName}"
+
+
+class Experience(models.Model):
+    profile = models.ForeignKey(Profile, related_name='experiences', on_delete=models.CASCADE)
+    jobTitle = models.CharField(max_length=255)
+    company = models.CharField(max_length=255)
+    startDate = models.CharField(max_length=50)
+    endDate = models.CharField(max_length=50)
+    location = models.CharField(max_length=255, blank=True)
+    jobDescription = models.TextField()
+
+    def __str__(self):
+        return f"{self.jobTitle} at {self.company}"
+
+
+class Education(models.Model):
+    profile = models.ForeignKey(Profile, related_name='education', on_delete=models.CASCADE)
+    highestDegree = models.CharField(max_length=255)
+    fieldOfStudy = models.CharField(max_length=255)
+    institution = models.CharField(max_length=255)
+    graduationYear = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.highestDegree} in {self.fieldOfStudy}"
+
+
+class Skills(models.Model):
+    profile = models.ForeignKey(Profile, related_name='skills', on_delete=models.CASCADE)
+    skills = models.JSONField()
+
+    def __str__(self):
+        return f"Skills for {self.profile}"
+
+
 class Resume(models.Model):
     name = models.CharField(max_length=255)
     contact_info = models.TextField()
