@@ -1,10 +1,15 @@
 'use client';
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
 import HybridDateSelector from '@/components/HybridDateSelector';
+
+// Define validation error type
+interface ValidationErrors {
+  [key: string]: string;
+}
 
 export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
@@ -45,6 +50,11 @@ export default function Home() {
     skills: [] as string[],
     newSkill: ''
   });
+
+  // Form validation errors
+  const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationErrors>({});
+  const [experienceInfoErrors, setExperienceInfoErrors] = useState<ValidationErrors>({});
+  const [educationInfoErrors, setEducationInfoErrors] = useState<ValidationErrors>({});
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -215,53 +225,190 @@ export default function Home() {
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setBasicInfoErrors({});
   };
 
   const closeExperienceModal = () => {
     setIsExperienceModalOpen(false);
+    setExperienceInfoErrors({});
+  };
+
+  const validateBasicInfo = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Check first name
+    if (!basicInfo.firstName.trim()) {
+      errors.firstName = "First name is required";
+    }
+
+    // Check last name
+    if (!basicInfo.lastName.trim()) {
+      errors.lastName = "Last name is required";
+    }
+
+    // Check phone
+    if (!basicInfo.phone) {
+      errors.phone = "Phone number is required";
+    } else {
+      // Remove all non-numeric characters for the check
+      const digitsOnly = basicInfo.phone.replace(/\D/g, '');
+      if (digitsOnly.length !== 10) {
+        errors.phone = "Phone number must be exactly 10 digits (XXX-XXX-XXXX)";
+      } else if (!/^\d{3}-\d{3}-\d{4}$/.test(basicInfo.phone)) {
+        // This shouldn't happen with our formatter, but just in case
+        errors.phone = "Phone number should be in XXX-XXX-XXXX format";
+      }
+    }
+
+    // Check zip code
+    if (!basicInfo.zipCode) {
+      errors.zipCode = "Zip code is required";
+    } else if (!/^\d{5}(-\d{4})?$/.test(basicInfo.zipCode)) {
+      errors.zipCode = "Enter a valid zip code (e.g., 12345 or 12345-6789)";
+    }
+
+    setBasicInfoErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateExperienceInfo = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Job description is optional but if provided, check length
+    if (experienceInfo.jobDescription && experienceInfo.jobDescription.length > 300) {
+      errors.jobDescription = "Description must be 300 characters or less";
+    }
+
+    setExperienceInfoErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateEducationInfo = (): boolean => {
+    const errors: ValidationErrors = {};
+
+    // Check highest degree
+    if (!educationInfo.highestDegree) {
+      errors.highestDegree = "Please select your highest degree";
+    }
+
+    // Check field of study
+    if (!educationInfo.fieldOfStudy.trim()) {
+      errors.fieldOfStudy = "Field of study is required";
+    }
+
+    // Check institution
+    if (!educationInfo.institution.trim()) {
+      errors.institution = "Institution name is required";
+    }
+
+    // Check graduation year
+    if (!educationInfo.graduationYear) {
+      errors.graduationYear = "Graduation year is required";
+    } else {
+      const year = parseInt(educationInfo.graduationYear);
+      const currentYear = new Date().getFullYear();
+      
+      if (isNaN(year) || year < 1900 || year > currentYear + 10) {
+        errors.graduationYear = `Please enter a valid year between 1900 and ${currentYear + 10}`;
+      }
+    }
+
+    setEducationInfoErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleBasicInfoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Move to the next step - professional experience
-    setIsModalOpen(false);
-    setIsExperienceModalOpen(true);
+    
+    // Validate basic info
+    if (validateBasicInfo()) {
+      // Move to the next step - professional experience
+      setIsModalOpen(false);
+      setIsExperienceModalOpen(true);
+    }
+  };
+
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-numeric characters
+    const phoneNumber = value.replace(/\D/g, '');
+    
+    // Format the phone number as XXX-XXX-XXXX
+    if (phoneNumber.length <= 3) {
+      return phoneNumber;
+    } else if (phoneNumber.length <= 6) {
+      return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3)}`;
+    } else {
+      return `${phoneNumber.slice(0, 3)}-${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+    }
   };
 
   const handleBasicInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setBasicInfo({
-      ...basicInfo,
-      [name]: value
-    });
+    
+    // Special handling for phone number
+    if (name === 'phone') {
+      const formattedPhone = formatPhoneNumber(value);
+      setBasicInfo({
+        ...basicInfo,
+        [name]: formattedPhone
+      });
+    } else {
+      setBasicInfo({
+        ...basicInfo,
+        [name]: value
+      });
+    }
+    
+    // Clear specific error when field is being edited
+    if (basicInfoErrors[name]) {
+      setBasicInfoErrors({
+        ...basicInfoErrors,
+        [name]: ''
+      });
+    }
   };
   
-  const handleExperienceInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement |     HTMLSelectElement>) => {
+  const handleExperienceInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setExperienceInfo({
       ...experienceInfo,
       [name]: value
     });
+    
+    // Clear specific error when field is being edited
+    if (experienceInfoErrors[name]) {
+      setExperienceInfoErrors({
+        ...experienceInfoErrors,
+        [name]: ''
+      });
+    }
   };
 
   const handleBackToBasicInfo = () => {
     setIsExperienceModalOpen(false);
+    setExperienceInfoErrors({});
     setIsModalOpen(true);
   };
 
   const handleExperienceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Move to the next form (education)
-    setIsExperienceModalOpen(false);
-    setIsEducationModalOpen(true);
+    
+    // Validate experience info
+    if (validateExperienceInfo()) {
+      // Move to the next form (education)
+      setIsExperienceModalOpen(false);
+      setIsEducationModalOpen(true);
+    }
   };
 
   const closeEducationModal = () => {
     setIsEducationModalOpen(false);
+    setEducationInfoErrors({});
   };
 
   const handleBackToExperience = () => {
     setIsEducationModalOpen(false);
+    setEducationInfoErrors({});
     setIsExperienceModalOpen(true);
   };
 
@@ -271,13 +418,25 @@ export default function Home() {
       ...educationInfo,
       [name]: value
     });
+    
+    // Clear specific error when field is being edited
+    if (educationInfoErrors[name]) {
+      setEducationInfoErrors({
+        ...educationInfoErrors,
+        [name]: ''
+      });
+    }
   };
 
   const handleEducationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Move to the next form (skills)
-    setIsEducationModalOpen(false);
-    setIsSkillsModalOpen(true);
+    
+    // Validate education info
+    if (validateEducationInfo()) {
+      // Move to the next form (skills)
+      setIsEducationModalOpen(false);
+      setIsSkillsModalOpen(true);
+    }
   };
 
   const closeSkillsModal = () => {
@@ -291,10 +450,15 @@ export default function Home() {
 
   const handleAddSkill = () => {
     if (skillsInfo.newSkill.trim() !== '') {
-      setSkillsInfo({
-        skills: [...skillsInfo.skills, skillsInfo.newSkill.trim()],
-        newSkill: ''
-      });
+      // Check if skill already exists
+      if (!skillsInfo.skills.includes(skillsInfo.newSkill.trim())) {
+        setSkillsInfo({
+          skills: [...skillsInfo.skills, skillsInfo.newSkill.trim()],
+          newSkill: ''
+        });
+      } else {
+        alert("This skill has already been added");
+      }
     }
   };
 
@@ -314,6 +478,12 @@ export default function Home() {
 
   const handleSkillsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Check if at least one skill is provided
+    if (skillsInfo.skills.length === 0) {
+      alert("Please add at least one skill before submitting");
+      return;
+    }
 
     // Combine all data from the form steps
     const profileData = {
@@ -520,8 +690,11 @@ export default function Home() {
                     placeholder="First name"
                     value={basicInfo.firstName}
                     onChange={handleBasicInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${basicInfoErrors.firstName ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {basicInfoErrors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">{basicInfoErrors.firstName}</p>
+                  )}
                 </div>
                 <div>
                   <input
@@ -530,8 +703,11 @@ export default function Home() {
                     placeholder="Last name"
                     value={basicInfo.lastName}
                     onChange={handleBasicInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${basicInfoErrors.lastName ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {basicInfoErrors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">{basicInfoErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -543,8 +719,12 @@ export default function Home() {
                     placeholder="Phone number"
                     value={basicInfo.phone}
                     onChange={handleBasicInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    maxLength={12} 
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${basicInfoErrors.phone ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {basicInfoErrors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{basicInfoErrors.phone}</p>
+                  )}
                 </div>
                 <div>
                   <input
@@ -553,8 +733,11 @@ export default function Home() {
                     placeholder="Zip code"
                     value={basicInfo.zipCode}
                     onChange={handleBasicInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${basicInfoErrors.zipCode ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {basicInfoErrors.zipCode && (
+                    <p className="text-red-500 text-xs mt-1">{basicInfoErrors.zipCode}</p>
+                  )}
                 </div>
               </div>
 
@@ -620,22 +803,25 @@ export default function Home() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   {/* Start Date Selector */}
-                  <HybridDateSelector
-                    name="startDate"
-                    value={experienceInfo.startDate}
-
-                    onChange={handleExperienceInfoChange}
-                    placeholder="Start date (MM/YYYY)"
-                  />
+                  <div>
+                    <HybridDateSelector
+                      name="startDate"
+                      value={experienceInfo.startDate}
+                      onChange={handleExperienceInfoChange}
+                      placeholder="Start date (MM/YYYY)"
+                    />
+                  </div>
                   
                   {/* End Date Selector */}
-                  <HybridDateSelector
-                    name="endDate"
-                    value={experienceInfo.endDate}
-                    onChange={handleExperienceInfoChange}
-                    placeholder="End date (MM/YYYY)"
-                    allowPresent={true}
-                  />
+                  <div>
+                    <HybridDateSelector
+                      name="endDate"
+                      value={experienceInfo.endDate}
+                      onChange={handleExperienceInfoChange}
+                      placeholder="End date (MM/YYYY)"
+                      allowPresent={true}
+                    />
+                  </div>
                 </div>
                 <div>
                   <input
@@ -655,10 +841,17 @@ export default function Home() {
                     maxLength={300}
                     value={experienceInfo.jobDescription || ''}
                     onChange={handleExperienceInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none h-24"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 resize-none h-24 ${experienceInfoErrors.jobDescription ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   ></textarea>
-                  <div className="text-right text-xs text-gray-400 mt-1">
-                    {(experienceInfo.jobDescription?.length || 0)}/300 characters
+                  <div className="flex justify-between items-center mt-1">
+                    <div>
+                      {experienceInfoErrors.jobDescription && (
+                        <p className="text-red-500 text-xs">{experienceInfoErrors.jobDescription}</p>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {(experienceInfo.jobDescription?.length || 0)}/300 characters
+                    </div>
                   </div>
                 </div>
                 
@@ -712,7 +905,7 @@ export default function Home() {
                     name="highestDegree"
                     value={educationInfo.highestDegree}
                     onChange={handleEducationInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 appearance-none ${educationInfoErrors.highestDegree ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   >
                     <option value="" disabled>Highest Degree</option>
                     <option value="high_school">High School</option>
@@ -726,6 +919,9 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
                   </div>
+                  {educationInfoErrors.highestDegree && (
+                    <p className="text-red-500 text-xs mt-1">{educationInfoErrors.highestDegree}</p>
+                  )}
                 </div>
                 <div>
                   <input
@@ -734,8 +930,11 @@ export default function Home() {
                     placeholder="Field of Study"
                     value={educationInfo.fieldOfStudy}
                     onChange={handleEducationInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${educationInfoErrors.fieldOfStudy ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {educationInfoErrors.fieldOfStudy && (
+                    <p className="text-red-500 text-xs mt-1">{educationInfoErrors.fieldOfStudy}</p>
+                  )}
                 </div>
               </div>
 
@@ -747,8 +946,11 @@ export default function Home() {
                     placeholder="Institution"
                     value={educationInfo.institution}
                     onChange={handleEducationInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${educationInfoErrors.institution ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {educationInfoErrors.institution && (
+                    <p className="text-red-500 text-xs mt-1">{educationInfoErrors.institution}</p>
+                  )}
                 </div>
                 <div>
                   <input
@@ -757,8 +959,11 @@ export default function Home() {
                     placeholder="Graduation Year"
                     value={educationInfo.graduationYear}
                     onChange={handleEducationInfoChange}
-                    className="w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${educationInfoErrors.graduationYear ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
+                  {educationInfoErrors.graduationYear && (
+                    <p className="text-red-500 text-xs mt-1">{educationInfoErrors.graduationYear}</p>
+                  )}
                 </div>
               </div>
 
@@ -807,7 +1012,7 @@ export default function Home() {
 
             <form className="space-y-4" onSubmit={handleSkillsSubmit}>
               <div className="mb-4">
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4 min-h-[60px] p-2 border border-gray-700 rounded">
                   {skillsInfo.skills.length > 0 ? (
                     skillsInfo.skills.map((skill, index) => (
                       <div
@@ -828,7 +1033,7 @@ export default function Home() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-gray-400 text-sm">Add your professional skills below</div>
+                    <div className="text-gray-400 text-sm flex items-center justify-center w-full h-full">Add your professional skills below</div>
                   )}
                 </div>
 
@@ -854,6 +1059,9 @@ export default function Home() {
                     Add
                   </button>
                 </div>
+                {skillsInfo.skills.length === 0 && (
+                  <p className="text-amber-400 text-xs mt-2">Please add at least one skill before submitting</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4">
@@ -867,6 +1075,7 @@ export default function Home() {
                 <button
                   type="submit"
                   className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  disabled={skillsInfo.skills.length === 0}
                 >
                   Create Profile
                 </button>
@@ -880,5 +1089,5 @@ export default function Home() {
         </div>
       )}
     </main>
-  );
+  )
 }
