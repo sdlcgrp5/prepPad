@@ -11,6 +11,32 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ParsedResumeData {
+  file?: string;
+  processed_content?: {
+    name?: string;
+    contact_info?: {
+      email?: string;
+      phone?: string | null;
+      zipCode?: string;
+    };
+    education?: {
+      institution?: string;
+      highestDegree?: string;
+      fieldOfStudy?: string;
+      graduationYear?: string;
+    };
+    work_experience?: {
+      company?: string;
+      jobTitle?: string;
+      startDate?: string;
+      endDate?: string;
+      jobDescription?: string;
+    };
+    skills?: string[];
+  };
+}
+
 export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -18,7 +44,7 @@ export default function Home() {
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
-  const { user, logout, token } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
 
   // Form state
@@ -99,123 +125,138 @@ export default function Home() {
   const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
+      
+      // File validation
+      if (!file) {
+        throw new Error('No file selected');
+      }
+
+      const fileType = file.type;
+      if (fileType !== "application/pdf" && fileType !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        throw new Error('Please upload a PDF or DOCX file');
+      }
+
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error('File size should be less than 10MB');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 
-      console.log('Token before resume upload:', token); // Debug log
-
-      // Send to Django backend for resume parsing
-      const response = await fetch('http://localhost:8000/api/resume-upload/', {
+      // Step 1: Upload and Parse Resume
+      const parseResponse = await fetch('http://localhost:8000/api/resume-upload/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}` // Use token from context
-        },
         body: formData
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Resume upload error:', errorData);
-        throw new Error('Resume upload failed');
+      if (!parseResponse.ok) {
+        const errorData = await parseResponse.json();
+        throw new Error(errorData.message || 'Resume parsing failed');
       }
 
-      const data = await response.json();
-      console.log('Resume upload response data:', data);
-
-      // Extract profile data from the processed content
-      const processedContent = data.processed_content || data.processed_data || data;
-      console.log('Raw processed content:', processedContent);
-      console.log('Contact info:', processedContent.contact_info);
-      console.log('Work experience:', processedContent.work_experience);
-      console.log('Education:', processedContent.education);
-      console.log('Skills:', processedContent.skills);
+      // Step 2: Get Parsed Data and log raw response
+      const rawResponse = await parseResponse.text();
+      console.log('Raw response from backend:', rawResponse);
       
-      if (!processedContent) {
-        console.error('No processed content in response:', data);
-        throw new Error('No processed content received from resume');
-      }
+      const rawData: ParsedResumeData = JSON.parse(rawResponse);
+      console.log('Raw parsed data:', rawData);
 
-      try {
-        // Extract name into first and last name
-        const fullName = processedContent.name || '';
-        console.log('Full name from resume:', fullName);
+      // Extract data from processed_content
+      if (rawData.processed_content) {
+        const content = rawData.processed_content;
+        
+        // Handle name
+        let firstName = '', lastName = '';
+        if (content.name) {
+          const nameParts = content.name.trim().split(/\s+/);
+          if (nameParts.length > 0) {
+            firstName = nameParts[0];
+            lastName = nameParts.slice(1).join(' ');
+          }
+        }
 
-        // Split name into first and last name (basic implementation)
-        const nameParts = fullName.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        // Extract contact info from array
-        const [email, phone, address] = processedContent.contact_info || [];
-
-        // Extract work experience from array
-        const workExp = processedContent.work_experience?.[0] || {};
-
-        // Extract education from array
-        const edu = processedContent.education?.[0] || {};
-
-        // Prepare profile data
+        // Step 3: Format Data for Profile Creation
         const profileData = {
           firstName,
           lastName,
-          phone: phone || '',
-          email: email || '',
-          zipCode: address || '',
-          jobTitle: workExp.job_title || '',
-          company: workExp.company || '',
-          jobDescription: workExp.job_description || '',
-          yearsOfExperience: workExp.years_of_experience || '',
-          linkedinUrl: email?.includes('linkedin.com') ? email : '',
-          highestDegree: edu.degree || '',
-          fieldOfStudy: edu.field_of_study || '',
-          institution: edu.institution || '',
-          graduationYear: edu.graduation_year || '',
-          skills: processedContent.skills || []
+          email: content.contact_info?.email || '',
+          phone: content.contact_info?.phone || '',
+          experience: content.work_experience ? [{
+            jobTitle: content.work_experience.jobTitle || '',
+            company: content.work_experience.company || '',
+            startDate: content.work_experience.startDate || '',
+            endDate: content.work_experience.endDate || '',
+            location: '',
+            jobDescription: content.work_experience.jobDescription || ''
+          }] : [],
+          education: content.education ? [{
+            highestDegree: content.education.highestDegree || '',
+            fieldOfStudy: content.education.fieldOfStudy || '',
+            institution: content.education.institution || '',
+            graduationYear: content.education.graduationYear || ''
+          }] : [],
+          skills: content.skills || []
         };
 
-        console.log('Prepared profile data:', profileData);
-        console.log('Using token from context:', token); // Debug log
-        console.log('Token type:', typeof token); // Debug log
-        console.log('Token length:', token?.length); // Debug log
+        console.log('Processed profile data:', profileData);
 
-        if (!token) {
-          throw new Error('Not authenticated. Please log in first.');
+        // Validate required fields with detailed error messages
+        const missingFields = [];
+        if (!profileData.firstName) missingFields.push('First Name');
+        if (!profileData.lastName) missingFields.push('Last Name');
+        if (!profileData.email) missingFields.push('Email');
+
+        if (missingFields.length > 0) {
+          console.error('Missing fields in parsed data:', rawData);
+          throw new Error(`Missing required profile information: ${missingFields.join(', ')}. Please check if your resume contains this information or fill it in manually.`);
         }
 
-        // Send profile data to create/update profile
-        const profileResponse = await fetch('/api/profile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // Use token from context
-          },
-          body: JSON.stringify(profileData)
+        // Update form state with parsed data
+        setBasicInfo({
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          email: profileData.email,
+          phone: profileData.phone || '',
+          zipCode: content.contact_info?.zipCode || ''
         });
 
-        if (!profileResponse.ok) {
-          const errorData = await profileResponse.json();
-          console.error('Profile creation error details:', errorData);
-          throw new Error(errorData.error || errorData.details?.issues?.[0]?.message || 'Failed to create profile');
+        if (profileData.experience.length > 0) {
+          setExperienceInfo({
+            jobTitle: profileData.experience[0].jobTitle,
+            company: profileData.experience[0].company,
+            startDate: profileData.experience[0].startDate,
+            endDate: profileData.experience[0].endDate,
+            location: profileData.experience[0].location,
+            jobDescription: profileData.experience[0].jobDescription
+          });
         }
 
-        const profileResult = await profileResponse.json();
-        console.log('Profile created successfully:', profileResult);
+        if (profileData.education.length > 0) {
+          setEducationInfo({
+            highestDegree: profileData.education[0].highestDegree,
+            fieldOfStudy: profileData.education[0].fieldOfStudy,
+            institution: profileData.education[0].institution,
+            graduationYear: profileData.education[0].graduationYear
+          });
+        }
 
-        // Show success message
-        alert('Resume uploaded and profile created successfully!');
+        if (profileData.skills.length > 0) {
+          setSkillsInfo(prev => ({
+            ...prev,
+            skills: profileData.skills
+          }));
+        }
 
-        // Redirect to dashboard
-        router.push('/dashboard');
-
-      } catch (error) {
-        console.error('Error processing resume data:', error);
-        throw error;
+        // Open the form modal with pre-filled data
+        setIsModalOpen(true);
+        setIsUploading(false);
+      } else {
+        throw new Error('No processed content in response');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to process resume');
-    } finally {
+    } catch (e) {
       setIsUploading(false);
+      console.error('Error:', e);
+      alert(e instanceof Error ? e.message : 'An unexpected error occurred');
     }
   };
 
@@ -498,8 +539,7 @@ export default function Home() {
       const response = await fetch('http://localhost:8000/api/profile/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Add Bearer token
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(profileData),
       });
