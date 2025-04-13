@@ -175,14 +175,12 @@ export default function Home() {
 
         console.log('Prepared profile data:', profileData);
         console.log('Using token from context:', token); // Debug log
-        console.log('Token type:', typeof token); // Debug log
-        console.log('Token length:', token?.length); // Debug log
 
         if (!token) {
           throw new Error('Not authenticated. Please log in first.');
-        }
+        };
 
-        // Send profile data to create/update profile
+        // Send profile data to create/update profile without validation
         const profileResponse = await fetch('/api/profile', {
           method: 'POST',
           headers: {
@@ -253,7 +251,7 @@ export default function Home() {
       // Remove all non-numeric characters for the check
       const digitsOnly = basicInfo.phone.replace(/\D/g, '');
       if (digitsOnly.length !== 10) {
-        errors.phone = "Phone number must be exactly 10 digits (XXX-XXX-XXXX)";
+        errors.phone = "Phone number must be exactly 10 digits";
       } else if (!/^\d{3}-\d{3}-\d{4}$/.test(basicInfo.phone)) {
         // This shouldn't happen with our formatter, but just in case
         errors.phone = "Phone number should be in XXX-XXX-XXXX format";
@@ -719,7 +717,7 @@ export default function Home() {
                     placeholder="Phone number"
                     value={basicInfo.phone}
                     onChange={handleBasicInfoChange}
-                    maxLength={12} 
+                    maxLength={12} // To accommodate XXX-XXX-XXXX format
                     className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 ${basicInfoErrors.phone ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
                   />
                   {basicInfoErrors.phone && (
