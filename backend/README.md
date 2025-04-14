@@ -34,7 +34,7 @@ backend/
 │   │   └── serializers.py      # Data serialization
 │   └── file_upload_project/    # Project settings
 │       ├── settings.py         # Django settings
-│       └── urls.py         # Main URL routing
+│       └── urls.py             # Main URL routing
 ```
 
 ## API Endpoints
@@ -143,3 +143,195 @@ response = requests.post(
     headers=headers
 )
 ```
+
+# Backend Module Documentation
+
+## Core Modules
+
+### File Processing (`utils.py`)
+
+#### `processResume(resume_file_path: str)`
+Processes uploaded resume files and extracts structured information.
+
+**Arguments:**
+- `resume_file_path`: String path to the uploaded resume file
+
+**Returns:**
+```json
+{
+    "name": "string",
+    "contact_info": {
+        "email": "string",
+        "phone": "string",
+        "zipCode": "string"
+    },
+    "work_experience": {
+        "company": "string",
+        "jobTitle": "string",
+        "startDate": "string",
+        "endDate": "string",
+        "jobDescription": "string"
+    },
+    "education": {
+        "institution": "string",
+        "highestDegree": "string",
+        "fieldOfStudy": "string",
+        "graduationYear": "string"
+    },
+    "skills": ["string"]
+}
+```
+
+**Supported File Types:**
+- PDF (using pdfplumber)
+- DOCX (using python-docx)
+
+#### `extractJobDescription(url: str)`
+Scrapes and analyzes job postings from provided URLs.
+
+**Arguments:**
+- `url`: String URL of the job posting
+
+**Returns:**
+```json
+{
+    "title": "string",
+    "description": "string",
+    "qualifications": ["string"],
+    "skills": ["string"],
+    "responsibilities": ["string"],
+    "salary_range": "string",
+    "location": "string"
+}
+```
+
+### Analysis (`utils.py`)
+
+#### `resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str)`
+Compares resume against job posting and provides analysis.
+
+**Arguments:**
+- `resume_file_path`: String path to resume file
+- `job_posting_url`: String URL of job posting
+
+**Returns:**
+```json
+{
+    "strengths": ["string"],
+    "weaknesses": ["string"],
+    "improvement_tips": ["string"],
+    "keywords_missing": ["string"],
+    "keywords_found": ["string"],
+    "match_score": "number"
+}
+```
+
+### API Views (`views.py`)
+
+#### `FileUploadAPIView`
+Handles resume file uploads and processing.
+
+**Endpoints:**
+- POST `/api/resume-upload/`
+- Requires JWT authentication
+- Accepts multipart/form-data
+
+#### `AnalysisAPIView`
+Handles resume analysis against job postings.
+
+**Endpoints:**
+- POST `/api/analysis/`
+- Requires JWT authentication
+- Accepts multipart/form-data with job URL
+
+### Models (`models.py`)
+
+#### `UploadedFile`
+Stores uploaded resume files and processed content.
+
+**Fields:**
+```python
+file = FileField(upload_to='uploads/')
+processed_content = TextField(blank=True)
+uploaded_at = DateTimeField(auto_now_add=True)
+```
+
+#### `Profile`
+Stores extracted profile information.
+
+**Fields:**
+```python
+firstName = CharField(max_length=255)
+lastName = CharField(max_length=255)
+email = EmailField()
+phone = CharField(max_length=20)
+zipCode = CharField(max_length=10)
+```
+
+### Serializers (`serializers.py`)
+
+#### `FileUploadSerializer`
+Handles validation and serialization of file uploads.
+
+**Fields:**
+```python
+file = FileField()
+job_posting_url = URLField(required=False)
+```
+
+#### `AnalysisSerializer`
+Handles validation and serialization of analysis requests.
+
+**Fields:**
+```python
+file = FileField()
+job_posting_url = URLField()
+```
+
+## Utility Functions
+
+### Text Processing (`utils.py`)
+
+#### `clean_text(text: str) -> str`
+Cleans and normalizes text content.
+
+**Operations:**
+- Removes Unicode escape sequences
+- Normalizes whitespace
+- Removes special characters
+- Handles line breaks
+
+### Web Scraping (`utils.py`)
+
+#### `setup_selenium_driver() -> webdriver.Chrome`
+Configures Selenium WebDriver for job scraping.
+
+**Configuration:**
+- Headless mode
+- Custom timeout settings
+- Error handling
+- Resource cleanup
+
+## Error Handling
+
+All modules implement comprehensive error handling:
+- File format validation
+- API request validation
+- Network error handling
+- Processing error handling
+
+## Performance Considerations
+
+- File processing is handled asynchronously
+- Implements caching for job descriptions
+- Uses connection pooling for API requests
+- Implements rate limiting for external APIs
+
+## Security Features
+
+- JWT authentication required for all endpoints
+- File type validation
+- File size limits
+- Secure file storage
+- Input sanitization
+- CORS configuration
