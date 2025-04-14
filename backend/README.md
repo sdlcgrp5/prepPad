@@ -150,7 +150,7 @@ response = requests.post(
 
 ### File Processing (`utils.py`)
 
-#### `processResume(resume_file_path: str)`
+#### `processResume(resume_file_path: str) -> JSON`
 Processes uploaded resume files and extracts structured information.
 
 **Arguments:**
@@ -186,7 +186,7 @@ Processes uploaded resume files and extracts structured information.
 - PDF (using pdfplumber)
 - DOCX (using python-docx)
 
-#### `extractJobDescription(url: str)`
+#### `extractJobDescription(url: str) -> JSON`
 Scrapes and analyzes job postings from provided URLs.
 
 **Arguments:**
@@ -207,7 +207,7 @@ Scrapes and analyzes job postings from provided URLs.
 
 ### Analysis (`utils.py`)
 
-#### `resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str)`
+#### `resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> JSON`
 Compares resume against job posting and provides analysis.
 
 **Arguments:**
@@ -292,7 +292,7 @@ job_posting_url = URLField()
 
 ### Text Processing (`utils.py`)
 
-#### `clean_text(text: str) -> str`
+#### `getRawText(text: str) -> str`
 Cleans and normalizes text content.
 
 **Operations:**
@@ -324,7 +324,6 @@ All modules implement comprehensive error handling:
 
 - File processing is handled asynchronously
 - Implements caching for job descriptions
-- Uses connection pooling for API requests
 - Implements rate limiting for external APIs
 
 ## Security Features
@@ -332,6 +331,5 @@ All modules implement comprehensive error handling:
 - JWT authentication required for all endpoints
 - File type validation
 - File size limits
-- Secure file storage
 - Input sanitization
 - CORS configuration
