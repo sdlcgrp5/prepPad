@@ -14,8 +14,24 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait        
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get API key from environment
+API_KEY = os.getenv('DEEPSEEK_API_KEY')
+
+# Load the pre-trained models for question answering and NER
+qa_pipeline = pipeline(
+    "question-answering", model="distilbert-base-cased-distilled-squad"
+)
+tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
 
 def analysisPrompt(resume_text, job_details):
@@ -78,6 +94,21 @@ def resumeProcessorPrompt(resume_text):
                             "fieldOfStudy": "",
                             "graduationYear": ""
                         }},
+                        "projects": {{
+                            "projectName": "",
+                            "projectDescription": "",
+                            "technologiesUsed": ""
+                        }},
+                        "certifications": {{
+                            "certificationName": "",
+                            "issuingOrganization": "",
+                            "issueDate": "",
+                            "expirationDate": ""
+                        }},
+                        "languages": {{
+                            "language": "",
+                            "proficiency": ""
+                        }},
                         "linkedinUrl": "",
                         "skills": []
                     }}
@@ -118,20 +149,19 @@ def jobProcessorPrompt(job_posting):
     return prompt
 
 
-def resume_job_desc_analysis(resume_file_path, job_posting_url):
+def resumeJobDescAnalysis(resume_file_path, job_posting_url):
     try:
         # Process the resume
-        resume_data = str(process_resume(resume_file_path))
+        resume_data = str(processResume(resume_file_path))
         if not resume_data:
             raise ValueError("Failed to process resume")
 
         # Extract job description details
-        job_data = str(analyze_job_posting(job_posting_url))
+        job_data = str(analyzeJobPosting(job_posting_url))
         if not job_data:
             raise ValueError("Failed to analyze job posting")
 
         # Implement job description and resume comparison here
-        API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
         url = "https://api.deepseek.com/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -140,7 +170,7 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
 
         analysis_prompt = analysisPrompt(resume_data, job_data)
         print("Sending prompt to API:", json.dumps(analysis_prompt, indent=2))
-        
+
         data = {
             "model": "deepseek-chat",
             "messages": analysis_prompt,
@@ -172,10 +202,15 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
                     and "content" in choices[0]["message"]
                 ):
                     content = json.loads(choices[0]["message"]["content"])
-                    print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                    print(
+                        "Parsed content (from error handler):",
+                        json.dumps(content, indent=2),
+                    )
                     return content
                 else:
-                    print("Unexpected response format: Missing 'choices' or nested keys.")
+                    print(
+                        "Unexpected response format: Missing 'choices' or nested keys."
+                    )
             except Exception as e:
                 print(f"Error processing API response: {str(e)}")
                 print("Response content:", result["choices"][0]["message"]["content"])
@@ -185,7 +220,7 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
             print("Response content:", response.text)
 
     except Exception as e:
-        print(f"Error in resume_job_desc_analysis: {str(e)}")
+        print(f"Error in resumeJobDescAnalysis: {str(e)}")
         return {
             "error": str(e),
             "status": "failed",
@@ -194,7 +229,7 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
         }
 
 
-def process_resume(resume_file_path):
+def processResume(resume_file_path):
     resume_text = ""
     if resume_file_path.endswith(".pdf"):
         with pdfplumber.open(f"{resume_file_path}") as pdf:
@@ -206,14 +241,13 @@ def process_resume(resume_file_path):
     else:
         raise ValueError("Unsupported file format. Use PDF or DOCX.")
 
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
-    
+
     resume_text = re.sub(r"\s+", " ", resume_text).strip()
     prompt = resumeProcessorPrompt(resume_text)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
-    
+
     data = {
         "model": "deepseek-chat",
         "messages": prompt,
@@ -245,7 +279,10 @@ def process_resume(resume_file_path):
                 and "content" in choices[0]["message"]
             ):
                 content = json.loads(choices[0]["message"]["content"])
-                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                print(
+                    "Parsed content (from error handler):",
+                    json.dumps(content, indent=2),
+                )
                 return content
             else:
                 print("Unexpected response format: Missing 'choices' or nested keys.")
@@ -258,15 +295,13 @@ def process_resume(resume_file_path):
         print("Response content:", response.text)
 
 
-def analyze_job_posting(job_posting):
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
-
+def analyzeJobPosting(job_posting):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
     prompt = jobProcessorPrompt(job_posting)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
-    
+
     data = {
         "model": "deepseek-chat",  # Use 'deepseek-reasoner' for R1 model or 'deepseek-chat' for V3 model
         "messages": prompt,
@@ -300,7 +335,10 @@ def analyze_job_posting(job_posting):
                 and "content" in choices[0]["message"]
             ):
                 content = json.loads(choices[0]["message"]["content"])
-                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                print(
+                    "Parsed content (from error handler):",
+                    json.dumps(content, indent=2),
+                )
                 return content
             else:
                 print("Unexpected response format: Missing 'choices' or nested keys.")
@@ -309,15 +347,17 @@ def analyze_job_posting(job_posting):
             print("Response content:", result["choices"][0]["message"]["content"])
         return json.loads(result["choices"][0]["message"]["content"])
     else:
-        print(f"Error: analyze_job_posting\nRequest failed, error code:{response.status_code}\n")
+        print(
+            f"Error: analyzeJobPosting\nRequest failed, error code:{response.status_code}\n"
+        )
 
 
-def clean_text(tree):
+def getRawText(tree):
     # Remove scripts/styles (XPath)
     for tag in tree.xpath("//script | //style | //noscript | //svg"):
         tag.getparent().remove(tag)
     raw_text = tree.text_content()  # Extracts all text, including whitespace
-    text = re.sub(r"\s+", " ", raw_text).strip() # Normalize whitespace
+    text = re.sub(r"\s+", " ", raw_text).strip()  # Normalize whitespace
     return text
 
 
@@ -331,24 +371,18 @@ def ner(text):
     Returns:
         dict: NER results
     """
-    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
-    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
-    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
     return ner_pipeline(text)
 
 
 # Ask a question and get an answer
-def ask_question(text, question):
-    qa_pipeline = pipeline(
-        "question-answering", model="distilbert-base-cased-distilled-squad"
-    )
+def askQuestion(text, question):
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
 
 # Extract qualifications, responsibilities, and salary range from job description
-def extract_qa_fields(text):
+def extractQAFields(text):
     questions = {
         # Question to extract the overall job description
         "description": "What is the job description?",
@@ -361,10 +395,11 @@ def extract_qa_fields(text):
         # Question to extract the salary range offered for the job
         "salary": "What is the salary range?",
     }
-    return {k: ask_question(text, q) for k, q in questions.items()}
+    return {k: askQuestion(text, q) for k, q in questions.items()}
+
 
 # Extract job description from a URL using Selenium
-def extract_job_description(url):
+def extractJobDescription(url):
     try:
         # Set up Chrome options
         chrome_options = Options()
@@ -392,10 +427,10 @@ def extract_job_description(url):
 
         # Parse HTML and extract text
         tree = html.fromstring(job_posting_html)
-        job_posting = clean_text(tree)
+        job_posting = getRawText(tree)
 
         # Process with your existing analysis
-        job_details_deepseek = analyze_job_posting(job_posting)
+        job_details_deepseek = analyzeJobPosting(job_posting)
         if job_details_deepseek:
             return job_details_deepseek
 

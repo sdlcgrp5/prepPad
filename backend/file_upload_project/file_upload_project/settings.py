@@ -12,6 +12,18 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Validate required environment variables
+REQUIRED_ENV_VARS = [
+    'DEEPSEEK_API_KEY',
+]
+
+for var in REQUIRED_ENV_VARS:
+    if os.getenv(var) is None:
+        raise Exception(f'Required environment variable "{var}" is missing!')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
