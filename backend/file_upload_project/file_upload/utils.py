@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API key from environment
-API_KEY = os.getenv('DEEPSEEK_API_KEY')
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Load the pre-trained models for question answering and NER
 qa_pipeline = pipeline(
