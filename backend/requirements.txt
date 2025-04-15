@@ -2,12 +2,13 @@
 Django
 djangorestframework
 django-cors-headers
-djangorestframework-simplejwt
+
+# Python env
+python-dotenv
 
 # NLP Libraries
 nltk==3.8.1
 spacy==3.7.2
-# pydparser
 
 # Parsing files
 pdfplumber
@@ -16,17 +17,10 @@ python-docx
 # Hugging Face Transformers
 transformers
 accelerate
+huggingface_hub[hf_xet]
 
 # PyTorch
 torch
-# torchvision==0.15.2
-
-# TensorFlow
-# tensorflow==2.13.0
-
-# JAX/Flax
-# jax==0.4.10
-# flax==0.6.9
 
 # Web Scraping
 requests

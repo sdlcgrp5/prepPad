@@ -14,7 +14,7 @@ import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
-from .utils import process_resume, extract_job_description, resume_job_desc_analysis
+from .utils import processResume, extractJobDescription, resumeJobDescAnalysis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,7 @@ class AnalysisAPIView(APIView):
                 processed_content=""
             )
             job_url = request.data["job_posting_url"]
-            analysis = resume_job_desc_analysis(instance.file_path(), job_url)
+            analysis = resumeJobDescAnalysis(instance.file_path(), job_url)
 
             return Response({
                 "file": instance.file.url,
@@ -69,7 +69,7 @@ class FileUploadAPIView(APIView):
                 file=request.FILES["file"],
                 processed_content=""
             )
-            processed_content = process_resume(instance.file_path())
+            processed_content = processResume(instance.file_path())
             instance.processed_content = processed_content
             instance.save()
 
@@ -96,7 +96,7 @@ class JobPostingAPIView(APIView):
 
         try:
             job_url = request.data["job_posting_url"]
-            job_details = extract_job_description(job_url)
+            job_details = extractJobDescription(job_url)
             logger.info(f"Job details extracted for URL: {job_url}")
 
             return Response({
@@ -166,7 +166,7 @@ def upload_file(request):
         uploaded_file = UploadedFile.objects.create(file=file)
         
         # Process the resume
-        processed_data = process_resume(uploaded_file.file.path)
+        processed_data = processResume(uploaded_file.file.path)
         print("Processed resume data:", json.dumps(processed_data, indent=2))
         
         # Delete the file after processing
@@ -192,7 +192,7 @@ def job_description_parse(request):
         if form.is_valid():
             try:
                 job_url = form.cleaned_data["job_posting_url"]
-                job_details = extract_job_description(job_url)
+                job_details = extractJobDescription(job_url)
                 return render(request, "file_upload/job_description_results.html", {
                     "job_details": job_details,
                     "form": form
