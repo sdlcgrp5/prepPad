@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AnalysisResults from './AnalysisResults';
+import Image from 'next/image';
 import { AnalysisResult } from '@/types';
 
 interface JobAnalysisModalProps {
@@ -92,7 +93,7 @@ export default function JobAnalysisModal({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="bg-gray-800 rounded-lg w-full max-w-lg">
+      <div className="bg-gray-800 rounded-md w-full max-w-lg">
         <div className="relative p-6">
           {/* Close button */}
           <button
@@ -100,10 +101,14 @@ export default function JobAnalysisModal({
             className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1"
             disabled={isLoading}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+             <Image
+                     className="fill-purple-400 text-gray-400"
+                     src="/X.svg"
+                     alt="close"
+                     width={24}
+                     height={24}
+                     priority
+                  />
           </button>
           
           {/* Title */}
@@ -127,20 +132,14 @@ export default function JobAnalysisModal({
               </label>
               <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
                 <div className="space-y-1 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
-                    stroke="currentColor"
-                    fill="none"
-                    viewBox="0 0 48 48"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <Image
+                     className="fill-purple-400 mx-auto h-12 w-12 text-gray-400"
+                     src="/filePlus2.svg"
+                     alt="profile"
+                     width={24}
+                     height={24}
+                     priority
+                  />
                   <div className="flex text-sm text-gray-400">
                     <label
                       htmlFor="resume-upload"

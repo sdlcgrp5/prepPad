@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import EmptyState from './EmptyState';
+import Image from 'next/image';
 import { JobAnalysis } from '@/types';
 
 interface JobAnalysisTableProps {
@@ -67,7 +68,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center justify-center">
+      <div className="bg-gray-800 rounded-md p-8 flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
         <p className="text-gray-400">Loading job analyses...</p>
       </div>
@@ -76,7 +77,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   // Table header component for reuse
   const TableHeader = () => (
-    <div className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 font-semibold">
+    <div className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 font-normal">
       <div className="flex items-center">
         <input 
           type="checkbox" 
@@ -85,26 +86,44 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
           onChange={toggleAllRows}
           disabled={analyses.length === 0}
         />
-        <button className="flex items-center">
+        <button className="flex items-center ">
           Company
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-            <path d="M6 9l6 6 6-6"></path>
-          </svg>
+            <div className="ml-1">
+               <Image 
+                  src="/CodeSimple.svg"
+                  alt="sorting"
+                  width={16}
+                  height={16}
+                  priority
+               />
+            </div>
         </button>
       </div>
       <button className="flex items-center">
         Date uploaded
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-          <path d="M6 9l6 6 6-6"></path>
-        </svg>
+        <div className="ml-1">
+               <Image 
+                  src="/CodeSimple.svg"
+                  alt="sorting"
+                  width={16}
+                  height={16}
+                  priority
+               />
+            </div>
       </button>
       <div>Role</div>
       <div>Source</div>
       <button className="flex items-center">
         Score
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-          <path d="M6 9l6 6 6-6"></path>
-        </svg>
+        <div className="ml-1">
+               <Image 
+                  src="/CodeSimple.svg"
+                  alt="sorting"
+                  width={16}
+                  height={16}
+                  priority
+               />
+            </div>
       </button>
     </div>
   );
