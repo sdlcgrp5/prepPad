@@ -317,8 +317,8 @@ export default function Home() {
     const errors: ValidationErrors = {};
 
     // Job description is optional but if provided, check length
-    if (experienceInfo.jobDescription && experienceInfo.jobDescription.length > 300) {
-      errors.jobDescription = "Description must be 300 characters or less";
+    if (experienceInfo.jobDescription && experienceInfo.jobDescription.length > 500) {
+      errors.jobDescription = "Description must be 500 characters or less";
     }
 
     setExperienceInfoErrors(errors);
@@ -906,7 +906,7 @@ export default function Home() {
                   <textarea
                     name="jobDescription"
                     placeholder="Job Description"
-                    maxLength={300}
+                    maxLength={500}
                     value={experienceInfo.jobDescription || ''}
                     onChange={handleExperienceInfoChange}
                     className={`w-full p-3 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 resize-none h-24 ${experienceInfoErrors.jobDescription ? 'border border-red-500 focus:ring-red-500' : 'focus:ring-purple-500'}`}
@@ -918,7 +918,7 @@ export default function Home() {
                       )}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {(experienceInfo.jobDescription?.length || 0)}/300 characters
+                      {(experienceInfo.jobDescription?.length || 0)}/500 characters
                     </div>
                   </div>
                 </div>
