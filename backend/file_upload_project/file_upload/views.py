@@ -55,6 +55,8 @@ class FileUploadAPIView(APIView):
     """API view to handle file uploads and profile creation"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
+    authentication_classes = []  # Remove authentication requirement
+    permission_classes = []      # Remove permission requirement
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -71,71 +73,8 @@ class FileUploadAPIView(APIView):
             instance.processed_content = processed_content
             instance.save()
 
-            # Create profile from processed content
-            try:
-                content = json.loads(processed_content)
-                if not content:
-                    raise ValueError("No content parsed from resume")
-
-                # Extract name
-                name_parts = content.get('name', '').split() if content.get('name') else []
-                first_name = name_parts[0] if name_parts else ''
-                last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
-
-                # Create Profile
-                profile = Profile.objects.create(
-                    firstName=first_name,
-                    lastName=last_name,
-                    email=content.get('contact_info', {}).get('email', ''),
-                    phone=content.get('contact_info', {}).get('phone', ''),
-                    zipCode=content.get('contact_info', {}).get('zipCode', '')
-                )
-
-                # Create Experience
-                if content.get('work_experience'):
-                    Experience.objects.create(
-                        profile=profile,
-                        jobTitle=content['work_experience'].get('jobTitle', ''),
-                        company=content['work_experience'].get('company', ''),
-                        startDate=content['work_experience'].get('startDate', ''),
-                        endDate=content['work_experience'].get('endDate', ''),
-                        location=content['work_experience'].get('location', ''),
-                        jobDescription=content['work_experience'].get('jobDescription', '')
-                    )
-
-                # Create Education
-                if content.get('education'):
-                    Education.objects.create(
-                        profile=profile,
-                        highestDegree=content['education'].get('highestDegree', ''),
-                        fieldOfStudy=content['education'].get('fieldOfStudy', ''),
-                        institution=content['education'].get('institution', ''),
-                        graduationYear=content['education'].get('graduationYear', '')
-                    )
-
-                # Create Skills
-                if content.get('skills'):
-                    Skills.objects.create(
-                        profile=profile,
-                        skills=content['skills']
-                    )
-
-                logger.info(f"Created profile for {profile.firstName} {profile.lastName}")
-
-            except Exception as e:
-                logger.error(f"Error creating profile: {str(e)}")
-                # Don't fail the request if profile creation fails
-                # Just log the error and continue
-
-            # Clean up the uploaded file
-            try:
-                os.remove(instance.file_path())
-                instance.delete()
-            except Exception as e:
-                logger.error(f"Error cleaning up file: {str(e)}")
-                # Don't fail if cleanup fails
-
             return Response({
+                "success": True,
                 "file": instance.file.url,
                 "processed_content": processed_content
             }, status=status.HTTP_201_CREATED)
