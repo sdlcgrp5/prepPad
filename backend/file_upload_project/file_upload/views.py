@@ -12,7 +12,7 @@ import logging
 import os
 import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
-from .models import UploadedFile, Profile, Experience, Education, Skills
+from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
 from .utils import process_resume, extract_job_description, resume_job_desc_analysis
 
@@ -25,6 +25,8 @@ class AnalysisAPIView(APIView):
     """API view to handle resume analysis against job posting"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = AnalysisSerializer
+    authentication_classes = []  # Remove authentication requirement
+    permission_classes = []      # Remove permission requirement
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)

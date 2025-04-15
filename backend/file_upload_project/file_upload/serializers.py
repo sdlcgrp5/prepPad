@@ -1,5 +1,5 @@
 from rest_framework.serializers import Serializer, ModelSerializer, URLField, FileField
-from .models import UploadedFile, Profile, Experience, Education, Skills, Resume
+from .models import UploadedFile, Resume
 import json
 
 
