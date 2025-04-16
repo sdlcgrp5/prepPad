@@ -64,8 +64,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
       
       // Store in cookies
-      Cookies.set('auth_token', data.token, { expires: 7 }); // 7 days
-      Cookies.set('user', JSON.stringify(data.user), { expires: 7 });
+      Cookies.set('auth_token', data.token, { 
+         expires: 1,
+         // secure: true,         // Only transmit over HTTPS
+         sameSite: 'strict',   // Prevent CSRF attacks
+         httpOnly: true,       // Not accessible via JavaScript (requires server-side implementation)
+         path: '/'             // Limit cookie to specific path
+       });
+       
+       Cookies.set('user', JSON.stringify(data.user), { 
+         expires: 1,
+        // secure: true,
+         sameSite: 'strict',
+         path: '/'
+       });
       
       // Direct user to resume upload page to complete their profile
       router.push('/resumeupload');

@@ -15,6 +15,7 @@ from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSer
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
 from .utils import process_resume, extract_job_description, resume_job_desc_analysis
+from rest_framework.throttling import UserRateThrottle
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,8 +26,8 @@ class AnalysisAPIView(APIView):
     """API view to handle resume analysis against job posting"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = AnalysisSerializer
-    authentication_classes = []  # Remove authentication requirement
-    permission_classes = []      # Remove permission requirement
+    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
+    permission_classes = [IsAuthenticated]      # Remove permission requirement
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -55,8 +56,8 @@ class FileUploadAPIView(APIView):
     """API view to handle file uploads and profile creation"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
-    authentication_classes = []  # Remove authentication requirement
-    permission_classes = []      # Remove permission requirement
+    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
+    permission_classes = [IsAuthenticated]      # Remove permission requirement
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -88,6 +89,8 @@ class JobPostingAPIView(APIView):
     """API view to handle job posting analysis"""
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = JobPostingSerializer
+    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
+    permission_classes = [IsAuthenticated]      # Remove permission requirement
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
