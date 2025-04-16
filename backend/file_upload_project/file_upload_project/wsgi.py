@@ -13,7 +13,7 @@ path = '/var/www/preppad/backend'
 if path not in sys.path:
     sys.path.insert(0, path)
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_upload_project.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_upload_project.settings')
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
