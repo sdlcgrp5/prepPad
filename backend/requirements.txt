@@ -2,7 +2,9 @@
 Django
 djangorestframework
 django-cors-headers
-djangorestframework-simplejwt
+
+# Python env
+python-dotenv
 
 # Python env
 python-dotenv
