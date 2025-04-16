@@ -24,7 +24,7 @@ REQUIRED_ENV_VARS = [
 for var in REQUIRED_ENV_VARS:
     if os.getenv(var) is None:
         raise Exception(f'Required environment variable "{var}" is missing!')
-from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

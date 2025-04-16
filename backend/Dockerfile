@@ -27,7 +27,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt && python -m spacy download en_core_web_lg && python -m nltk.downloader words stopwords
+RUN pip install --upgrade pip && \
+    pip install python-dotenv && \
+    pip install --no-cache-dir -r requirements.txt && \
+    python -m spacy download en_core_web_lg && \
+    python -m nltk.downloader words stopwords
 
 # Copy project files
 COPY . .

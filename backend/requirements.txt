@@ -6,6 +6,9 @@ django-cors-headers
 # Python env
 python-dotenv
 
+# Python env
+python-dotenv
+
 # NLP Libraries
 nltk==3.8.1
 spacy==3.7.2

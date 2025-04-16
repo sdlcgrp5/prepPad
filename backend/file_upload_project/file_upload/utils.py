@@ -23,7 +23,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API key from environment
-API_KEY = os.getenv('DEEPSEEK_API_KEY')
+
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Load the pre-trained models for question answering and NER
 qa_pipeline = pipeline(
@@ -162,7 +163,6 @@ def resumeJobDescAnalysis(resume_file_path, job_posting_url):
             raise ValueError("Failed to analyze job posting")
 
         # Implement job description and resume comparison here
-
         url = "https://api.deepseek.com/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -172,7 +172,6 @@ def resumeJobDescAnalysis(resume_file_path, job_posting_url):
         analysis_prompt = analysisPrompt(resume_data, job_data)
         print("Sending prompt to API:", json.dumps(analysis_prompt, indent=2))
 
-        
         data = {
             "model": "deepseek-chat",
             "messages": analysis_prompt,
@@ -245,12 +244,10 @@ def processResume(resume_file_path):
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
-    
+
     resume_text = re.sub(r"\s+", " ", resume_text).strip()
     prompt = resumeProcessorPrompt(resume_text)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
-
-    
     data = {
         "model": "deepseek-chat",
         "messages": prompt,
@@ -298,16 +295,14 @@ def processResume(resume_file_path):
         print("Response content:", response.text)
 
 
-def analyze_job_posting(job_posting):
-  
 
+def analyzeJobPosting(job_posting):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
     prompt = jobProcessorPrompt(job_posting)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
 
-    
     data = {
         "model": "deepseek-chat",  # Use 'deepseek-reasoner' for R1 model or 'deepseek-chat' for V3 model
         "messages": prompt,
@@ -377,21 +372,19 @@ def ner(text):
     Returns:
         dict: NER results
     """
-   
 
     return ner_pipeline(text)
 
 
 # Ask a question and get an answer
 def askQuestion(text, question):
-    
-   
+
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
 
 # Extract qualifications, responsibilities, and salary range from job description
-def extractQaFields(text):
+def extractQAFields(text):
     questions = {
         # Question to extract the overall job description
         "description": "What is the job description?",

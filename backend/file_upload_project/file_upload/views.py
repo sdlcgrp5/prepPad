@@ -155,7 +155,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def upload_file(request):
+def uploadFile(request):
     try:
         if 'file' not in request.FILES:
             return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
@@ -185,7 +185,7 @@ def upload_file(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-def job_description_parse(request):
+def parseJobDescription(request):
     """View to handle job description parsing through web interface"""
     if request.method == "POST":
         form = jobPostingForm(request.POST)
@@ -206,7 +206,7 @@ def job_description_parse(request):
     return render(request, "file_upload/job_description_parse.html", {"form": form})
 
 
-def display_file(request, file_id):
+def displayFile(request, file_id):
     """View to display processed file contents"""
     try:
         file_obj = UploadedFile.objects.get(pk=file_id)
@@ -220,7 +220,7 @@ def display_file(request, file_id):
         return HttpResponse(f"Error: {str(e)}")
 
 
-def file_list(request):
+def fileList(request):
     """View to display list of uploaded files"""
     files = UploadedFile.objects.all().order_by("-uploaded_at")
     paginator = Paginator(files, 10)
