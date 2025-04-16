@@ -110,3 +110,4 @@ dmypy.json
 # If you are using Pyre:
 .pyre/
 
+frontend/.env.local

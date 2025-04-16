@@ -5,12 +5,8 @@ import Link from 'next/link';
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
-
-
-
-
-export default function Home() {
-   const [email, setEmail] = useState("");
+export default function SignIn() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +31,6 @@ export default function Home() {
       setIsLoading(false);
     }
   };
-
 
   return (
 <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">

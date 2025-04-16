@@ -15,6 +15,7 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, confirmPassword: string) => Promise<boolean>;
   logout: () => void;
 };
 
@@ -38,6 +39,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     setIsLoading(false);
   }, []);
+
+  // Signup function
+  const signup = async (email: string, password: string, confirmPassword: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, confirmPassword }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to signup');
+      }
+      
+      // Store token and user data
+      setToken(data.token);
+      setUser(data.user);
+      
+      // Store in cookies
+      Cookies.set('auth_token', data.token, { 
+         expires: 1,
+         // secure: true,         // Only transmit over HTTPS
+         sameSite: 'strict',   // Prevent CSRF attacks
+         httpOnly: true,       // Not accessible via JavaScript (requires server-side implementation)
+         path: '/'             // Limit cookie to specific path
+       });
+       
+       Cookies.set('user', JSON.stringify(data.user), { 
+         expires: 1,
+        // secure: true,
+         sameSite: 'strict',
+         path: '/'
+       });
+      
+      // Direct user to resume upload page to complete their profile
+      router.push('/resumeupload');
+      
+      return true;
+    } catch (error) {
+      console.error('Signup error:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -66,8 +118,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.set('auth_token', data.token, { expires: 1 }); // 1 day
       Cookies.set('user', JSON.stringify(data.user), { expires: 1 });
       
-      // Redirect to resume upload page
-      router.push('/resumeupload');
+      // Check if profile exists
+      try {
+        const profileResponse = await fetch('/api/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${data.token}`
+          }
+        });
+        
+        // If profile exists, go to dashboard, otherwise go to resume upload
+        router.push(profileResponse.ok ? '/dashboard' : '/resumeupload');
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // On error, default to resume upload
+        router.push('/resumeupload');
+      }
+      
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -92,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

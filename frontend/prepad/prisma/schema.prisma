@@ -15,7 +15,54 @@ datasource db {
 }
 
 model User {
+  //Auto generates IDs
   id       Int    @id @default(autoincrement())
   email    String @unique
   password String
+  profile  Profile?
+}
+
+model Profile {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) //Timestamps: createdAt and updatedAt track when records are modified
+  updatedAt DateTime @updatedAt
+  
+  // Basic info
+  firstName    String
+  lastName     String
+  phone        String?
+  zipCode      String?
+  
+  // Professional info
+  jobTitle          String?
+  company           String?
+  yearsOfExperience String?
+  linkedinUrl       String?
+  
+  // Resume
+  resumeFile      String?
+  resumeFileName  String?
+  resumeFileType  String?
+  
+  // Education
+  highestDegree    String?
+  fieldOfStudy     String?
+  institution      String?
+  graduationYear   String?
+  
+  // Skills
+  skills           Skill[]
+  
+  // Link to user
+  userId           Int     @unique
+  user             User    @relation(fields: [userId], references: [id])
+}
+
+model Skill {
+  id        Int      @id @default(autoincrement())
+  name      String
+  
+  // Link to profile
+  profileId Int
+  profile   Profile  @relation(fields: [profileId], references: [id])
 }

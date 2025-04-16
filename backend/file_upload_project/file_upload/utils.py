@@ -1,6 +1,6 @@
 import re
+import json
 from xml.dom.minidom import Document
-from pydparser import ResumeParser
 from transformers import (
     AutoTokenizer,
     AutoModelForTokenClassification,
@@ -10,47 +10,188 @@ import requests
 import pdfplumber
 from docx import Document
 from lxml import html
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait        
+from selenium.webdriver.support import expected_conditions as EC
 
 
-def resume_job_desc_analysis(resume_file_path, job_posting_url):
-    # Process the resume
-    resume_text = process_resume(resume_file_path)
-
-    # Extract job description details
-    job_details = extract_job_description(job_posting_url)
-
-    # Implement job description and resume comparison here
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
-    data = {
-        "model": "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. Look through the resume analysis that was given and provide feedback to the applicant. Let the applicant know the strengths and weaknesses of their resume compared to the job posting. Also, provide the applicant with any tips that you think would be helpful for them to improve their resume.",
-            },
-            {
-                "role": "user",
-                "content": f"""
+def analysisPrompt(resume_text, job_details):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a recruiter that is comparing an applicant's resume to the job posting that you are hiring for. You will provide feedback in JSON format.",
+        },
+        {
+            "role": "user",
+            "content": f"""
                 Here is the analysis of the applicant's resume: {resume_text}
                 Here is the analysis of the job posting: {job_details}
                 Now, run a comparison between the two analyses to provide feedback to the applicant.
-                1. What are the strengths of the applicant's resume compared to the job posting?
-                2. What are the weaknesses of the applicant's resume compared to the job posting?
-                3. What tips would you give the applicant to improve their resume?    
+                Create a JSON response with the following structure:
+                {{
+                    "strengths": [list of strengths compared to job posting],
+                    "weaknesses": [list of weaknesses compared to job posting],
+                    "improvement_tips": [list of tips to improve resume],
+                    "keywords_missing": [list of keywords from job posting not found in resume],
+                    "keywords_found": [list of keywords from job posting found in resume],
+                    "match_score": number between 0 and 100
+                }}
                     """,
-            },
-        ],
-        "stream": False,
-    }
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"]
-    else:
-        print("Request failed, error code:", response.status_code)
+        },
+    ]
+    return prompt
+
+
+def resumeProcessorPrompt(resume_text):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a job applicant looking to see what information is in your resume.",
+        },
+        {
+            "role": "user",
+            "content": f"""Here is the text from your resume: {resume_text}
+
+                    Look through the text that is given to find the following details and format them as a JSON object:
+                    
+                    {{
+                        "name": "",
+                        "contact_info": {{
+                            "email": "",
+                            "phone": "",
+                            "zipCode": ""
+                        }},
+                        "work_experience": {{
+                            "company": "",
+                            "jobTitle": "",
+                            "startDate": "",
+                            "endDate": "",
+                            "jobDescription": "",
+                            "yearsOfExperience": ""
+                        }},
+                        "education": {{
+                            "institution": "",
+                            "highestDegree": "",
+                            "fieldOfStudy": "",
+                            "graduationYear": ""
+                        }},
+                        "linkedinUrl": "",
+                        "skills": []
+                    }}
+
+                    For each field, include If a field has no value, set it to null. For skills, provide an array of strings.
+                    """,
+        },
+    ]
+    return prompt
+
+
+def jobProcessorPrompt(job_posting):
+    prompt = [
+        {
+            "role": "system",
+            "content": "You are a job applicant seeking information from a job posting.",
+        },
+        {
+            "role": "user",
+            "content": f"""
+                        Look through the text that is given to find the following details and include as much information as possible:
+                        
+                        title = string
+                        description = string
+                        qualifications = list[string]
+                        skills = list[string]
+                        responsibilities =list[string]
+                        salary_range = string
+                        location = string
+                        posted_date = string
+                        company_name = string
+                        Here is the given text: {job_posting}
+
+                        Once you have found the details, please put them into a JSON object. If nothing can be found for a field, set it to null.
+                        """,
+        },
+    ]
+    return prompt
+
+
+def resume_job_desc_analysis(resume_file_path, job_posting_url):
+    try:
+        # Process the resume
+        resume_data = str(process_resume(resume_file_path))
+        if not resume_data:
+            raise ValueError("Failed to process resume")
+
+        # Extract job description details
+        job_data = str(analyze_job_posting(job_posting_url))
+        if not job_data:
+            raise ValueError("Failed to analyze job posting")
+
+        # Implement job description and resume comparison here
+        API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
+        url = "https://api.deepseek.com/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {API_KEY}",
+        }
+
+        analysis_prompt = analysisPrompt(resume_data, job_data)
+        print("Sending prompt to API:", json.dumps(analysis_prompt, indent=2))
+        
+        data = {
+            "model": "deepseek-chat",
+            "messages": analysis_prompt,
+            "response_format": {"type": "json_object"},
+            "stream": False,
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            result = response.json()
+            print("Raw API response:", json.dumps(result, indent=2))
+            try:
+                if (
+                    "choices" in result
+                    and len(result["choices"]) > 0
+                    and "message" in result["choices"][0]
+                    and "content" in result["choices"][0]["message"]
+                ):
+                    content = json.loads(result["choices"][0]["message"]["content"])
+                    print("Parsed content:", json.dumps(content, indent=2))
+                    return content
+                else:
+                    raise KeyError("Missing expected keys in API response")
+            except KeyError as e:
+                print(f"Error processing API response: {str(e)}")
+                choices = result.get("choices", [])
+                if (
+                    choices
+                    and "message" in choices[0]
+                    and "content" in choices[0]["message"]
+                ):
+                    content = json.loads(choices[0]["message"]["content"])
+                    print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                    return content
+                else:
+                    print("Unexpected response format: Missing 'choices' or nested keys.")
+            except Exception as e:
+                print(f"Error processing API response: {str(e)}")
+                print("Response content:", result["choices"][0]["message"]["content"])
+            return json.loads(result["choices"][0]["message"]["content"])
+        else:
+            print("Request failed, error code:", response.status_code)
+            print("Response content:", response.text)
+
+    except Exception as e:
+        print(f"Error in resume_job_desc_analysis: {str(e)}")
+        return {
+            "error": str(e),
+            "status": "failed",
+            "resume_processed": bool(resume_data),
+            "job_data_processed": bool(job_data),
+        }
 
 
 def process_resume(resume_file_path):
@@ -68,42 +209,53 @@ def process_resume(resume_file_path):
     API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
+    
+    resume_text = re.sub(r"\s+", " ", resume_text).strip()
+    prompt = resumeProcessorPrompt(resume_text)
+    print("Sending prompt to API:", json.dumps(prompt, indent=2))
+    
     data = {
         "model": "deepseek-chat",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a job applicant looking to see what information is in your resume.",
-            },
-            {
-                "role": "user",
-                "content": f"""Here is the text from your resume: {resume_text}
-
-                    Look through the text that is given to find the following details:
-                    1. Your name
-                    2. Your contact information
-                    3. Your work experience
-                    4. Your education
-                    5. Your skills
-                    6. Your certifications
-                    7. Your awards
-                    8. Your publications
-                    9. Your projects
-                    10. Your languages
-                    """,
-            },
-        ],
+        "messages": prompt,
+        "response_format": {"type": "json_object"},
         "stream": False,
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
-        # ner_results = ner(resume_text)
-        # qa_results = extract_qa_fields(resume_text)
         result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"] # + "\nNER Results:\n" + str(ner_results) + "\nQA Results:\n" + str(qa_results)
+        print("Raw API response:", json.dumps(result, indent=2))
+        try:
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                content = json.loads(result["choices"][0]["message"]["content"])
+                print("Parsed content:", json.dumps(content, indent=2))
+                return content
+            else:
+                raise KeyError("Missing expected keys in API response")
+        except KeyError as e:
+            print(f"Error processing API response: {str(e)}")
+            choices = result.get("choices", [])
+            if (
+                choices
+                and "message" in choices[0]
+                and "content" in choices[0]["message"]
+            ):
+                content = json.loads(choices[0]["message"]["content"])
+                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                return content
+            else:
+                print("Unexpected response format: Missing 'choices' or nested keys.")
+        except Exception as e:
+            print(f"Error processing API response: {str(e)}")
+            print("Response content:", result["choices"][0]["message"]["content"])
+        return json.loads(result["choices"][0]["message"]["content"])
     else:
         print("Request failed, error code:", response.status_code)
+        print("Response content:", response.text)
 
 
 def analyze_job_posting(job_posting):
@@ -112,27 +264,13 @@ def analyze_job_posting(job_posting):
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
+    prompt = jobProcessorPrompt(job_posting)
+    print("Sending prompt to API:", json.dumps(prompt, indent=2))
+    
     data = {
         "model": "deepseek-chat",  # Use 'deepseek-reasoner' for R1 model or 'deepseek-chat' for V3 model
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a job applicant seeking information from a job posting.",
-            },
-            {
-                "role": "user",
-                "content": f"""
-                        Look through the text that is given to find the following details:
-                        1. The job description
-                        2. The qualifications required
-                        3. The skills required
-                        4. The key responsibilities
-                        5. The salary range
-                        6. The location of the job"
-                        Here is the given text: {job_posting}
-                        """,
-            },
-        ],
+        "messages": prompt,
+        "response_format": {"type": "json_object"},
         "stream": False,  # Disable streaming
     }
 
@@ -140,10 +278,38 @@ def analyze_job_posting(job_posting):
 
     if response.status_code == 200:
         result = response.json()
-        print(result["choices"][0]["message"]["content"])
-        return result["choices"][0]["message"]["content"]
+        print("Raw API response:", json.dumps(result, indent=2))
+        try:
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                content = json.loads(result["choices"][0]["message"]["content"])
+                print("Parsed content:", json.dumps(content, indent=2))
+                return content
+            else:
+                raise KeyError("Missing expected keys in API response")
+        except KeyError as e:
+            print(f"Error processing API response: {str(e)}")
+            choices = result.get("choices", [])
+            if (
+                choices
+                and "message" in choices[0]
+                and "content" in choices[0]["message"]
+            ):
+                content = json.loads(choices[0]["message"]["content"])
+                print("Parsed content (from error handler):", json.dumps(content, indent=2))
+                return content
+            else:
+                print("Unexpected response format: Missing 'choices' or nested keys.")
+        except Exception as e:
+            print(f"Error processing API response: {str(e)}")
+            print("Response content:", result["choices"][0]["message"]["content"])
+        return json.loads(result["choices"][0]["message"]["content"])
     else:
-        print("Request failed, error code:", response.status_code)
+        print(f"Error: analyze_job_posting\nRequest failed, error code:{response.status_code}\n")
 
 
 def clean_text(tree):
@@ -151,7 +317,7 @@ def clean_text(tree):
     for tag in tree.xpath("//script | //style | //noscript | //svg"):
         tag.getparent().remove(tag)
     raw_text = tree.text_content()  # Extracts all text, including whitespace
-    text = raw_text.replace("\n", "").replace("\t", "").strip()
+    text = re.sub(r"\s+", " ", raw_text).strip() # Normalize whitespace
     return text
 
 
@@ -184,87 +350,55 @@ def ask_question(text, question):
 # Extract qualifications, responsibilities, and salary range from job description
 def extract_qa_fields(text):
     questions = {
+        # Question to extract the overall job description
         "description": "What is the job description?",
+        # Question to identify the qualifications required for the job
         "qualifications": "What are the required qualifications from the job description?",
+        # Question to list the skills needed for the job
         "skills": "What are the required skills from the job description?",
+        # Question to determine the key responsibilities of the job
         "responsibilities": "What are the key responsibilities from the job description?",
+        # Question to extract the salary range offered for the job
         "salary": "What is the salary range?",
     }
     return {k: ask_question(text, q) for k, q in questions.items()}
 
-
-# def process_resume(file_path):
-#     """
-#     Custom function to process the uploaded file.
-#     Modify this function to implement your specific processing logic.
-
-#     Args:
-#         file_path: Path to the uploaded file
-
-#     Returns:
-#         Processed content as a JSON object
-#     """
-#     # Run the resume through the resume processor
-#     print(file_path)
-#     processed_resume = ResumeParser(file_path).get_extracted_data()
-
-#     return str(processed_resume)
-
-
+# Extract job description from a URL using Selenium
 def extract_job_description(url):
-    """
-    Extract job description text from a given URL
-
-    Args:
-        url (str): URL of the job posting
-
-    Returns:
-        dict: Extracted job description details
-    """
-    # Send a request to the website
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    response = requests.get(url, headers=headers)
     try:
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Parse HTML and extract all raw text
-            job_posting_html = response.text
-            tree = html.fromstring(job_posting_html)
+        # Set up Chrome options
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.binary_location = "/usr/bin/chromium"
 
-            # Extract job description text
-            job_posting = clean_text(tree)
-            print(job_posting)
+        # Initialize the driver with explicit service
+        service = Service(executable_path="/usr/bin/chromedriver")
+        driver = webdriver.Chrome(service=service, options=chrome_options)
 
-            job_details_deepseek = analyze_job_posting(job_posting)
-            job_details_ner = ner(job_posting)
-            job_details_qa = extract_qa_fields(job_posting)
-            result = {
-                "url": url,
-                "status_code": response.status_code,
-                "full_text": job_posting,
-            }
+        # Load the page and wait for content to load
+        driver.get(url)
 
-            # Extract job description text
-            if job_posting:
-                result["deepseek_results"] = job_details_deepseek
-                result["ner_results"] = job_details_ner
-                result["qa_results"] = job_details_qa
-                result["html"] = str(job_posting_html)
-            else:
-                result["description"] = "Job description could not be extracted"
-                result["html"] = ""
+        # Wait for the page to load by checking for the presence of a specific element
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
 
-            return result
-        else:
-            return {
-                "url": url,
-                "status_code": response.status_code,
-                "description": f"Failed to retrieve the webpage: {response.status_code}",
-                "full_text": "",
-                "html": "",
-            }
+        # Get the page source after JavaScript execution
+        job_posting_html = driver.page_source
+        driver.quit()
+
+        # Parse HTML and extract text
+        tree = html.fromstring(job_posting_html)
+        job_posting = clean_text(tree)
+
+        # Process with your existing analysis
+        job_details_deepseek = analyze_job_posting(job_posting)
+        if job_details_deepseek:
+            return job_details_deepseek
+
     except Exception as e:
         return {
             "url": url,

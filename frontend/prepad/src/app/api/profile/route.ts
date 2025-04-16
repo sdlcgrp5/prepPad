@@ -1,0 +1,277 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import type { Prisma } from '@prisma/client';
+
+// Define a type for the profile with skills as a string array
+type ProfileWithStringSkills = Omit<
+  Prisma.ProfileGetPayload<{
+    include: { 
+      skills: true;
+      user: {
+        select: {
+          email: true;
+        }
+      }
+    }
+  }>,
+  'skills' | 'createdAt' | 'updatedAt' | 'user'
+> & {
+  skills: string[];
+  email: string;
+};
+
+const profileSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  phone: z.string().optional().nullable(),
+  zipCode: z.string().optional().nullable(),
+  jobTitle: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
+  yearsOfExperience: z.string().optional().nullable(),
+  linkedinUrl: z.string().optional().nullable(),
+  highestDegree: z.string().optional().nullable(),
+  fieldOfStudy: z.string().optional().nullable(),
+  institution: z.string().optional().nullable(),
+  graduationYear: z.string().optional().nullable(),
+  skills: z.array(z.string()).optional().default([]),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get the JWT token from the Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    // Decode and verify the token
+    const secret = process.env.JWT_SECRET as string;
+    if (!secret) {
+      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { status: 500 });
+    }
+    
+    try {
+      const decodedToken = jwt.verify(token, secret) as { id: number };
+      const userId = decodedToken.id;
+      
+      // Parse request body
+      const body = await request.json();
+      const validationResult = profileSchema.safeParse(body);
+      
+      if (!validationResult.success) {
+        return NextResponse.json({ error: 'Invalid data', details: validationResult.error }, { status: 400 });
+      }
+      
+      const data = validationResult.data;
+      
+      // Check if user exists and update/create profile
+      const user = await prisma.$transaction(async (tx) => {
+        const foundUser = await tx.user.findUnique({
+          where: { id: userId },
+          include: {
+            profile: {
+              include: {
+                skills: true
+              }
+            }
+          }
+        });
+        
+        if (!foundUser) {
+          return null;
+        }
+
+        // Create or update profile
+        let profile;
+        const skillsToAdd = data.skills || [];
+        
+        if (foundUser.profile) {
+          // Update existing profile
+          profile = await tx.profile.update({
+            where: { id: foundUser.profile.id },
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone || null,
+              zipCode: data.zipCode || null,
+              jobTitle: data.jobTitle || null,
+              company: data.company || null,
+              yearsOfExperience: data.yearsOfExperience || null,
+              linkedinUrl: data.linkedinUrl || null,
+              highestDegree: data.highestDegree || null,
+              fieldOfStudy: data.fieldOfStudy || null,
+              institution: data.institution || null,
+              graduationYear: data.graduationYear || null,
+            },
+            include: {
+              skills: true
+            }
+          });
+          
+          // Delete existing skills and add new ones
+          await tx.skill.deleteMany({
+            where: { profileId: profile.id }
+          });
+          
+          if (skillsToAdd.length > 0) {
+            await Promise.all(skillsToAdd.map(skillName => 
+              tx.skill.create({
+                data: {
+                  name: skillName,
+                  profileId: profile.id
+                }
+              })
+            ));
+          }
+        } else {
+          // Create new profile with skills
+          profile = await tx.profile.create({
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              phone: data.phone || null,
+              zipCode: data.zipCode || null,
+              jobTitle: data.jobTitle || null,
+              company: data.company || null,
+              yearsOfExperience: data.yearsOfExperience || null,
+              linkedinUrl: data.linkedinUrl || null,
+              highestDegree: data.highestDegree || null,
+              fieldOfStudy: data.fieldOfStudy || null,
+              institution: data.institution || null,
+              graduationYear: data.graduationYear || null,
+              userId: foundUser.id,
+              skills: {
+                create: skillsToAdd.map(name => ({ name }))
+              }
+            },
+            include: {
+              skills: true
+            }
+          });
+        }
+        
+        return { user: foundUser, profile };
+      });
+      
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      
+      // Construct response with the profile and skills
+      const profileResponse: ProfileWithStringSkills = {
+        ...user.profile,
+        skills: user.profile.skills.map(skill => skill.name),
+        email: user.user.email
+      };
+      
+      return NextResponse.json({ 
+        success: true, 
+        profile: profileResponse
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+      
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+    
+  } catch (error) {
+    console.error('Profile update error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get the JWT token from the Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    // Decode and verify the token
+    const secret = process.env.JWT_SECRET as string;
+    if (!secret) {
+      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { status: 500 });
+    }
+    
+    const decodedToken = jwt.verify(token, secret) as { id: number };
+    const userId = decodedToken.id;
+    
+    // Get user profile with skills
+    const profile = await prisma.profile.findFirst({
+      where: { userId },
+      include: {
+        skills: true,
+        user: {
+          select: {
+            email: true
+          }
+        }
+      }
+    });
+    
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+    
+    // Construct response with the profile and skills
+    const profileResponse: ProfileWithStringSkills = {
+      ...profile,
+      skills: profile.skills.map(skill => skill.name),
+      email: profile.user.email
+    };
+    
+    // Return the profile data with CORS headers
+    return NextResponse.json({ 
+      success: true, 
+      profile: profileResponse
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(_request: NextRequest) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
+}

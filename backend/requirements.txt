@@ -1,10 +1,13 @@
 # Web Framework
 Django
+djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
 
 # NLP Libraries
 nltk==3.8.1
 spacy==3.7.2
-pydparser
+# pydparser
 
 # Parsing files
 pdfplumber
@@ -29,6 +32,8 @@ torch
 requests
 beautifulsoup4
 lxml
+selenium==4.18.1
+webdriver-manager==4.0.1
 
 # Database Connector - Apple Silicon compatible version
 psycopg2-binary # Works on M1/M2/M3 Macs
