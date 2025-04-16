@@ -13,15 +13,15 @@ export default function AnalysisCard({ onAnalyzeClick, loading = false }: Analys
       <div className="mb-2 flex items-center">
         <span className=" bg-gray-700/60 p-1 rounded mr-2">
           <div className="w-12 h-12 rounded-lg flex items-center justify-center">
-                        <Image
-                          className="fill-purple-400"
-                          src="/QrCode.svg"
-                          alt="job analysis"
-                          width={24}
-                          height={24}
-                          priority
-                        />
-                      </div>
+            <Image
+               className="fill-purple-400"
+               src="/QrCode.svg"
+               alt="job analysis"
+               width={24}
+               height={24}
+               priority
+             />
+          </div>
         </span>
         <span className="font-semibold">Application analysis</span>
       </div>

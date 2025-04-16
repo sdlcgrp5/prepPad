@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
+import Image from "next/image";
 import Link from 'next/link';
 
 interface ProfileData {
@@ -114,10 +115,15 @@ export default function Profile() {
             onClick={() => router.push('/resumeupload')}
             className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
+              <Image
+                className="fill-purple-400 mr-2"
+                src="/PencilSimple.svg"
+                alt="edit profile"
+                width={24}
+                height={24}
+                priority
+              />
+         
             Edit Profile
           </button>
         </div>
@@ -125,7 +131,7 @@ export default function Profile() {
         {/* Profile content */}
         <div className="space-y-8">
           {/* Basic Info */}
-          <section className="bg-gray-800 rounded-lg p-6">
+          <section className="bg-gray-800 rounded-md p-6">
             <h2 className="text-xl font-semibold mb-4 text-purple-400">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -153,7 +159,7 @@ export default function Profile() {
 
           {/* Professional Experience */}
           {(profile.jobTitle || profile.company || profile.yearsOfExperience) && (
-            <section className="bg-gray-800 rounded-lg p-6">
+            <section className="bg-gray-800 rounded-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Professional Experience</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.jobTitle && (
@@ -180,7 +186,7 @@ export default function Profile() {
 
           {/* Education */}
           {(profile.highestDegree || profile.fieldOfStudy || profile.institution || profile.graduationYear) && (
-            <section className="bg-gray-800 rounded-lg p-6">
+            <section className="bg-gray-800 rounded-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Education</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.highestDegree && (
@@ -213,7 +219,7 @@ export default function Profile() {
 
           {/* Skills */}
           {profile.skills && profile.skills.length > 0 && (
-            <section className="bg-gray-800 rounded-lg p-6">
+            <section className="bg-gray-800 rounded-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill, index) => (

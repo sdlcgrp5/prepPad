@@ -50,6 +50,16 @@ export interface User {
    analysis: string;
  }
  
+ // Analysis Result type
+ export interface AnalysisResult {
+  strengths: string[];
+  weaknesses: string[];
+  improvement_tips: string[];
+  keywords_missing: string[];
+  keywords_found: string[];
+  match_score: number;
+ }
+
  // Dashboard statistics
  export interface DashboardStats {
    totalAnalyses: number;

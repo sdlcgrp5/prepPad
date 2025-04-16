@@ -1,10 +1,9 @@
-// components/dashboard/JobAnalysisModal.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-// import { resumeApi, jobApplicationApi } from '@/services/apiservices';
-import { ResumeFile } from '@/types';
-import { useAuth } from '@/context/AuthContext';
+import { useState } from 'react';
+import AnalysisResults from './AnalysisResults';
+import Image from 'next/image';
+import { AnalysisResult } from '@/types';
 
 interface JobAnalysisModalProps {
   isOpen: boolean;
@@ -17,77 +16,68 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
-  const { token } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
-  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
-  const [resumes, setResumes] = useState<ResumeFile[]>([]);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
   
-  const fetchResumes = useCallback(async () => {
-    setIsLoadingResumes(true);
-    try {
-      const response = await fetch('/api/resume', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.resume) {
-        setResumes([data.resume]);
-        setSelectedResumeId(data.resume.id.toString());
-      } else {
-        setError('No resume found. Please upload a resume first.');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf' && file.type !== 'application/msword' && 
+          file.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        setError('Please upload a PDF or Word document');
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching resumes:', error);
-      setError('Failed to load resume');
-    } finally {
-      setIsLoadingResumes(false);
+      setResumeFile(file);
+      setError(null);
     }
-  }, [token]);
-  
-  useEffect(() => {
-    if (isOpen) {
-      fetchResumes();
-    }
-  }, [isOpen, fetchResumes]);
+  };
+
+  const handleAnalysisClose = () => {
+    setAnalysisResults(null);
+    setResumeFile(null);
+    setJobUrl('');
+    onSuccess();
+    onClose();
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (!resumeFile) {
+      setError('Please upload your resume');
+      return;
+    }
     
     if (!jobUrl.trim()) {
       setError('Please enter a job posting URL');
       return;
     }
     
-    if (!selectedResumeId) {
-      setError('Please select a resume');
-      return;
-    }
-    
     try {
       setIsLoading(true);
       
-      // In a real app, this would call the API with the selected resume
-      // For demonstration, simulate an API call
-      setTimeout(() => {
-        setIsLoading(false);
-        onSuccess();
-        onClose();
-        setJobUrl('');
-      }, 1500);
+      const formData = new FormData();
+      formData.append('resume', resumeFile);
+      formData.append('jobUrl', jobUrl);
       
-      // Uncomment when API is ready
-      // await jobApplicationApi.analyzeJobPosting(jobUrl, parseInt(selectedResumeId));
-      // setIsLoading(false);
-      // onSuccess();
-      // onClose();
-      // setJobUrl('');
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || 'Failed to analyze job posting');
+      }
+      
+      setAnalysisResults(data.analysis);
+      setIsLoading(false);
+      
     } catch (err) {
       setIsLoading(false);
       setError('Failed to analyze job posting. Please try again.');
@@ -97,9 +87,13 @@ export default function JobAnalysisModal({
   
   if (!isOpen) return null;
   
+  if (analysisResults) {
+    return <AnalysisResults results={analysisResults} onClose={handleAnalysisClose} />;
+  }
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="bg-gray-800 rounded-lg w-full max-w-lg">
+      <div className="bg-gray-800 rounded-md w-full max-w-lg">
         <div className="relative p-6">
           {/* Close button */}
           <button
@@ -107,13 +101,17 @@ export default function JobAnalysisModal({
             className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1"
             disabled={isLoading}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+             <Image
+                     className="fill-purple-400 text-gray-400"
+                     src="/X.svg"
+                     alt="close"
+                     width={24}
+                     height={24}
+                     priority
+                  />
           </button>
           
-          {/* Tabs */}
+          {/* Title */}
           <div className="flex justify-center mb-8 mt-2">
             <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md">
               Job Analysis
@@ -127,45 +125,53 @@ export default function JobAnalysisModal({
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Resume Selection */}
+            {/* Resume Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Resume
+                Upload Resume
               </label>
-              <div className="relative">
-                <select
-                  value={selectedResumeId}
-                  onChange={(e) => setSelectedResumeId(e.target.value)}
-                  className="w-full p-3 pr-10 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
-                  disabled={isLoading || isLoadingResumes}
-                >
-                  {isLoadingResumes ? (
-                    <option>Loading resumes...</option>
-                  ) : resumes.length === 0 ? (
-                    <option value="">No resumes available</option>
-                  ) : (
-                    <>
-                      <option value="">Select your preferred resume</option>
-                      {resumes.map((resume) => (
-                        <option key={resume.id} value={resume.id.toString()}>
-                          {resume.fileName}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
+                <div className="space-y-1 text-center">
+                  <Image
+                     className="fill-purple-400 mx-auto h-12 w-12 text-gray-400"
+                     src="/filePlus2.svg"
+                     alt="profile"
+                     width={24}
+                     height={24}
+                     priority
+                  />
+                  <div className="flex text-sm text-gray-400">
+                    <label
+                      htmlFor="resume-upload"
+                      className="relative cursor-pointer rounded-md font-medium text-purple-500 hover:text-purple-400 focus-within:outline-none"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="resume-upload"
+                        name="resume-upload"
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        disabled={isLoading}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-400">PDF or Word up to 10MB</p>
                 </div>
               </div>
+              {resumeFile && (
+                <p className="mt-2 text-sm text-green-400">
+                  Selected file: {resumeFile.name}
+                </p>
+              )}
             </div>
             
             {/* Job URL Input */}
             <div>
               <label htmlFor="job-url" className="block text-sm font-medium text-gray-300 mb-2">
-                Job Posting link
+                Job Posting Link
               </label>
               <input
                 id="job-url"
@@ -198,7 +204,7 @@ export default function JobAnalysisModal({
                   Analyzing...
                 </div>
               ) : (
-                'Analylze'
+                'Analyze'
               )}
             </button>
           </form>

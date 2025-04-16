@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get API key from environment
+
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # Load the pre-trained models for question answering and NER
@@ -247,7 +248,6 @@ def processResume(resume_file_path):
     resume_text = re.sub(r"\s+", " ", resume_text).strip()
     prompt = resumeProcessorPrompt(resume_text)
     print("Sending prompt to API:", json.dumps(prompt, indent=2))
-
     data = {
         "model": "deepseek-chat",
         "messages": prompt,
@@ -293,6 +293,7 @@ def processResume(resume_file_path):
     else:
         print("Request failed, error code:", response.status_code)
         print("Response content:", response.text)
+
 
 
 def analyzeJobPosting(job_posting):
@@ -377,6 +378,7 @@ def ner(text):
 
 # Ask a question and get an answer
 def askQuestion(text, question):
+
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
@@ -396,7 +398,6 @@ def extractQAFields(text):
         "salary": "What is the salary range?",
     }
     return {k: askQuestion(text, q) for k, q in questions.items()}
-
 
 # Extract job description from a URL using Selenium
 def extractJobDescription(url):
