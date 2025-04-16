@@ -25,10 +25,58 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-p)k-z9^*%a#$72=kkexf24$e^1%sxa1b@j=@$l!0)_2$(u80f+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+from file_upload_project.settings import *
+import dj_database_url
+import os
+
 DEBUG = False
+ALLOWED_HOSTS = ['prepadai.eastus.cloudapp.azure.com', '[www.prepadai.eastus.cloudapp.azure.com](www.prepadai.eastus.cloudapp.azure.com)']
 
-ALLOWED_HOSTS = []
+# Security settings
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_PRELOAD = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
+# Database settings - using Supabase
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres.kduzcliwdtfyyxjrnqbe',
+        'PASSWORD': 'JobFinderMatrixNow',
+        'HOST': 'aws-0-us-east-1.pooler.supabase.com',
+        'PORT': '5432',
+        'OPTIONS': {
+            'connect_timeout': 300,
+        }
+    }
+}
+
+# For migrations, use the direct connection
+if os.environ.get('DJANGO_MIGRATION', 'False') == 'True':
+    DATABASES['default']['HOST'] = 'aws-0-us-east-1.pooler.supabase.com'
+    DATABASES['default']['PORT'] = '5432'
+else:
+    # For normal operation, use connection pooling
+    DATABASES['default']['HOST'] = 'aws-0-us-east-1.pooler.supabase.com'
+    DATABASES['default']['PORT'] = '6543'
+    DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+
+# Static and media files
+STATIC_ROOT = '/var/www/preppad/backend/static/'
+MEDIA_ROOT = '/var/www/preppad/backend/media/'
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)',
+    '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)',
+]
+CORS_ALLOW_ALL_ORIGINS = False
 
 # Application definition
 
