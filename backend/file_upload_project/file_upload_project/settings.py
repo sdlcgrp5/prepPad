@@ -74,7 +74,7 @@ MEDIA_ROOT = '/var/www/preppad/backend/media/'
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)',
+    'https://prepadai.eastus.cloudapp.azure.com',
     'http://localhost:8000',
 ]
 CORS_ALLOW_ALL_ORIGINS = False
