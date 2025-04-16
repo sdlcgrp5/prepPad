@@ -28,9 +28,10 @@ SECRET_KEY = 'django-insecure-p)k-z9^*%a#$72=kkexf24$e^1%sxa1b@j=@$l!0)_2$(u80f+
 from file_upload_project.settings import *
 import dj_database_url
 import os
+import sys
 
 DEBUG = False
-ALLOWED_HOSTS = ['prepadai.eastus.cloudapp.azure.com', '[www.prepadai.eastus.cloudapp.azure.com](www.prepadai.eastus.cloudapp.azure.com)']
+ALLOWED_HOSTS = ['prepadai.eastus.cloudapp.azure.com', '[www.prepadai.eastus.cloudapp.azure.com](www.prepadai.eastus.cloudapp.azure.com)', 'localhost:8000']
 
 # Security settings
 SECURE_HSTS_SECONDS = 31536000
@@ -73,8 +74,9 @@ MEDIA_ROOT = '/var/www/preppad/backend/media/'
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
+    '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)', 'localhost:8000',
     '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)',
-    '[https://prepadai.eastus.cloudapp.azure.com](https://prepadai.eastus.cloudapp.azure.com)',
+    'localhost:8000',
 ]
 CORS_ALLOW_ALL_ORIGINS = False
 
