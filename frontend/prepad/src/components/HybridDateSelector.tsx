@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 interface DateSelectorProps {
   name: string;
   value: string;
-  onChange: (e: any) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   allowPresent?: boolean;
 }
@@ -110,7 +110,7 @@ const HybridDateSelector: React.FC<DateSelectorProps> = ({
           }
         };
         
-        onChange(syntheticEvent);
+        onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
       }
     } else if (newValue.toLowerCase() === 'present' && allowPresent) {
       // Handle "present" as a special case
@@ -121,7 +121,7 @@ const HybridDateSelector: React.FC<DateSelectorProps> = ({
         }
       };
       
-      onChange(syntheticEvent);
+      onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
     } else if (newValue === '') {
       // Handle empty input
       const syntheticEvent = {
@@ -131,7 +131,7 @@ const HybridDateSelector: React.FC<DateSelectorProps> = ({
         }
       };
       
-      onChange(syntheticEvent);
+      onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
     }
   };
   
@@ -152,7 +152,7 @@ const HybridDateSelector: React.FC<DateSelectorProps> = ({
       }
     };
     
-    onChange(syntheticEvent);
+    onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
     setIsOpen(false);
   };
   
@@ -167,7 +167,7 @@ const HybridDateSelector: React.FC<DateSelectorProps> = ({
       }
     };
     
-    onChange(syntheticEvent);
+    onChange(syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>);
     setIsOpen(false);
   };
   

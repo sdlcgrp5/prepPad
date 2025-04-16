@@ -20,6 +20,22 @@ type ProfileWithStringSkills = Omit<
 > & {
   skills: string[];
   email: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  zipCode: string | null;
+  jobTitle: string | null;
+  company: string | null;
+  yearsOfExperience: string | null;
+  linkedinUrl: string | null;
+  resumeFile: string | null;
+  resumeFileName: string | null;
+  resumeFileType: string | null;
+  highestDegree: string | null;
+  fieldOfStudy: string | null;
+  institution: string | null;
+  graduationYear: string | null;
 };
 
 const profileSchema = z.object({
@@ -93,8 +109,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Create or update profile
-        let profile;
         const skillsToAdd = data.skills || [];
+        
+        // Define the type for profile
+        let profile: Prisma.ProfileGetPayload<{ include: { skills: true } }>;
         
         if (foundUser.profile) {
           // Update existing profile
@@ -266,12 +284,12 @@ export async function GET(request: NextRequest) {
 }
 
 // Handle OPTIONS requests for CORS
-export async function OPTIONS(_request: NextRequest) {
-  return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  });
-}
+//export async function OPTIONS(_request: NextRequest) {
+  //return NextResponse.json({}, {
+    //headers: {
+      //'Access-Control-Allow-Origin': '*',
+      //'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      //'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+   // }
+  //});
+// }

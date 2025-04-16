@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
 import Image from "next/image";
-import Link from 'next/link';
+// import Link from 'next/link';
 
 interface ProfileData {
   firstName: string;

@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { JobAnalysis } from '@/types';
 
 export default function Dashboard() {
-  const { user, token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   
   const { signup } = useAuth();
-  const router = useRouter();
+// const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

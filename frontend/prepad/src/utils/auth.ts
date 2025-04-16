@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import jwt, {Secret} from 'jsonwebtoken';
 
 // User interface representing the JWT token payload
 export interface TokenUser {
@@ -27,13 +27,13 @@ export function getTokenData(request: NextRequest): TokenUser | null {
     }
     
     // Verify and decode the token
-    const secret = process.env.JWT_SECRET as string;
+    const secret = process.env.JWT_SECRET;
     if (!secret) {
       console.error('JWT_SECRET environment variable is not set');
       return null;
     }
     
-    const decoded = jwt.verify(token, secret) as TokenUser;
+    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
     return decoded;
   } catch (error) {
     console.error('Token validation error:', error);
@@ -48,20 +48,24 @@ export function getTokenData(request: NextRequest): TokenUser | null {
  * @returns The generated JWT token
  */
 export function createToken(user: { id: number; email: string }, expiresIn = '7d'): string {
-  const secret = process.env.JWT_SECRET as string;
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is not set');
-  }
-  
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-    },
-    secret,
-    { expiresIn }
-  );
-}
+   const secret = process.env.JWT_SECRET;
+   if (!secret) {
+     throw new Error('JWT_SECRET environment variable is not set');
+   }
+   
+   // Generate the token with the user ID and email
+   // and set the expiration time
+   // Cast the secret to the Secret type
+   // to avoid TypeScript errors
+   return jwt.sign(
+     {
+       id: user.id,
+       email: user.email,
+     },
+     secret as Secret, // Explicitly cast the secret to the Secret type
+     { expiresIn } as jwt.SignOptions // Ensure expiresIn is correctly typed
+   );
+ }
 
 /**
  * Checks if a token is expired
@@ -70,17 +74,18 @@ export function createToken(user: { id: number; email: string }, expiresIn = '7d
  */
 export function isTokenExpired(token: string): boolean {
   try {
-    const secret = process.env.JWT_SECRET as string;
+    const secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error('JWT_SECRET environment variable is not set');
     }
     
-    const decoded = jwt.verify(token, secret) as TokenUser;
+    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
     const currentTime = Math.floor(Date.now() / 1000);
     
     return decoded.exp < currentTime;
   } catch (error) {
     // If verification fails, consider the token expired
+    console.error('Token verification error:', error);
     return true;
   }
 }
