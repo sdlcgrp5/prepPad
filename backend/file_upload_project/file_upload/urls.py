@@ -3,10 +3,10 @@ from django.views.decorators.csrf import csrf_exempt
 from . import views
 
 urlpatterns = [
-    path('', views.file_list, name='file_list'),
-    path('upload/', views.upload_file, name='upload_file'),
-    path('display/<int:file_id>/', views.display_file, name='display_file'),
-    path('parse-job/', views.job_description_parse, name='job_description_parse'),
+    path('', views.fileList, name='file_list'),
+    path('upload/', views.uploadFile, name='upload_file'),
+    path('display/<int:file_id>/', views.displayFile, name='display_file'),
+    path('parse-job/', views.parseJobDescription, name='job_description_parse'),
 
     # API URLs
     path('api/analysis/', views.AnalysisAPIView.as_view(), name='analysis'),
