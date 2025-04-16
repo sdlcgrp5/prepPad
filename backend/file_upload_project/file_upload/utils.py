@@ -61,25 +61,34 @@ def analysisPrompt(resume_text, job_details):
     return prompt
 
 
+def sanitize_text(text):
+    """Remove potential PII from text"""
+    # Remove email patterns
+    text = re.sub(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', '[EMAIL]', text)
+    # Remove phone patterns
+    text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', text)
+    # Remove zip code patterns
+    text = re.sub(r'\b\d{5}(?:-\d{4})?\b', '[ZIP]', text)
+    # Remove URLs
+    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '[URL]', text)
+    return text
+
 def resumeProcessorPrompt(resume_text):
+    # Sanitize the resume text before creating prompt
+    sanitized_text = sanitize_text(resume_text)
+    
     prompt = [
         {
             "role": "system",
-            "content": "You are a job applicant looking to see what information is in your resume.",
+            "content": "You are analyzing resume content."
         },
         {
             "role": "user",
-            "content": f"""Here is the text from your resume: {resume_text}
+            "content": f"""Analyze the following resume text and extract relevant information: {sanitized_text}
 
-                    Look through the text that is given to find the following details and format them as a JSON object:
-                    
+                    Format the response as a JSON object with the following structure:
                     {{
-                        "name": "",
-                        "contact_info": {{
-                            "email": "",
-                            "phone": "",
-                            "zipCode": ""
-                        }},
+                        "skills": [],
                         "work_experience": {{
                             "company": "",
                             "jobTitle": "",
@@ -93,29 +102,10 @@ def resumeProcessorPrompt(resume_text):
                             "highestDegree": "",
                             "fieldOfStudy": "",
                             "graduationYear": ""
-                        }},
-                        "projects": {{
-                            "projectName": "",
-                            "projectDescription": "",
-                            "technologiesUsed": ""
-                        }},
-                        "certifications": {{
-                            "certificationName": "",
-                            "issuingOrganization": "",
-                            "issueDate": "",
-                            "expirationDate": ""
-                        }},
-                        "languages": {{
-                            "language": "",
-                            "proficiency": ""
-                        }},
-                        "linkedinUrl": "",
-                        "skills": []
+                        }}
                     }}
-
-                    For each field, include If a field has no value, set it to null. For skills, provide an array of strings.
-                    """,
-        },
+                    """
+        }
     ]
     return prompt
 
