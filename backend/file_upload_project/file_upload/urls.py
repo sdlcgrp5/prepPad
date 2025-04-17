@@ -6,7 +6,7 @@ urlpatterns = [
     path('', views.fileList, name='file_list'),
     path('upload/', views.uploadFile, name='upload_file'),
     path('display/<int:file_id>/', views.displayFile, name='display_file'),
-    path('parse-job/', views.parseJobDescription, name='job_description_parse'),
+    path('parse-job/', views.parseJobDescription, name='parse-job'),
 
     # API URLs
     path('api/analysis/', views.AnalysisAPIView.as_view(), name='analysis'),

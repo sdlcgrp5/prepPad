@@ -42,4 +42,5 @@ WORKDIR /app/file_upload_project
 EXPOSE 8000
 
 # Run the application
+# We'll change this in production
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

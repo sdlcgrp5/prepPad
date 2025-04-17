@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
@@ -42,18 +43,23 @@ import dj_database_url
 import os
 import sys
 
-DEBUG = False
-ALLOWED_HOSTS = ['prepadai.eastus.cloudapp.azure.com', '[www.prepadai.eastus.cloudapp.azure.com](www.prepadai.eastus.cloudapp.azure.com)', 'localhost:8000']
+DEBUG = True
+ALLOWED_HOSTS = ['prepadai.eastus.cloudapp.azure.com', '[www.prepadai.eastus.cloudapp.azure.com](www.prepadai.eastus.cloudapp.azure.com)', 'localhost']
 
 # Security settings
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_HSTS_PRELOAD = True
-X_FRAME_OPTIONS = 'DENY'
-SECURE_CONTENT_TYPE_NOSNIFF = True
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_PRELOAD = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+else:
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
 
 # Database settings - using Supabase
 DATABASES = {
@@ -89,7 +95,10 @@ CORS_ALLOWED_ORIGINS = [
     'https://prepadai.eastus.cloudapp.azure.com',
     'http://localhost:8000',
 ]
-CORS_ALLOW_ALL_ORIGINS = False
+if not DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = False
+else:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 

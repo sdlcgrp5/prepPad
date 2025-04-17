@@ -36,6 +36,7 @@ ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
 
 def analysisPrompt(resume_text, job_details):
+    """Creates a prompt for comparing resume against job posting and generates feedback"""
     prompt = [
         {
             "role": "system",
@@ -63,6 +64,7 @@ def analysisPrompt(resume_text, job_details):
 
 
 def resumeProcessorPrompt(resume_text):
+    """Creates a structured prompt to extract resume information in JSON format"""
     prompt = [
         {
             "role": "system",
@@ -122,6 +124,7 @@ def resumeProcessorPrompt(resume_text):
 
 
 def jobProcessorPrompt(job_posting):
+    """Creates a prompt to extract job posting details in a structured format"""
     prompt = [
         {
             "role": "system",
@@ -151,6 +154,7 @@ def jobProcessorPrompt(job_posting):
 
 
 def resumeJobDescAnalysis(resume_file_path, job_posting_url):
+    """Analyzes resume against job posting and provides detailed comparison with match score"""
     try:
         # Process the resume
         resume_data = str(processResume(resume_file_path))
@@ -231,6 +235,7 @@ def resumeJobDescAnalysis(resume_file_path, job_posting_url):
 
 
 def processResume(resume_file_path):
+    """Extracts text from PDF/DOCX resume files and processes it through DeepSeek API"""
     resume_text = ""
     if resume_file_path.endswith(".pdf"):
         with pdfplumber.open(f"{resume_file_path}") as pdf:
@@ -297,6 +302,7 @@ def processResume(resume_file_path):
 
 
 def analyzeJobPosting(job_posting):
+    """Analyzes job posting text using DeepSeek API to extract structured information"""
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
@@ -354,6 +360,7 @@ def analyzeJobPosting(job_posting):
 
 
 def getRawText(tree):
+    """Extracts and cleans text content from HTML, removing scripts and normalizing whitespace"""
     # Remove scripts/styles (XPath)
     for tag in tree.xpath("//script | //style | //noscript | //svg"):
         tag.getparent().remove(tag)
@@ -363,28 +370,20 @@ def getRawText(tree):
 
 
 def ner(text):
-    """
-    Named Entity Recognition (NER) using the DSLIM BERT model
-
-    Args:
-        text (str): Input text for NER
-
-    Returns:
-        dict: NER results
-    """
-
+    """Performs Named Entity Recognition on input text using BERT model"""
     return ner_pipeline(text)
 
 
 # Ask a question and get an answer
 def askQuestion(text, question):
-
+    """Uses question-answering model to extract specific information from text"""
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
 
 # Extract qualifications, responsibilities, and salary range from job description
 def extractQAFields(text):
+    """Extracts specific fields from job description using QA model"""
     questions = {
         # Question to extract the overall job description
         "description": "What is the job description?",
@@ -401,6 +400,7 @@ def extractQAFields(text):
 
 # Extract job description from a URL using Selenium
 def extractJobDescription(url):
+    """Scrapes job posting content from URL using Selenium and processes it"""
     try:
         # Set up Chrome options
         chrome_options = Options()

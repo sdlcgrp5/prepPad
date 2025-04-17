@@ -2,7 +2,8 @@
 Django
 djangorestframework
 django-cors-headers
-
+dj_database_url
+djangorestframework-simplejwt
 # Python env
 python-dotenv
 
