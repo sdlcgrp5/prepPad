@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Uploaded Files</h1>
 
-<a href="{% url 'upload_file' %}">Upload new file</a>
+<a href="{% url 'uploadFile' %}">Upload new file</a>
 
 {% if files %}
 <ul class="file-list">
@@ -14,7 +14,7 @@
         Uploaded: {{ file.uploaded_at }}
         <br>
         {{ file.processed_content }}
-        <a href="{% url 'display_file' file.id %}">View contents</a>
+        <a href="{% url 'displayFile' file.id %}">View contents</a>
     </li>
     {% endfor %}
 </ul>
