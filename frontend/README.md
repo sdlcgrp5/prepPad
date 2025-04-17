@@ -96,7 +96,8 @@ Displays job analysis results and provides access to the Job Analysis Modal.<be>
 Handles OTP verification for user authentication.<be>
 
 
-Key Components
+Key Components <be><be>
+
 `Sidebar (src/components/layout/sidebar.tsx)`<be>
 Provides navigation links for the dashboard and other pages.<be>
 
