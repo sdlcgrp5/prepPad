@@ -82,33 +82,33 @@ const response = await fetch(`${API_BASE_URL}/job-analyses/analyze`, {
 ```
 ### 7. Components and Pages
 Key Pages
-Homepage (src/app/page.tsx):
+`Homepage (src/app/page.tsx):`
 
 Displays the landing page with a call-to-action for users to sign up or log in.
-Resume Upload (src/app/resumeupload/page.tsx):
+`Resume Upload (src/app/resumeupload/page.tsx)`
 
 Allows users to upload resumes and view parsing results.
-Dashboard (src/app/dashboard/page.tsx):
+`Dashboard (src/app/dashboard/page.tsx)`
 
 Displays job analysis results and provides access to the Job Analysis Modal.
-OTP Authentication (src/app/otp/page.tsx):
+`OTP Authentication (src/app/otp/page.tsx)`
 
 Handles OTP verification for user authentication.
 
 
 Key Components
-Sidebar (src/components/layout/sidebar.tsx):
+`Sidebar (src/components/layout/sidebar.tsx)`
 
 Provides navigation links for the dashboard and other pages.
-JobAnalysisModal (src/components/dashboard/JobAnalysisModal.tsx):
+`JobAnalysisModal (src/components/dashboard/JobAnalysisModal.tsx)`
 
 Modal for submitting job postings and viewing analysis results.
-Header (src/components/layout/header.tsx):
+`Header (src/components/layout/header.tsx)`
 
 Displays the page title and user actions.
 
 ### 8. Styling
 The application uses Tailwind CSS for styling. Global styles are defined in <be>
-src/styles/globals.css, and utility classes are used throughout the components for consistent design.
+`src/styles/globals.css`, and utility classes are used throughout the components for consistent design.
 
 
