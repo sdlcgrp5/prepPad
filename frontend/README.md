@@ -97,15 +97,14 @@ Handles OTP verification for user authentication.<be>
 
 
 Key Components
-`Sidebar (src/components/layout/sidebar.tsx)`
+`Sidebar (src/components/layout/sidebar.tsx)`<be>
+Provides navigation links for the dashboard and other pages.<be>
 
-Provides navigation links for the dashboard and other pages.
-`JobAnalysisModal (src/components/dashboard/JobAnalysisModal.tsx)`
+`JobAnalysisModal (src/components/dashboard/JobAnalysisModal.tsx)`<be>
+Modal for submitting job postings and viewing analysis results.<be>
 
-Modal for submitting job postings and viewing analysis results.
-`Header (src/components/layout/header.tsx)`
-
-Displays the page title and user actions.
+`Header (src/components/layout/header.tsx)`<be>
+Displays the page title and user actions.<be>
 
 ### 8. Styling
 The application uses Tailwind CSS for styling. Global styles are defined in <be>
