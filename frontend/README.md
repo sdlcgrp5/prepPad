@@ -83,16 +83,15 @@ const response = await fetch(`${API_BASE_URL}/job-analyses/analyze`, {
 ### 7. Components and Pages
 Key Pages
 `Homepage (src/app/page.tsx):`
-
 Displays the landing page with a call-to-action for users to sign up or log in.
+
 `Resume Upload (src/app/resumeupload/page.tsx)`
-
 Allows users to upload resumes and view parsing results.
+
 `Dashboard (src/app/dashboard/page.tsx)`
-
 Displays job analysis results and provides access to the Job Analysis Modal.
-`OTP Authentication (src/app/otp/page.tsx)`
 
+`OTP Authentication (src/app/otp/page.tsx)`
 Handles OTP verification for user authentication.
 
 
