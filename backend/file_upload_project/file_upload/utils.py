@@ -35,7 +35,17 @@ model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
 ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
 
-def analysisPrompt(resume_text, job_details):
+def analysisPrompt(resume_text: str, job_details: str) -> list:
+    """
+    Creates a prompt for comparing resume against job posting.
+    
+    Args:
+        resume_text: Processed resume text
+        job_details: Processed job posting details
+    
+    Returns:
+        list: Structured prompt for DeepSeek API with system and user messages
+    """
     prompt = [
         {
             "role": "system",
@@ -62,7 +72,16 @@ def analysisPrompt(resume_text, job_details):
     return prompt
 
 
-def resumeProcessorPrompt(resume_text):
+def resumeProcessorPrompt(resume_text: str) -> list:
+    """
+    Creates a structured prompt to extract resume information.
+    
+    Args:
+        resume_text: Raw text extracted from resume
+    
+    Returns:
+        list: Prompt template for extracting structured data from resume
+    """
     prompt = [
         {
             "role": "system",
@@ -121,7 +140,16 @@ def resumeProcessorPrompt(resume_text):
     return prompt
 
 
-def jobProcessorPrompt(job_posting):
+def jobProcessorPrompt(job_posting: str) -> list:
+    """
+    Creates a prompt to extract job posting details.
+    
+    Args:
+        job_posting: Raw text from job posting
+    
+    Returns:
+        list: Prompt template for extracting job details
+    """
     prompt = [
         {
             "role": "system",
@@ -150,7 +178,19 @@ def jobProcessorPrompt(job_posting):
     return prompt
 
 
-def resumeJobDescAnalysis(resume_file_path, job_posting_url):
+def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
+    """
+    Analyzes resume against job posting and provides comparison.
+    
+    Args:
+        resume_file_path: Path to uploaded resume file
+        job_posting_url: URL of job posting
+    
+    Returns:
+        dict: Analysis results including match score, strengths, weaknesses
+    Raises:
+        ValueError: If resume processing or job analysis fails
+    """
     try:
         # Process the resume
         resume_data = str(processResume(resume_file_path))
@@ -230,7 +270,18 @@ def resumeJobDescAnalysis(resume_file_path, job_posting_url):
         }
 
 
-def processResume(resume_file_path):
+def processResume(resume_file_path: str) -> dict:
+    """
+    Extracts and processes text from resume files.
+    
+    Args:
+        resume_file_path: Path to PDF or DOCX resume
+    
+    Returns:
+        dict: Structured resume data
+    Raises:
+        ValueError: If file format is not supported
+    """
     resume_text = ""
     if resume_file_path.endswith(".pdf"):
         with pdfplumber.open(f"{resume_file_path}") as pdf:
@@ -296,7 +347,16 @@ def processResume(resume_file_path):
 
 
 
-def analyzeJobPosting(job_posting):
+def analyzeJobPosting(job_posting: str) -> dict:
+    """
+    Analyzes job posting text using DeepSeek API.
+    
+    Args:
+        job_posting: Raw job posting text
+    
+    Returns:
+        dict: Structured job posting data
+    """
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
@@ -353,7 +413,16 @@ def analyzeJobPosting(job_posting):
         )
 
 
-def getRawText(tree):
+def getRawText(tree: html.HtmlElement) -> str:
+    """
+    Extracts and cleans text from HTML.
+    
+    Args:
+        tree: Parsed HTML element tree
+    
+    Returns:
+        str: Cleaned text content
+    """
     # Remove scripts/styles (XPath)
     for tag in tree.xpath("//script | //style | //noscript | //svg"):
         tag.getparent().remove(tag)
@@ -362,7 +431,7 @@ def getRawText(tree):
     return text
 
 
-def ner(text):
+def ner(text: str) -> dict:
     """
     Named Entity Recognition (NER) using the DSLIM BERT model
 
@@ -377,14 +446,32 @@ def ner(text):
 
 
 # Ask a question and get an answer
-def askQuestion(text, question):
-
+def askQuestion(text: str, question: str) -> str:
+    """
+    Uses QA model to extract specific information.
+    
+    Args:
+        text: Context text
+        question: Question to answer
+    
+    Returns:
+        str: Extracted answer from text
+    """
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
 
 # Extract qualifications, responsibilities, and salary range from job description
-def extractQAFields(text):
+def extractQAFields(text: str) -> dict:
+    """
+    Extracts specific fields from job description.
+    
+    Args:
+        text: Job description text
+    
+    Returns:
+        dict: Extracted fields (description, qualifications, skills, etc.)
+    """
     questions = {
         # Question to extract the overall job description
         "description": "What is the job description?",
@@ -400,7 +487,16 @@ def extractQAFields(text):
     return {k: askQuestion(text, q) for k, q in questions.items()}
 
 # Extract job description from a URL using Selenium
-def extractJobDescription(url):
+def extractJobDescription(url: str) -> dict:
+    """
+    Scrapes job posting content using Selenium.
+    
+    Args:
+        url: Job posting URL
+    
+    Returns:
+        dict: Processed job posting data or error details
+    """
     try:
         # Set up Chrome options
         chrome_options = Options()

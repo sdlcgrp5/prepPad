@@ -14,7 +14,7 @@ import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
-from .utils import process_resume, extract_job_description, resume_job_desc_analysis
+from .utils import processResume, extractJobDescription, resumeJobDescAnalysis
 from rest_framework.throttling import UserRateThrottle
 
 # Configure logging
@@ -23,7 +23,19 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisAPIView(APIView):
-    """API view to handle resume analysis against job posting"""
+    """
+    Handles resume analysis against job postings.
+    
+    Endpoints:
+        POST /api/analysis/
+    
+    Authentication:
+        JWT required
+    
+    Returns:
+        201: Analysis results
+        400: Processing error
+    """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = AnalysisSerializer
     authentication_classes = [JWTAuthentication]  # Remove authentication requirement
@@ -40,7 +52,7 @@ class AnalysisAPIView(APIView):
                 processed_content=""
             )
             job_url = request.data["job_posting_url"]
-            analysis = resume_job_desc_analysis(instance.file_path(), job_url)
+            analysis = resumeJobDescAnalysis(instance.file_path(), job_url)
 
             return Response({
                 "file": instance.file.url,
@@ -53,7 +65,19 @@ class AnalysisAPIView(APIView):
 
 
 class FileUploadAPIView(APIView):
-    """API view to handle file uploads and profile creation"""
+    """
+    Handles resume file uploads and initial processing.
+    
+    Endpoints:
+        POST /api/resume-upload/
+    
+    Authentication:
+        JWT required
+    
+    Returns:
+        201: Successfully processed resume
+        400: Invalid file or processing error
+    """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
     authentication_classes = [JWTAuthentication]  # Remove authentication requirement
@@ -70,7 +94,7 @@ class FileUploadAPIView(APIView):
                 file=request.FILES["file"],
                 processed_content=""
             )
-            processed_content = process_resume(instance.file_path())
+            processed_content = processResume(instance.file_path())
             instance.processed_content = processed_content
             instance.save()
 
@@ -86,7 +110,19 @@ class FileUploadAPIView(APIView):
 
 
 class JobPostingAPIView(APIView):
-    """API view to handle job posting analysis"""
+    """
+    Handles job posting URL processing.
+    
+    Endpoints:
+        POST /api/job-upload/
+    
+    Authentication:
+        JWT required
+    
+    Returns:
+        200: Job posting details
+        400: Invalid URL or processing error
+    """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = JobPostingSerializer
     authentication_classes = [JWTAuthentication]  # Remove authentication requirement
@@ -99,7 +135,7 @@ class JobPostingAPIView(APIView):
 
         try:
             job_url = request.data["job_posting_url"]
-            job_details = extract_job_description(job_url)
+            job_details = extractJobDescription(job_url)
             logger.info(f"Job details extracted for URL: {job_url}")
 
             return Response({
@@ -158,7 +194,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def upload_file(request):
+def uploadFile(request):
     try:
         if 'file' not in request.FILES:
             return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
@@ -169,7 +205,7 @@ def upload_file(request):
         uploaded_file = UploadedFile.objects.create(file=file)
         
         # Process the resume
-        processed_data = process_resume(uploaded_file.file.path)
+        processed_data = processResume(uploaded_file.file.path)
         print("Processed resume data:", json.dumps(processed_data, indent=2))
         
         # Delete the file after processing
@@ -182,7 +218,7 @@ def upload_file(request):
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"Error in upload_file view: {str(e)}")
+        print(f"Error in uploadFile view: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -195,7 +231,7 @@ def job_description_parse(request):
         if form.is_valid():
             try:
                 job_url = form.cleaned_data["job_posting_url"]
-                job_details = extract_job_description(job_url)
+                job_details = extractJobDescription(job_url)
                 return render(request, "file_upload/job_description_results.html", {
                     "job_details": job_details,
                     "form": form
@@ -209,7 +245,7 @@ def job_description_parse(request):
     return render(request, "file_upload/job_description_parse.html", {"form": form})
 
 
-def display_file(request, file_id):
+def displayFile(request, file_id):
     """View to display processed file contents"""
     try:
         file_obj = UploadedFile.objects.get(pk=file_id)
@@ -223,7 +259,7 @@ def display_file(request, file_id):
         return HttpResponse(f"Error: {str(e)}")
 
 
-def file_list(request):
+def fileList(request):
     """View to display list of uploaded files"""
     files = UploadedFile.objects.all().order_by("-uploaded_at")
     paginator = Paginator(files, 10)
