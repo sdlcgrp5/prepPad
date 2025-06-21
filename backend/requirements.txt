@@ -36,3 +36,6 @@ webdriver-manager==4.0.1
 
 # Database Connector - Apple Silicon compatible version
 psycopg2-binary # Works on M1/M2/M3 Macs
+
+# Environment Variables
+python-dotenv

@@ -16,7 +16,12 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait        
 from selenium.webdriver.support import expected_conditions as EC
+from dotenv import load_dotenv
+import os
 
+load_dotenv()  # This will read .env file and set environment variables
+
+API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 def analysisPrompt(resume_text, job_details):
     prompt = [
@@ -115,7 +120,6 @@ def resume_job_desc_analysis(resume_file_path, job_posting_url):
             raise ValueError("Failed to analyze job posting")
 
         # Implement job description and resume comparison here
-        API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
         url = "https://api.deepseek.com/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -166,7 +170,6 @@ def process_resume(resume_file_path):
     else:
         raise ValueError("Unsupported file format. Use PDF or DOCX.")
 
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
     data = {
@@ -207,7 +210,6 @@ def process_resume(resume_file_path):
 
 
 def analyze_job_posting(job_posting):
-    API_KEY = "sk-75cf0d8df48c4ec09b1e951ba3667bbe"
 
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
