@@ -11,9 +11,10 @@ interface JobAnalysisTableProps {
   analyses: JobAnalysis[];
   loading?: boolean;
   onAnalyzeClick: () => void;
+  onAnalysisClick: (analysisId: number) => void;
 }
 
-export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick }: JobAnalysisTableProps) {
+export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick, onAnalysisClick }: JobAnalysisTableProps) {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -52,6 +53,15 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
+  };
+
+  const handleRowClick = (analysisId: number, event: React.MouseEvent) => {
+    // Don't trigger if clicking on checkbox or link
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    onAnalysisClick(analysisId);
   };
   
   // Score color based on value
@@ -145,7 +155,8 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
       {currentItems.map((analysis) => (
         <div 
           key={analysis.id}
-          className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
+          className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer"
+          onClick={(e) => handleRowClick(analysis.id, e)}
         >
           <div className="flex items-center">
             <input 
