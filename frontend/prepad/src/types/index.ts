@@ -42,12 +42,36 @@ export interface User {
    score: number;
    source: string;
    matchDetails?: MatchDetails;
+   strengths?: string[];
+   weaknesses?: string[];
+   improvementTips?: string[];
  }
  
  export interface MatchDetails {
    matchedSkills: string[];
    missingSkills: string[];
    analysis: string;
+ }
+
+ // Analysis History API Response
+ export interface AnalysisHistoryResponse {
+   analyses: JobAnalysis[];
+   total: number;
+ }
+
+ // Analysis Detail (from API)
+ export interface AnalysisDetail {
+   id: number;
+   company: string;
+   role: string;
+   uploadedAt: string;
+   score: number;
+   source: string;
+   strengths: string[];
+   weaknesses: string[];
+   improvementTips: string[];
+   keywordsFound: string[];
+   keywordsMissing: string[];
  }
  
  // Analysis Result type

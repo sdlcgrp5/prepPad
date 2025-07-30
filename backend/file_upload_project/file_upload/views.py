@@ -53,12 +53,19 @@ class AnalysisAPIView(APIView):
                 processed_content=""
             )
             job_url = request.data["job_posting_url"]
+            
+            # Get job details first
+            job_details = extractJobDescription(job_url)
+            logger.info(f"Job details extracted: {job_details}")
+            
+            # Perform analysis
             analysis = resumeJobDescAnalysis(instance.file_path(), job_url)
 
             return Response({
                 "file": instance.file.url,
                 "url": job_url,
-                "analysis": analysis
+                "analysis": analysis,
+                "job_details": job_details
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error in analysis: {str(e)}")
@@ -147,6 +154,7 @@ class JobPostingAPIView(APIView):
         except Exception as e:
             logger.error(f"Error in job posting analysis: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class ProfileAPIView(APIView):

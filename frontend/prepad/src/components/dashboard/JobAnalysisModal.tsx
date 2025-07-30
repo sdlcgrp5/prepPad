@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AnalysisResults from './AnalysisResults';
 import Image from 'next/image';
 import { AnalysisResult } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface JobAnalysisModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
+  const { token } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +68,9 @@ export default function JobAnalysisModal({
       
       const response = await fetch('/api/analyze', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
       

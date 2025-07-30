@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
@@ -8,7 +8,7 @@ import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
 import AnalysisCard from '@/components/dashboard/AnalysisCard';
 import { useAuth } from '@/context/AuthContext';
-import { JobAnalysis } from '@/types';
+import { JobAnalysis, AnalysisHistoryResponse } from '@/types';
 
 export default function Dashboard() {
   const { token, isLoading: authLoading } = useAuth();
@@ -17,6 +17,31 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
+
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/analysis/history', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analysis history');
+      }
+
+      const data: AnalysisHistoryResponse = await response.json();
+      setJobAnalyses(data.analyses || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setJobAnalyses([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -51,22 +76,7 @@ export default function Dashboard() {
     if (!authLoading) {
       checkProfile();
     }
-  }, [router, token, authLoading]);
-
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    try {
-      // Simulating API call with timeout
-      setTimeout(() => {
-        setJobAnalyses([]);
-        setIsLoading(false);
-      }, 1500);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setJobAnalyses([]);
-      setIsLoading(false);
-    }
-  };
+  }, [router, token, authLoading, fetchDashboardData]);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);

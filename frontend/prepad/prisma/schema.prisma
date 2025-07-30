@@ -13,6 +13,7 @@ model User {
   email    String   @unique
   password String
   profile  Profile?
+  analyses Analysis[]
 }
 
 model Profile {
@@ -45,6 +46,31 @@ model Skill {
   name      String
   profileId Int
   profile   Profile @relation(fields: [profileId], references: [id])
+}
+
+model Analysis {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  createdAt       DateTime @default(now())
+  
+  // Job details
+  jobTitle        String
+  company         String
+  jobUrl          String
+  
+  // Analysis results
+  matchScore      Int
+  strengths       Json
+  weaknesses      Json
+  improvementTips Json
+  keywordsFound   Json
+  keywordsMissing Json
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model auth_group {
