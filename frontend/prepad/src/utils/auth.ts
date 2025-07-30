@@ -33,7 +33,7 @@ export function getTokenData(request: NextRequest): TokenUser | null {
       return null;
     }
     
-    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
+    const decoded = jwt.verify(token, secret) as TokenUser;
     return decoded;
   } catch (error) {
     console.error('Token validation error:', error);
@@ -79,7 +79,7 @@ export function isTokenExpired(token: string): boolean {
       throw new Error('JWT_SECRET environment variable is not set');
     }
     
-    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
+    const decoded = jwt.verify(token, secret) as TokenUser;
     const currentTime = Math.floor(Date.now() / 1000);
     
     return decoded.exp < currentTime;
