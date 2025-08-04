@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Cookies from 'js-cookie';
 
 type User = {
@@ -16,6 +17,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, confirmPassword: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
 };
 
@@ -26,9 +28,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // Check for existing session on component mount
+
+  // Check for existing session on component mount (JWT or NextAuth)
   useEffect(() => {
+    if (status === 'loading') {
+      setIsLoading(true);
+      return;
+    }
+
+    // Check for NextAuth session first
+    if (session?.user) {
+      setUser({
+        id: Number(session.user.id),
+        email: session.user.email || '',
+        name: session.user.name || '',
+      });
+      setToken('nextauth'); // Use a placeholder token for NextAuth sessions
+      setIsLoading(false);
+      return;
+    }
+
+    // Fallback to JWT token from cookies
     const storedToken = Cookies.get('auth_token');
     const storedUser = Cookies.get('user') ? JSON.parse(Cookies.get('user') || '{}') : null;
     
@@ -37,8 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(storedUser);
     }
     
-    setIsLoading(false);
-  }, []);
+    // Add a small delay to ensure session is fully loaded
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+  }, [session, status]);
 
   // Signup function
   const signup = async (email: string, password: string, confirmPassword: string): Promise<boolean> => {
@@ -144,22 +169,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
-  const logout = () => {
+  // Google login function - let NextAuth handle the redirect
+  const loginWithGoogle = async () => {
+    try {
+      await signIn('google', { 
+        callbackUrl: '/resumeupload',
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+
+  // Enhanced logout function for both auth methods
+  const logout = async () => {
     // Clear state
     setUser(null);
     setToken(null);
     
-    // Clear cookies
+    // Clear JWT cookies
     Cookies.remove('auth_token');
     Cookies.remove('user');
     
-    // Redirect to home page
-    router.push('/');
+    // Sign out from NextAuth if session exists
+    if (session) {
+      await signOut({ callbackUrl: '/' });
+    } else {
+      // Redirect to home page for JWT logout
+      router.push('/');
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, signup, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

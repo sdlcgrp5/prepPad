@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/context/AuthContext";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -25,9 +26,11 @@ export default function RootLayout({
       <body
         className={`${hankenGrotesk.variable}antialiased`}
       >
+        <SessionProvider>
           <AuthProvider>
-        {children}
-        </AuthProvider>
+            {children}
+          </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );

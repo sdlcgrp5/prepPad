@@ -39,15 +39,14 @@ interface ParsedResumeData {
 }
 
 export default function Home() {
+  // All useState hooks must be declared before any conditional returns
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const router = useRouter();
-
+  
   // Form state
   const [basicInfo, setBasicInfo] = useState({
     firstName: '',
@@ -82,6 +81,35 @@ export default function Home() {
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationErrors>({});
   const [experienceInfoErrors, setExperienceInfoErrors] = useState<ValidationErrors>({});
   const [educationInfoErrors, setEducationInfoErrors] = useState<ValidationErrors>({});
+
+  // Auth and router hooks
+  const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Authentication guard - show loading while auth is being determined
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Redirect to signin if not authenticated
+  if (!user) {
+    router.push('/signin');
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-white">Redirecting...</p>
+        </div>
+      </main>
+    );
+  }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
