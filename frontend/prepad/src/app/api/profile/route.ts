@@ -297,12 +297,148 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    // Use hybrid authentication to support both JWT and NextAuth sessions
+    const authResult = await authenticate(request);
+    
+    if (!authResult) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    const { userId } = authResult;
+    
+    // Parse request body
+    const body = await request.json();
+    const validationResult = profileSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      return NextResponse.json({ 
+        error: 'Invalid data', 
+        details: validationResult.error 
+      }, { status: 400 });
+    }
+    
+    const profileData = validationResult.data;
+    
+    // Check if profile exists
+    const existingProfile = await prisma.profile.findFirst({
+      where: { userId }
+    });
+    
+    if (!existingProfile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+    
+    // Update profile in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Update profile data
+      const updatedProfile = await tx.profile.update({
+        where: { id: existingProfile.id },
+        data: {
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          phone: profileData.phone,
+          zipCode: profileData.zipCode,
+          jobTitle: profileData.jobTitle,
+          company: profileData.company,
+          yearsOfExperience: profileData.yearsOfExperience,
+          linkedinUrl: profileData.linkedinUrl,
+          highestDegree: profileData.highestDegree,
+          fieldOfStudy: profileData.fieldOfStudy,
+          institution: profileData.institution,
+          graduationYear: profileData.graduationYear,
+        }
+      });
+      
+      // Delete existing skills
+      await tx.skill.deleteMany({
+        where: { profileId: existingProfile.id }
+      });
+      
+      // Add new skills
+      if (profileData.skills && profileData.skills.length > 0) {
+        await tx.skill.createMany({
+          data: profileData.skills.map(skillName => ({
+            profileId: existingProfile.id,
+            name: skillName
+          }))
+        });
+      }
+      
+      return updatedProfile;
+    });
+    
+    // Fetch updated profile with skills for response
+    const profileWithSkills = await prisma.profile.findFirst({
+      where: { userId },
+      include: { 
+        skills: true,
+        user: {
+          select: {
+            email: true
+          }
+        }
+      }
+    });
+    
+    if (!profileWithSkills) {
+      return NextResponse.json({ error: 'Failed to fetch updated profile' }, { status: 500 });
+    }
+    
+    // Format response to match expected structure
+    const profileResponse: ProfileWithStringSkills = {
+      id: profileWithSkills.id,
+      firstName: profileWithSkills.firstName,
+      lastName: profileWithSkills.lastName,
+      email: profileWithSkills.user.email,
+      phone: profileWithSkills.phone,
+      zipCode: profileWithSkills.zipCode,
+      jobTitle: profileWithSkills.jobTitle,
+      company: profileWithSkills.company,
+      yearsOfExperience: profileWithSkills.yearsOfExperience,
+      linkedinUrl: profileWithSkills.linkedinUrl,
+      resumeFile: profileWithSkills.resumeFile,
+      resumeFileName: profileWithSkills.resumeFileName,
+      resumeFileType: profileWithSkills.resumeFileType,
+      highestDegree: profileWithSkills.highestDegree,
+      fieldOfStudy: profileWithSkills.fieldOfStudy,
+      institution: profileWithSkills.institution,
+      graduationYear: profileWithSkills.graduationYear,
+      skills: profileWithSkills.skills.map(skill => skill.name)
+    };
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Profile updated successfully',
+      profile: profileResponse
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Profile update error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // Handle OPTIONS requests for CORS
 //export async function OPTIONS(_request: NextRequest) {
   //return NextResponse.json({}, {
     //headers: {
       //'Access-Control-Allow-Origin': '*',
-      //'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      //'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
       //'Access-Control-Allow-Headers': 'Content-Type, Authorization'
    // }
   //});

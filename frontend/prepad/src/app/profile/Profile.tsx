@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
 import Image from "next/image";
-// import Link from 'next/link';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 
 interface ProfileData {
   firstName: string;
@@ -28,6 +28,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
 
@@ -71,6 +72,19 @@ export default function Profile() {
     fetchProfile();
   }, [token, router]);
 
+  const handleEditProfile = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleProfileUpdate = (updatedProfile: ProfileData) => {
+    setProfile(updatedProfile);
+    setIsEditModalOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
@@ -112,7 +126,7 @@ export default function Profile() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Profile</h1>
           <button
-            onClick={() => router.push('/resumeupload')}
+            onClick={handleEditProfile}
             className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center"
           >
               <Image
@@ -235,6 +249,16 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {profile && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseModal}
+          onSuccess={handleProfileUpdate}
+          initialData={profile}
+        />
+      )}
     </div>
   );
 }
