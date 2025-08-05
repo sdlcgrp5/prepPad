@@ -11,301 +11,197 @@ datasource db {
 model User {
   id            Int       @id @default(autoincrement())
   email         String    @unique
-  password      String?   // Make optional for OAuth users
-  name          String?   // For Google display name
-  image         String?   // For Google profile picture
-  emailVerified DateTime? // For NextAuth
+  password      String?   // Optional for OAuth users - hashed with bcrypt
+  name          String?   // For OAuth display name
+  image         String?   // For OAuth profile picture
+  emailVerified DateTime? // For NextAuth email verification
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Security fields
+  failedLoginAttempts Int @default(0)
+  lockedUntil        DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  
+  // Privacy consent
+  dataProcessingConsent Boolean @default(false)
+  consentDate          DateTime?
+  
+  // Relations
   profile       Profile?
   analyses      Analysis[]
   accounts      Account[]
   sessions      Session[]
+  auditLogs     AuditLog[]
+  
+  @@index([email])
+  @@index([isActive])
+  @@index([lastLoginAt])
+  @@map("users")
 }
 
 model Profile {
   id                Int      @id @default(autoincrement())
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  
+  // Basic information - consider encryption for production
   firstName         String
   lastName          String
-  phone             String?
+  phone             String?  // Should be encrypted in production
   zipCode           String?
+  
+  // Professional information
   jobTitle          String?
   company           String?
   yearsOfExperience String?
   linkedinUrl       String?
+  
+  // Education information
   highestDegree     String?
   fieldOfStudy      String?
   institution       String?
   graduationYear    String?
-  userId            Int      @unique
-  resumeFile        String?
+  
+  // Resume files - stored securely
+  resumeFile        String?  // File path or S3 URL
   resumeFileName    String?
   resumeFileType    String?
-  jobDescription    String?
-  user              User     @relation(fields: [userId], references: [id])
+  resumeUploadedAt  DateTime?
+  
+  // Data classification
+  dataClassification String @default("PII") // PII, SENSITIVE, INTERNAL, PUBLIC
+  isDeleted         Boolean @default(false) // Soft delete for GDPR
+  deletedAt         DateTime?
+  
+  // Relations
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   skills            Skill[]
+  
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([dataClassification])
+  @@map("profiles")
 }
 
 model Skill {
   id        Int     @id @default(autoincrement())
   name      String
   profileId Int
-  profile   Profile @relation(fields: [profileId], references: [id])
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  @@index([profileId])
+  @@map("skills")
 }
 
 model Analysis {
   id              Int      @id @default(autoincrement())
   userId          Int
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   
   // Job details
   jobTitle        String
   company         String
   jobUrl          String
   
-  // Analysis results
+  // Analysis results - potentially contains processed PII
   matchScore      Int
-  strengths       Json
-  weaknesses      Json
-  improvementTips Json
+  strengths       Json     // May contain anonymized data
+  weaknesses      Json     // May contain anonymized data
+  improvementTips Json     // May contain anonymized data
   keywordsFound   Json
   keywordsMissing Json
   
+  // Privacy tracking
+  wasAnonymized   Boolean  @default(false)
+  dataClassification String @default("PROCESSED") // PROCESSED, ANONYMIZED, RAW
+  
+  // Data retention
+  isDeleted       Boolean  @default(false)
+  deletedAt       DateTime?
+  retentionDate   DateTime? // Auto-delete after certain period
+  
   // Relations
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
   @@index([createdAt])
+  @@index([isDeleted])
+  @@index([retentionDate])
+  @@map("analyses")
 }
 
-model auth_group {
-  id                     Int                      @id @default(autoincrement())
-  name                   String                   @unique @db.VarChar(150)
-  auth_group_permissions auth_group_permissions[]
-  auth_user_groups       auth_user_groups[]
-
-  @@index([name], map: "auth_group_name_a6ea08ec_like")
+// Security and audit models
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  action      String   // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT
+  resource    String   // USER, PROFILE, ANALYSIS, etc.
+  resourceId  String?  // ID of the affected resource (stored as string for flexibility)
+  details     Json?    // Additional details about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  // Relations - Only link to User, resourceId is stored as string for flexibility
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model auth_group_permissions {
-  id              BigInt          @id @default(autoincrement())
-  group_id        Int
-  permission_id   Int
-  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissio_permission_id_84c5c92e_fk_auth_perm")
-  auth_group      auth_group      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissions_group_id_b120cbf9_fk_auth_group_id")
-
-  @@unique([group_id, permission_id], map: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq")
-  @@index([group_id], map: "auth_group_permissions_group_id_b120cbf9")
-  @@index([permission_id], map: "auth_group_permissions_permission_id_84c5c92e")
+// Data retention and cleanup
+model DataRetentionPolicy {
+  id          Int      @id @default(autoincrement())
+  dataType    String   // USER, PROFILE, ANALYSIS, AUDIT_LOG
+  retentionDays Int    // Days to retain data
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([dataType])
+  @@map("data_retention_policies")
 }
 
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model auth_permission {
-  id                         Int                          @id @default(autoincrement())
-  name                       String                       @db.VarChar(255)
-  content_type_id            Int
-  codename                   String                       @db.VarChar(100)
-  auth_group_permissions     auth_group_permissions[]
-  django_content_type        django_content_type          @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_permission_content_type_id_2f476e4b_fk_django_co")
-  auth_user_user_permissions auth_user_user_permissions[]
-
-  @@unique([content_type_id, codename], map: "auth_permission_content_type_id_codename_01ab375a_uniq")
-  @@index([content_type_id], map: "auth_permission_content_type_id_2f476e4b")
-}
-
-model auth_user {
-  id                         Int                          @id @default(autoincrement())
-  password                   String                       @db.VarChar(128)
-  last_login                 DateTime?                    @db.Timestamptz(6)
-  is_superuser               Boolean
-  username                   String                       @unique @db.VarChar(150)
-  first_name                 String                       @db.VarChar(150)
-  last_name                  String                       @db.VarChar(150)
-  email                      String                       @db.VarChar(254)
-  is_staff                   Boolean
-  is_active                  Boolean
-  date_joined                DateTime                     @db.Timestamptz(6)
-  auth_user_groups           auth_user_groups[]
-  auth_user_user_permissions auth_user_user_permissions[]
-  django_admin_log           django_admin_log[]
-
-  @@index([username], map: "auth_user_username_6821ab7c_like")
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model auth_user_groups {
-  id         BigInt     @id @default(autoincrement())
-  user_id    Int
-  group_id   Int
-  auth_group auth_group @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_group_id_97559544_fk_auth_group_id")
-  auth_user  auth_user  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_user_id_6a12ed8b_fk_auth_user_id")
-
-  @@unique([user_id, group_id], map: "auth_user_groups_user_id_group_id_94350c0c_uniq")
-  @@index([group_id], map: "auth_user_groups_group_id_97559544")
-  @@index([user_id], map: "auth_user_groups_user_id_6a12ed8b")
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model auth_user_user_permissions {
-  id              BigInt          @id @default(autoincrement())
-  user_id         Int
-  permission_id   Int
-  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm")
-  auth_user       auth_user       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id")
-
-  @@unique([user_id, permission_id], map: "auth_user_user_permissions_user_id_permission_id_14a6b632_uniq")
-  @@index([permission_id], map: "auth_user_user_permissions_permission_id_1fbb5f2c")
-  @@index([user_id], map: "auth_user_user_permissions_user_id_a95ead1b")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model django_admin_log {
-  id                  Int                  @id @default(autoincrement())
-  action_time         DateTime             @db.Timestamptz(6)
-  object_id           String?
-  object_repr         String               @db.VarChar(200)
-  action_flag         Int                  @db.SmallInt
-  change_message      String
-  content_type_id     Int?
-  user_id             Int
-  django_content_type django_content_type? @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_content_type_id_c4bce8eb_fk_django_co")
-  auth_user           auth_user            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_user_id_c564eba6_fk_auth_user_id")
-
-  @@index([content_type_id], map: "django_admin_log_content_type_id_c4bce8eb")
-  @@index([user_id], map: "django_admin_log_user_id_c564eba6")
-}
-
-model django_content_type {
-  id               Int                @id @default(autoincrement())
-  app_label        String             @db.VarChar(100)
-  model            String             @db.VarChar(100)
-  auth_permission  auth_permission[]
-  django_admin_log django_admin_log[]
-
-  @@unique([app_label, model], map: "django_content_type_app_label_model_76bd3d3b_uniq")
-}
-
-model django_migrations {
-  id      BigInt   @id @default(autoincrement())
-  app     String   @db.VarChar(255)
-  name    String   @db.VarChar(255)
-  applied DateTime @db.Timestamptz(6)
-}
-
-model django_session {
-  session_key  String   @id @db.VarChar(40)
-  session_data String
-  expire_date  DateTime @db.Timestamptz(6)
-
-  @@index([expire_date], map: "django_session_expire_date_a5c62663")
-  @@index([session_key], map: "django_session_session_key_c0390e0f_like")
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model file_upload_education {
-  id                  BigInt              @id @default(autoincrement())
-  highestDegree       String              @db.VarChar(255)
-  fieldOfStudy        String              @db.VarChar(255)
-  institution         String              @db.VarChar(255)
-  graduationYear      String              @db.VarChar(50)
-  profile_id          BigInt
-  file_upload_profile file_upload_profile @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "file_upload_educatio_profile_id_d44b8979_fk_file_uplo")
-
-  @@index([profile_id], map: "file_upload_education_profile_id_d44b8979")
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model file_upload_experience {
-  id                  BigInt              @id @default(autoincrement())
-  jobTitle            String              @db.VarChar(255)
-  company             String              @db.VarChar(255)
-  startDate           String              @db.VarChar(50)
-  endDate             String              @db.VarChar(50)
-  location            String              @db.VarChar(255)
-  jobDescription      String
-  profile_id          BigInt
-  file_upload_profile file_upload_profile @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "file_upload_experien_profile_id_266b1209_fk_file_uplo")
-
-  @@index([profile_id], map: "file_upload_experience_profile_id_266b1209")
-}
-
-model file_upload_jobposting {
-  id               BigInt   @id @default(autoincrement())
-  title            String   @db.VarChar(255)
-  description      String
-  qualifications   String
-  skills           String
-  responsibilities String
-  salary_range     String   @db.VarChar(100)
-  location         String   @db.VarChar(255)
-  posted_date      DateTime @db.Date
-}
-
-model file_upload_profile {
-  id                     BigInt                   @id @default(autoincrement())
-  firstName              String                   @db.VarChar(255)
-  lastName               String                   @db.VarChar(255)
-  email                  String                   @db.VarChar(254)
-  phone                  String                   @db.VarChar(20)
-  zipCode                String                   @db.VarChar(10)
-  created_at             DateTime                 @db.Timestamptz(6)
-  updated_at             DateTime                 @db.Timestamptz(6)
-  file_upload_education  file_upload_education[]
-  file_upload_experience file_upload_experience[]
-  file_upload_skills     file_upload_skills[]
-}
-
-model file_upload_resume {
-  id              BigInt   @id @default(autoincrement())
-  name            String   @db.VarChar(255)
-  contact_info    String
-  work_experience String
-  education       String
-  skills          String
-  certifications  String
-  awards          String
-  publications    String
-  projects        String
-  languages       String
-  uploaded_at     DateTime @db.Timestamptz(6)
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model file_upload_skills {
-  id                  BigInt              @id @default(autoincrement())
-  skills              Json
-  profile_id          BigInt
-  file_upload_profile file_upload_profile @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "file_upload_skills_profile_id_1e8f6515_fk_file_uplo")
-
-  @@index([profile_id], map: "file_upload_skills_profile_id_1e8f6515")
-}
-
-model file_upload_uploadedfile {
-  id                BigInt   @id @default(autoincrement())
-  file              String   @db.VarChar(100)
-  uploaded_at       DateTime @db.Timestamptz(6)
-  processed_content String?
-}
-
-// NextAuth models for OAuth integration
+// NextAuth models for OAuth integration - Enhanced for security
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            Int
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?  @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Security fields
+  isRevoked         Boolean  @default(false)
+  revokedAt         DateTime?
+  lastUsedAt        DateTime?
+  
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+  @@index([isRevoked])
+  @@map("accounts")
 }
 
 model Session {
@@ -313,13 +209,37 @@ model Session {
   sessionToken String   @unique
   userId       Int
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Security fields
+  ipAddress    String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+  lastAccessAt DateTime @default(now())
+  
+  // Relations
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([expires])
+  @@index([isActive])
+  @@map("sessions")
 }
 
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-
+  createdAt  DateTime @default(now())
+  
+  // Security fields
+  isUsed     Boolean  @default(false)
+  usedAt     DateTime?
+  attempts   Int      @default(0)
+  
   @@unique([identifier, token])
+  @@index([expires])
+  @@index([isUsed])
+  @@map("verification_tokens")
 }

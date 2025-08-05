@@ -110,6 +110,10 @@ dmypy.json
 # If you are using Pyre:
 .pyre/
 
+# Claude Code files
+CLAUDE.md
+todo.md
+
 frontend/.env.local
 .env
 *.env
