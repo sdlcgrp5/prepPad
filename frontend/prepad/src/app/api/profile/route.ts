@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import type { Prisma } from '@prisma/client';
+import { auth } from '../../../../auth';
 
 // Define a type for the profile with skills as a string array
 type ProfileWithStringSkills = Omit<
@@ -38,6 +39,41 @@ type ProfileWithStringSkills = Omit<
   graduationYear: string | null;
 };
 
+// Hybrid authentication function to handle both JWT and NextAuth sessions
+async function authenticate(request: NextRequest): Promise<{ userId: number; email: string } | null> {
+  try {
+    // First, try JWT token authentication
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    if (token && token !== 'nextauth') {
+      const secret = process.env.JWT_SECRET as string;
+      if (secret) {
+        try {
+          const decoded = jwt.verify(token, secret) as { id: number; email: string };
+          return { userId: decoded.id, email: decoded.email };
+        } catch {
+          console.log('JWT validation failed, trying NextAuth session...');
+        }
+      }
+    }
+    
+    // Fallback to NextAuth session
+    const session = await auth();
+    if (session?.user?.id && session?.user?.email) {
+      return { 
+        userId: Number(session.user.id), 
+        email: session.user.email 
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
+}
+
 const profileSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
@@ -56,11 +92,10 @@ const profileSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the JWT token from the Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    // Use hybrid authentication to support both JWT and NextAuth sessions
+    const authResult = await authenticate(request);
     
-    if (!token) {
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
         headers: {
@@ -71,19 +106,11 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Decode and verify the token
-    const secret = process.env.JWT_SECRET as string;
-    if (!secret) {
-      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { status: 500 });
-    }
+    const { userId } = authResult;
     
-    try {
-      const decodedToken = jwt.verify(token, secret) as { id: number };
-      const userId = decodedToken.id;
-      
-      // Parse request body
-      const body = await request.json();
-      const validationResult = profileSchema.safeParse(body);
+    // Parse request body
+    const body = await request.json();
+    const validationResult = profileSchema.safeParse(body);
       
       if (!validationResult.success) {
         return NextResponse.json({ error: 'Invalid data', details: validationResult.error }, { status: 400 });
@@ -204,11 +231,6 @@ export async function POST(request: NextRequest) {
         }
       });
       
-    } catch (error) {
-      console.error('Token verification error:', error);
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-    
   } catch (error) {
     console.error('Profile update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -217,11 +239,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the JWT token from the Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    // Use hybrid authentication to support both JWT and NextAuth sessions
+    const authResult = await authenticate(request);
     
-    if (!token) {
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
         headers: {
@@ -232,14 +253,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Decode and verify the token
-    const secret = process.env.JWT_SECRET as string;
-    if (!secret) {
-      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { status: 500 });
-    }
-    
-    const decodedToken = jwt.verify(token, secret) as { id: number };
-    const userId = decodedToken.id;
+    const { userId } = authResult;
     
     // Get user profile with skills
     const profile = await prisma.profile.findFirst({

@@ -575,10 +575,18 @@ export default function Home() {
         skills: skillsInfo.skills
       };
 
-      // Get the auth token
-      const token = Cookies.get('auth_token');
+      // Get the auth token - check both JWT and NextAuth methods
+      let token = Cookies.get('auth_token');
+      
+      // If no JWT token found, check if user is authenticated via NextAuth
+      if (!token && user) {
+        // For NextAuth users, we'll send the placeholder token
+        // The API will detect this and use NextAuth session instead
+        token = 'nextauth';
+      }
+      
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error('No authentication found');
       }
 
       // Create profile using the profile API

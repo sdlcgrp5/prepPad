@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getTokenData } from '@/utils/auth';
+import { getHybridAuthData } from '@/utils/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     const { resumeId, jobUrl } = data;
     
-    // Get user data from JWT token
-    const tokenData = getTokenData(request);
+    // Get user data from either JWT token or NextAuth session
+    const tokenData = await getHybridAuthData(request);
     if (!tokenData) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
