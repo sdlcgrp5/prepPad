@@ -54,18 +54,23 @@ class AnalysisAPIView(APIView):
             )
             job_url = request.data["job_posting_url"]
             
+            # Check for user consent (optional parameter, defaults to True for privacy protection)
+            anonymize_pii = request.data.get("anonymize_pii", "true").lower() == "true"
+            logger.info(f"🔒 PII Anonymization: {'ENABLED' if anonymize_pii else 'DISABLED'}")
+            
             # Get job details first
             job_details = extractJobDescription(job_url)
             logger.info(f"Job details extracted: {job_details}")
             
-            # Perform analysis
-            analysis = resumeJobDescAnalysis(instance.file_path(), job_url)
+            # Perform analysis with privacy protection
+            analysis = resumeJobDescAnalysis(instance.file_path(), job_url, anonymize_pii=anonymize_pii)
 
             return Response({
                 "file": instance.file.url,
                 "url": job_url,
                 "analysis": analysis,
-                "job_details": job_details
+                "job_details": job_details,
+                "privacy_protected": anonymize_pii
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error in analysis: {str(e)}")
@@ -102,7 +107,12 @@ class FileUploadAPIView(APIView):
                 file=request.FILES["file"],
                 processed_content=""
             )
-            processed_content = processResume(instance.file_path())
+            
+            # Check for user consent (optional parameter, defaults to True for privacy protection)
+            anonymize_pii = request.data.get("anonymize_pii", "true").lower() == "true"
+            logger.info(f"🔒 Resume Processing - PII Anonymization: {'ENABLED' if anonymize_pii else 'DISABLED'}")
+            
+            processed_content = processResume(instance.file_path(), anonymize_pii=anonymize_pii)
             # Convert the dictionary to JSON string for storage
             instance.processed_content = json.dumps(processed_content)
             instance.save()
@@ -110,7 +120,8 @@ class FileUploadAPIView(APIView):
             return Response({
                 "success": True,
                 "file": instance.file.url,
-                "processed_content": processed_content  # Return the dict directly, not the JSON string
+                "processed_content": processed_content,  # Return the dict directly, not the JSON string
+                "privacy_protected": anonymize_pii
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:

@@ -15,10 +15,12 @@ type AuthContextType = {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  hasDataProcessingConsent: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, confirmPassword: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
+  setDataProcessingConsent: (consent: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasDataProcessingConsent, setHasDataProcessingConsent] = useState(false);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -53,11 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fallback to JWT token from cookies
     const storedToken = Cookies.get('auth_token');
     const storedUser = Cookies.get('user') ? JSON.parse(Cookies.get('user') || '{}') : null;
+    const storedConsent = Cookies.get('data_processing_consent') === 'true';
     
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(storedUser);
     }
+    
+    setHasDataProcessingConsent(storedConsent);
     
     // Add a small delay to ensure session is fully loaded
     setTimeout(() => {
@@ -181,15 +187,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Set data processing consent
+  const setDataProcessingConsent = (consent: boolean) => {
+    setHasDataProcessingConsent(consent);
+    if (consent) {
+      Cookies.set('data_processing_consent', 'true', { expires: 365 }); // 1 year
+    } else {
+      Cookies.remove('data_processing_consent');
+    }
+  };
+
   // Enhanced logout function for both auth methods
   const logout = async () => {
     // Clear state
     setUser(null);
     setToken(null);
+    setHasDataProcessingConsent(false);
     
     // Clear JWT cookies
     Cookies.remove('auth_token');
     Cookies.remove('user');
+    Cookies.remove('data_processing_consent');
     
     // Sign out from NextAuth if session exists
     if (session) {
@@ -201,7 +219,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, signup, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      isLoading, 
+      hasDataProcessingConsent, 
+      login, 
+      signup, 
+      loginWithGoogle, 
+      logout, 
+      setDataProcessingConsent 
+    }}>
       {children}
     </AuthContext.Provider>
   );

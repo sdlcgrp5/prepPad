@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AnalysisResults from './AnalysisResults';
+import ConsentModal from '@/components/privacy/ConsentModal';
 import Image from 'next/image';
 import { AnalysisResult } from '@/types';
 import { useAuth } from '@/context/AuthContext';
@@ -17,12 +18,14 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
-  const { token } = useAuth();
+  const { token, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState(false);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,12 +62,25 @@ export default function JobAnalysisModal({
       return;
     }
     
+    // Check if user has given consent for data processing
+    if (!hasDataProcessingConsent) {
+      setPendingSubmission(true);
+      setIsConsentModalOpen(true);
+      return;
+    }
+    
+    await performAnalysis();
+  };
+
+  const performAnalysis = async () => {
     try {
       setIsLoading(true);
       
       const formData = new FormData();
-      formData.append('resume', resumeFile);
+      formData.append('resume', resumeFile!);
       formData.append('jobUrl', jobUrl);
+      // Add privacy preference to the request
+      formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
       
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -88,6 +104,25 @@ export default function JobAnalysisModal({
       setError('Failed to analyze job posting. Please try again.');
       console.error('Job analysis error:', err);
     }
+  };
+
+  const handleConsentResponse = (granted: boolean) => {
+    setDataProcessingConsent(granted);
+    setIsConsentModalOpen(false);
+    
+    if (granted && pendingSubmission) {
+      // User granted consent, proceed with analysis
+      performAnalysis();
+    } else if (!granted) {
+      alert('Job analysis requires consent for AI processing. You can change this preference in your profile settings later.');
+    }
+    
+    setPendingSubmission(false);
+  };
+
+  const handleConsentModalClose = () => {
+    setIsConsentModalOpen(false);
+    setPendingSubmission(false);
   };
   
   if (!isOpen) return null;
@@ -215,6 +250,14 @@ export default function JobAnalysisModal({
           </form>
         </div>
       </div>
+      
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={isConsentModalOpen}
+        onConsent={handleConsentResponse}
+        onClose={handleConsentModalClose}
+        type="job-analysis"
+      />
     </div>
   );
 }

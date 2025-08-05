@@ -29,7 +29,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const { token } = useAuth();
+  const { token, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -247,6 +247,61 @@ export default function Profile() {
               </div>
             </section>
           )}
+
+          {/* Privacy Settings */}
+          <section className="bg-gray-800 rounded-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-purple-400">Privacy Settings</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-medium text-white mb-1">AI Data Processing</h3>
+                  <p className="text-sm text-gray-400">
+                    Allow your data to be processed by external AI services for resume analysis and job matching. 
+                    When enabled, your personal information is anonymized before processing.
+                  </p>
+                </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={hasDataProcessingConsent}
+                      onChange={(e) => setDataProcessingConsent(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-400 mb-1">Privacy Protection</h4>
+                  <p className="text-xs text-blue-200">
+                    {hasDataProcessingConsent 
+                      ? "Your personal information is anonymized before being sent to AI services. Names, emails, and phone numbers are replaced with placeholders during processing."
+                      : "AI processing is disabled. You can enable it anytime to use resume analysis and job matching features."
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {hasDataProcessingConsent && (
+                <div className="text-xs text-gray-500 mt-2">
+                  ✓ Data anonymization active<br/>
+                  ✓ PII protection enabled<br/>
+                  ✓ Secure transmission<br/>
+                  ✓ No long-term storage by external services
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
 import HybridDateSelector from '@/components/HybridDateSelector';
+import ConsentModal from '@/components/privacy/ConsentModal';
 import Cookies from 'js-cookie';
 
 // Define validation error type
@@ -46,6 +47,8 @@ export default function Home() {
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   
   // Form state
   const [basicInfo, setBasicInfo] = useState({
@@ -83,7 +86,7 @@ export default function Home() {
   const [educationInfoErrors, setEducationInfoErrors] = useState<ValidationErrors>({});
 
   // Auth and router hooks
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const router = useRouter();
 
   // Authentication guard - show loading while auth is being determined
@@ -152,6 +155,17 @@ export default function Home() {
   };
 
   const handleFileUpload = async (file: File) => {
+    // Check if user has given consent, if not show consent modal
+    if (!hasDataProcessingConsent) {
+      setPendingFile(file);
+      setIsConsentModalOpen(true);
+      return;
+    }
+    
+    await processFileUpload(file);
+  };
+
+  const processFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
       
@@ -172,6 +186,8 @@ export default function Home() {
       // Step 1: Upload and Parse Resume
       const formData = new FormData();
       formData.append('file', file);
+      // Add privacy preference to request
+      formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
 
       const parseResponse = await fetch('http://localhost:8000/api/resume-upload/', {
         method: 'POST',
@@ -624,6 +640,28 @@ export default function Home() {
     const end = endDate === 'Present' ? new Date() : new Date(endDate);
     const diffInYears = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
     return Math.round(diffInYears);
+  };
+
+  const handleConsentResponse = (granted: boolean) => {
+    setDataProcessingConsent(granted);
+    setIsConsentModalOpen(false);
+    
+    if (granted && pendingFile) {
+      // User granted consent, proceed with file upload
+      processFileUpload(pendingFile);
+      setPendingFile(null);
+    } else {
+      // User declined consent or no pending file
+      setPendingFile(null);
+      if (!granted) {
+        alert('Resume processing requires consent for AI analysis. You can change this preference in your profile settings later.');
+      }
+    }
+  };
+
+  const handleConsentModalClose = () => {
+    setIsConsentModalOpen(false);
+    setPendingFile(null);
   };
 
   return (
@@ -1192,6 +1230,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={isConsentModalOpen}
+        onConsent={handleConsentResponse}
+        onClose={handleConsentModalClose}
+        type="resume-upload"
+      />
     </main>
   )
 }
