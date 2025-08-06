@@ -117,3 +117,4 @@ todo.md
 frontend/.env.local
 .env
 *.env
+ui.md
