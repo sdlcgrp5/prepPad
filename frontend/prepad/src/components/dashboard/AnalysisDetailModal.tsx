@@ -81,7 +81,7 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
             <p className="text-gray-300 mb-4">{error}</p>
             <button
               onClick={onClose}
-              className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded transition duration-300"
+              className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded font-medium transition duration-300"
             >
               Close
             </button>
@@ -112,7 +112,7 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
               {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute top-6 right-6 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-2 z-10 transition-colors duration-200"
+                className="absolute top-6 right-6 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-2 z-10 font-medium transition-colors duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>

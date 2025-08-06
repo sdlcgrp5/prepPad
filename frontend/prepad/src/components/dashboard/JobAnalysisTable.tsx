@@ -87,7 +87,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   // Table header component for reuse
   const TableHeader = () => (
-    <div className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 font-normal">
+    <div className="grid grid-cols-5 gap-4 p-4 border-b border-gray-500 font-normal">
       <div className="flex items-center">
         <input 
           type="checkbox" 

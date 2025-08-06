@@ -106,7 +106,7 @@ export default function Home() {
    
 
        {/* Beta banner */}
-       <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm">
+       <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 border border-gray-500/50 backdrop-blur-sm">
         We are currently on beta
       </div>
       
@@ -133,7 +133,7 @@ export default function Home() {
             type="email"
             placeholder="Enter your email address"
             required
-            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -144,7 +144,7 @@ export default function Home() {
             type="password"
             placeholder="Enter your password"
             required
-            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -154,7 +154,7 @@ export default function Home() {
             type="password"
             placeholder="Confirm your password"
             required
-            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
@@ -163,7 +163,7 @@ export default function Home() {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md transition duration-300 flex justify-center items-center ${
+          className={`w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md font-medium transition duration-300 flex justify-center items-center ${
             isLoading ? "opacity-70 cursor-not-allowed" : ""
           }`}
         >
@@ -183,7 +183,7 @@ export default function Home() {
         type="button"
         onClick={loginWithGoogle}
         disabled={isLoading}
-        className="w-full max-w-md bg-white hover:bg-gray-100 text-gray-900 py-4 px-6 rounded-md transition duration-300 flex justify-center items-center space-x-3 border border-gray-300 z-10"
+        className="w-full max-w-md bg-white hover:bg-gray-100 text-gray-900 py-4 px-6 rounded-md font-medium transition duration-300 flex justify-center items-center space-x-3 border border-gray-300 z-10"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

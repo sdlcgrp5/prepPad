@@ -96,7 +96,7 @@ export default function Home() {
         <button
           type="submit"
 
-          className="w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md transition duration-300 flex justify-center items-center">
+          className="w-full bg-purple-700 hover:bg-purple-600 text-white py-4 px-6 rounded-md font-medium transition duration-300 flex justify-center items-center">
            Confirm OTP
         </button>
         

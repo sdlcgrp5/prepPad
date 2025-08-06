@@ -133,12 +133,12 @@ export default function JobAnalysisModal({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="bg-gray-800 rounded-md w-full max-w-lg">
-        <div className="relative p-6">
+      <div className="bg-gray-900 rounded-md w-full max-w-lg border border-gray-500/50">
+        <div className="relative p-12">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1"
+            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-500/60 p-1"
             disabled={isLoading}
           >
              <Image
@@ -153,7 +153,7 @@ export default function JobAnalysisModal({
           
           {/* Title */}
           <div className="flex justify-center mb-8 mt-2">
-            <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md">
+            <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md border border-gray-500/50">
               Job Analysis
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function JobAnalysisModal({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Upload Resume
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border border-gray-500/70 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
                 <div className="space-y-1 text-center">
                   <Image
                      className="fill-purple-400 mx-auto h-12 w-12 text-gray-400"

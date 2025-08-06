@@ -7,7 +7,6 @@ import Header from '@/components/layout/header';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
 import AnalysisCard from '@/components/dashboard/AnalysisCard';
-import AnalysisDetailModal from '@/components/dashboard/AnalysisDetailModal';
 import { useAuth } from '@/context/AuthContext';
 import { JobAnalysis, AnalysisHistoryResponse } from '@/types';
 
@@ -18,7 +17,6 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
-  const [selectedAnalysisId, setSelectedAnalysisId] = useState<number | null>(null);
 
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
@@ -93,14 +91,6 @@ export default function Dashboard() {
     fetchDashboardData();
   };
 
-  const handleAnalysisClick = (analysisId: number) => {
-    setSelectedAnalysisId(analysisId);
-  };
-
-  const handleAnalysisDetailClose = () => {
-    setSelectedAnalysisId(null);
-  };
-
   // Show loading state while auth is being checked
   if (authLoading || !hasProfile) {
     return (
@@ -128,7 +118,6 @@ export default function Dashboard() {
           analyses={jobAnalyses}
           loading={isLoading}
           onAnalyzeClick={handleOpenModal}
-          onAnalysisClick={handleAnalysisClick}
         />
 
         {/* Job Analysis Modal */}
@@ -136,12 +125,6 @@ export default function Dashboard() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSuccess={handleAnalysisSuccess}
-        />
-
-        {/* Analysis Detail Modal */}
-        <AnalysisDetailModal
-          analysisId={selectedAnalysisId}
-          onClose={handleAnalysisDetailClose}
         />
       </div>
     </div>
