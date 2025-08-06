@@ -673,7 +673,7 @@ export default function Home() {
         </div>
         <button
           onClick={logout}
-          className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md transition"
+          className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md font-medium transition"
         >
           Logout
         </button>
@@ -796,7 +796,7 @@ export default function Home() {
         <div className="text-center">
           <button
             onClick={openModal}
-            className="text-white hover:text-purple-400 transition"
+            className="text-white hover:text-purple-400 font-medium transition"
           >
             <span className="mr-1">Do not have a resume?</span>
             <span className="font-semibold text-amber-200 hover:underline">Create profile here</span>
@@ -886,7 +886,7 @@ export default function Home() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Next
                 </button>
@@ -1001,13 +1001,13 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleBackToBasicInfo}
-                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                   >
                     Next
                   </button>
@@ -1113,13 +1113,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleBackToExperience}
-                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Next
                 </button>
@@ -1210,13 +1210,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleBackToEducation}
-                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300 border border-purple-500"
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300 border border-purple-500"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                   disabled={skillsInfo.skills.length === 0}
                 >
                   Create Profile

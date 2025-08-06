@@ -326,7 +326,7 @@ export default function EditProfileModal({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1 transition-colors duration-200"
+            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1 font-medium transition-colors duration-200"
             disabled={isSubmitting}
           >
             <Image
@@ -439,7 +439,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                    className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Next
@@ -499,7 +499,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Back
@@ -507,7 +507,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Next
@@ -596,7 +596,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Back
@@ -604,7 +604,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Next
@@ -683,7 +683,7 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                     disabled={isSubmitting}
                   >
                     Back

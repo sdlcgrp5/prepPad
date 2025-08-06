@@ -107,7 +107,7 @@ export default function Profile() {
         <p className="mb-6">No profile found. Please create one first.</p>
         <button
           onClick={() => router.push('/resumeupload')}
-          className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded"
+          className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded font-medium"
         >
           Create Profile
         </button>
@@ -127,7 +127,7 @@ export default function Profile() {
           <h1 className="text-3xl font-bold">Profile</h1>
           <button
             onClick={handleEditProfile}
-            className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center"
+            className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded font-medium flex items-center"
           >
               <Image
                 className="fill-purple-400 mr-2"
@@ -293,7 +293,7 @@ export default function Profile() {
               </div>
               
               {hasDataProcessingConsent && (
-                <div className="text-xs text-gray-500 mt-2">
+                <div className="text-xs text-gray-400 mt-2">
                   ✓ Data anonymization active<br/>
                   ✓ PII protection enabled<br/>
                   ✓ Secure transmission<br/>

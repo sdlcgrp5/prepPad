@@ -21,7 +21,7 @@ export default function EmptyState({ onAnalyzeClick }: EmptyStateProps) {
       </p>
       <button 
         onClick={onAnalyzeClick}
-        className="bg-purple-700 hover:bg-purple-600 text-white py-2 px-6 rounded-md transition">
+        className="bg-purple-700 hover:bg-purple-600 text-white py-2 px-6 rounded-md font-medium transition">
         Analyze new job posting
       </button>
     </div>

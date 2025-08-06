@@ -53,8 +53,8 @@ export default function Header({ title }: HeaderProps) {
     : (user?.email ? user.email.charAt(0).toUpperCase() : '');
   
   return (
-    <div className="mb-8 flex items-center justify-between border-b-white/60 border-b-2 pb-5">
-      <h1 className="text-3xl font-bold">{title}</h1>
+    <div className="mb-8 flex items-center justify-between border-b-white/20 border-b pb-3">
+      <h1 className="text-2xl font-bold">{title}</h1>
       
       <div className="flex items-center space-x-3">
         <button 
