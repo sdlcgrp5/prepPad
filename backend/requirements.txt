@@ -36,3 +36,10 @@ webdriver-manager==4.0.1
 
 # Database Connector - Apple Silicon compatible version
 psycopg2-binary # Works on M1/M2/M3 Macs
+
+# Production Dependencies
+gunicorn # WSGI server for production
+whitenoise # Static files serving
+django-redis # Redis caching
+cloudinary # Cloud media storage
+django-cloudinary-storage # Django integration for Cloudinary
