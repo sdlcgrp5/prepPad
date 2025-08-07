@@ -1,33 +1,221 @@
-# Include any files or directories that you don't want to be copied to your
-# container here (e.g., local build artifacts, temporary files, etc.).
-#
-# For more help, visit the .dockerignore file reference guide at
-# https://docs.docker.com/go/build-context-dockerignore/
+# ============================================================================
+# Docker Ignore File for PrepPad Backend - Optimized for Size Reduction
+# Excludes unnecessary files to minimize Docker build context and image size
+# ============================================================================
 
-**/.DS_Store
-**/__pycache__
-**/.venv
-**/.classpath
-**/.dockerignore
+# ============================================================================
+# Git and Version Control
+# ============================================================================
 **/.git
 **/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
+**/.gitattributes
+**/.gitmodules
+
+# ============================================================================
+# Python - Development and Cache Files  
+# ============================================================================
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+**/*.egg-info/
+.installed.cfg
+**/*.egg
+MANIFEST
+
+# ============================================================================
+# Virtual Environments and Environment Files
+# ============================================================================
+**/.venv/
+**/venv/
+**/ENV/
+**/env/
+**/.env
+**/.env.*
+**/env.bak/
+**/venv.bak/
+
+# ============================================================================
+# IDE and Editor Files
+# ============================================================================
+**/.vscode/
+**/.idea/
 **/.vs
-**/.vscode
+**/.settings
+**/.project
+**/.toolstarget
+**/.classpath
+**/*.swp
+**/*.swo
+**/*~
+**/.sublime-project
+**/.sublime-workspace
+**/*.iml
+**/*.ipr
+**/*.iws
 **/*.*proj.user
-**/*.dbmdl
-**/*.jfm
-**/bin
-**/charts
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+**/.DS_Store
+**/.DS_Store?
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/ehthumbs.db
+**/Thumbs.db
+**/Desktop.ini
+**/$RECYCLE.BIN/
+
+# ============================================================================
+# Testing and Coverage
+# ============================================================================
+**/.pytest_cache/
+**/.coverage
+**/.coverage.*
+**/.cache
+**/nosetests.xml
+**/coverage.xml
+**/*.cover
+**/.hypothesis/
+**/htmlcov/
+**/.tox/
+**/.nox/
+
+# ============================================================================
+# Documentation and README Files
+# ============================================================================
+**/*.md
+**/docs/
+**/Documentation/
+LICENSE
+README.md
+README.Docker.md
+
+# ============================================================================
+# Log Files
+# ============================================================================
+**/*.log
+**/logs/
+**/log/
+
+# ============================================================================
+# Database Files (SQLite - not used in production)
+# ============================================================================
+**/*.sqlite3
+**/*.sqlite3-journal
+**/*.db
+**/db.sqlite3
+
+# ============================================================================
+# Media and Upload Files (handled by Cloudinary in production)
+# ============================================================================
+**/media/
+**/uploads/
+**/static_collected/
+**/staticfiles/
+
+# ============================================================================
+# Development and Build Tools
+# ============================================================================
 **/docker-compose*
 **/compose.y*ml
 **/Dockerfile*
-**/node_modules
-**/npm-debug.log
-**/obj
+**/.dockerignore
+
+# ============================================================================
+# Package Manager Files
+# ============================================================================
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/node_modules/
+**/package-lock.json
+**/yarn.lock
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+**/*.tmp
+**/*.temp
+**/*.bak
+**/*.orig
+**/*.rej
+**/.temporary
+
+# ============================================================================
+# Security and Secrets
+# ============================================================================
+**/generate_secret.py
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.jks
 **/secrets.dev.yaml
 **/values.dev.yaml
-LICENSE
-README.md
+
+# ============================================================================
+# Development Scripts and Tools
+# ============================================================================
+**/scripts/
+**/tools/
+**/dev_tools/
+**/setup.sh
+**/install.sh
+**/run_dev.sh
+
+# ============================================================================
+# Requirements Variations (keep only requirements.txt)
+# ============================================================================
+**/requirements-dev.txt
+**/requirements-test.txt
+**/dev-requirements.txt
+**/test-requirements.txt
+
+# ============================================================================
+# Django Specific Development Files
+# ============================================================================
+**/local_settings.py
+**/settings_local.py
+**/celerybeat-schedule
+**/celerybeat.pid
+
+# ============================================================================
+# Railway and Deployment Config (not needed in container)
+# ============================================================================
+**/railway.json
+
+# ============================================================================
+# Microsoft and .NET specific
+# ============================================================================
+**/bin
+**/obj
+**/*.dbmdl
+**/*.jfm
+**/charts
+
+# ============================================================================
+# Archive Files
+# ============================================================================
+**/*.zip
+**/*.tar.gz
+**/*.tar.bz2
+**/*.tar
+**/*.gz
+**/*.7z
+**/*.rar

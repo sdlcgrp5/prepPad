@@ -1,45 +1,85 @@
-# Web Framework
-Django
-djangorestframework
-django-cors-headers
-djangorestframework-simplejwt
-dj_database_url
+# ============================================================================
+# PrepPad Backend Requirements - Optimized for Production and Docker Size
+# ============================================================================
 
-# Python env
-python-dotenv
+# ============================================================================
+# Web Framework Core
+# ============================================================================
+Django==5.0.8
+djangorestframework==3.15.2
+django-cors-headers==4.4.0
+djangorestframework-simplejwt==5.3.0
+dj_database_url==2.2.0
 
-# Python env
-python-dotenv
+# ============================================================================
+# Environment and Configuration
+# ============================================================================
+python-dotenv==1.0.1
 
-# NLP Libraries
+# ============================================================================
+# NLP Libraries - CPU Optimized
+# ============================================================================
 nltk==3.8.1
-spacy==3.7.2
+spacy==3.7.6
 
-# Parsing files
-pdfplumber
-python-docx
+# ============================================================================
+# File Processing
+# ============================================================================
+pdfplumber==0.11.4
+python-docx==1.1.2
 
-# Hugging Face Transformers
-transformers
-accelerate
-huggingface_hub[hf_xet]
+# ============================================================================
+# Machine Learning - CPU Only (Major Size Reduction)
+# ============================================================================
+# PyTorch CPU-only version (significantly smaller than default with CUDA)
+torch==2.1.2+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+# Transformers with optimized dependencies
+transformers==4.36.2
+accelerate==0.25.0
+huggingface_hub==0.20.1
 
-# PyTorch
-torch
-
-# Web Scraping
-requests
-beautifulsoup4
-lxml
+# ============================================================================
+# Web Scraping - Minimal Setup
+# ============================================================================
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
 selenium==4.18.1
 webdriver-manager==4.0.1
 
-# Database Connector - Apple Silicon compatible version
-psycopg2-binary # Works on M1/M2/M3 Macs
+# ============================================================================
+# Database - PostgreSQL
+# ============================================================================
+psycopg2-binary==2.9.9
 
-# Production Dependencies
-gunicorn # WSGI server for production
-whitenoise # Static files serving
-django-redis # Redis caching
-cloudinary # Cloud media storage
-django-cloudinary-storage # Django integration for Cloudinary
+# ============================================================================
+# Production Server and Static Files
+# ============================================================================
+gunicorn==21.2.0
+whitenoise[brotli]==6.6.0
+
+# ============================================================================
+# Caching (Optional - can be excluded if not using Redis)
+# ============================================================================
+django-redis==5.4.0
+
+# ============================================================================
+# Cloud Media Storage
+# ============================================================================
+cloudinary==1.37.0
+django-cloudinary-storage==0.3.0
+
+# ============================================================================
+# Security and Additional Production Dependencies
+# ============================================================================
+cryptography==41.0.8
+
+# ============================================================================
+# Size Optimization Notes:
+# ============================================================================
+# 1. PyTorch CPU-only version saves ~2-3GB vs GPU version
+# 2. Pinned versions prevent unexpected size increases
+# 3. Removed duplicate python-dotenv entry
+# 4. Using specific versions for reproducible builds
+# 5. Brotli compression for whitenoise (better compression)
+# ============================================================================

@@ -121,3 +121,7 @@ frontend/.env.local
 ui.md
 
 frontend/prepad/DEPLOYMENT-CHECKLIST.md
+
+# Security - Never commit production secrets
+secrets.md
+generate_secret.py
