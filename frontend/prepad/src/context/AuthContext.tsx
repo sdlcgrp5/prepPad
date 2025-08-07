@@ -175,11 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Google login function - let NextAuth handle the redirect
+  // Google login function - redirect to dashboard to check profile
   const loginWithGoogle = async () => {
     try {
       await signIn('google', { 
-        callbackUrl: '/resumeupload',
+        callbackUrl: '/dashboard',
         redirect: true 
       });
     } catch (error) {
