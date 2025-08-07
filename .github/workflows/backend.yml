@@ -1,0 +1,61 @@
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run Django checks
+        working-directory: backend/file_upload_project
+        run: |
+          python manage.py check --deploy
+        env:
+          DATABASE_URL: ${{ secrets.BACKEND_DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DEBUG: False
+          ALLOWED_HOSTS: ${{ secrets.DJANGO_ALLOWED_HOSTS }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          
+      - name: Install Railway CLI
+        run: |
+          npm install -g @railway/cli
+          
+      - name: Deploy to Railway
+        working-directory: backend
+        run: |
+          railway login --token ${{ secrets.RAILWAY_TOKEN }}
+          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          
+      - name: Run Database Migrations
+        run: |
+          railway run --service ${{ secrets.RAILWAY_SERVICE_ID }} python file_upload_project/manage.py migrate
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

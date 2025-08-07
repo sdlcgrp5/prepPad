@@ -13,7 +13,6 @@ load_dotenv()
 REQUIRED_ENV_VARS = [
     'SECRET_KEY',
     'DATABASE_URL',
-    'DEEPSEEK_API_KEY',
     'ALLOWED_HOSTS',
     'CORS_ALLOWED_ORIGINS',
     'JWT_SECRET_KEY',
@@ -70,11 +69,32 @@ DATABASES['default'].update({
     }
 })
 
-# PRODUCTION: Static and media files with cloud storage
+# PRODUCTION: Static and media files
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# PRODUCTION: Use Cloudinary for media files
+USE_CLOUDINARY = os.getenv('USE_CLOUDINARY', 'True').lower() == 'true'
+
+if USE_CLOUDINARY:
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    cloudinary.config(
+        cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+        api_key = os.getenv('CLOUDINARY_API_KEY'),
+        api_secret = os.getenv('CLOUDINARY_API_SECRET'),
+        secure = True
+    )
+    
+    # Use Cloudinary for media files
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    MEDIA_URL = f"https://res.cloudinary.com/{os.getenv('CLOUDINARY_CLOUD_NAME')}/image/upload/"
+else:
+    # Fallback to local storage
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # PRODUCTION: CORS security
 CORS_ALLOW_ALL_ORIGINS = False
