@@ -6,8 +6,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
+# Removed JWT authentication imports
+# from rest_framework_simplejwt.authentication import JWTAuthentication
+# from rest_framework.permissions import IsAuthenticated
 import logging
 import os
 import json
@@ -30,7 +31,7 @@ class AnalysisAPIView(APIView):
         POST /api/analysis/
     
     Authentication:
-        JWT required
+        REMOVED - No authentication required for testing
     
     Returns:
         201: Analysis results
@@ -38,8 +39,8 @@ class AnalysisAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = AnalysisSerializer
-    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
-    permission_classes = [IsAuthenticated]      # Remove permission requirement
+    # REMOVED: authentication_classes = [JWTAuthentication]
+    # REMOVED: permission_classes = [IsAuthenticated]
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -52,12 +53,24 @@ class AnalysisAPIView(APIView):
                 processed_content=""
             )
             job_url = request.data["job_posting_url"]
-            analysis = resumeJobDescAnalysis(instance.file_path(), job_url)
+            
+            # Check for user consent (optional parameter, defaults to True for privacy protection)
+            anonymize_pii = request.data.get("anonymize_pii", "true").lower() == "true"
+            logger.info(f"🔒 PII Anonymization: {'ENABLED' if anonymize_pii else 'DISABLED'}")
+            
+            # Get job details first
+            job_details = extractJobDescription(job_url)
+            logger.info(f"Job details extracted: {job_details}")
+            
+            # Perform analysis with privacy protection
+            analysis = resumeJobDescAnalysis(instance.file_path(), job_url, anonymize_pii=anonymize_pii)
 
             return Response({
                 "file": instance.file.url,
                 "url": job_url,
-                "analysis": analysis
+                "analysis": analysis,
+                "job_details": job_details,
+                "privacy_protected": anonymize_pii
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error in analysis: {str(e)}")
@@ -72,7 +85,7 @@ class FileUploadAPIView(APIView):
         POST /api/resume-upload/
     
     Authentication:
-        JWT required
+        REMOVED - No authentication required for testing
     
     Returns:
         201: Successfully processed resume
@@ -80,8 +93,8 @@ class FileUploadAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
-    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
-    permission_classes = [IsAuthenticated]      # Remove permission requirement
+    # REMOVED: authentication_classes = [JWTAuthentication]
+    # REMOVED: permission_classes = [IsAuthenticated]
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -94,14 +107,21 @@ class FileUploadAPIView(APIView):
                 file=request.FILES["file"],
                 processed_content=""
             )
-            processed_content = processResume(instance.file_path())
-            instance.processed_content = processed_content
+            
+            # Check for user consent (optional parameter, defaults to True for privacy protection)
+            anonymize_pii = request.data.get("anonymize_pii", "true").lower() == "true"
+            logger.info(f"🔒 Resume Processing - PII Anonymization: {'ENABLED' if anonymize_pii else 'DISABLED'}")
+            
+            processed_content = processResume(instance.file_path(), anonymize_pii=anonymize_pii)
+            # Convert the dictionary to JSON string for storage
+            instance.processed_content = json.dumps(processed_content)
             instance.save()
 
             return Response({
                 "success": True,
                 "file": instance.file.url,
-                "processed_content": processed_content
+                "processed_content": processed_content,  # Return the dict directly, not the JSON string
+                "privacy_protected": anonymize_pii
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
@@ -117,7 +137,7 @@ class JobPostingAPIView(APIView):
         POST /api/job-upload/
     
     Authentication:
-        JWT required
+        REMOVED - No authentication required for testing
     
     Returns:
         200: Job posting details
@@ -125,8 +145,8 @@ class JobPostingAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = JobPostingSerializer
-    authentication_classes = [JWTAuthentication]  # Remove authentication requirement
-    permission_classes = [IsAuthenticated]      # Remove permission requirement
+    # REMOVED: authentication_classes = [JWTAuthentication]
+    # REMOVED: permission_classes = [IsAuthenticated]
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -147,9 +167,22 @@ class JobPostingAPIView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 class ProfileAPIView(APIView):
+    """
+    Handles profile data retrieval.
+    
+    Authentication:
+        REMOVED - No authentication required for testing
+    """
+    # REMOVED: authentication_classes = [JWTAuthentication]
+    # REMOVED: permission_classes = [IsAuthenticated]
+
     def get(self, request):
         try:
+            # Import here to avoid circular imports
+            from .models import Profile, Experience, Education, Skills
+            
             # Get the most recent profile
             profile = Profile.objects.latest('id')
             
@@ -183,66 +216,42 @@ class ProfileAPIView(APIView):
             }
             
             return Response(response_data)
-        except Profile.DoesNotExist:
-            return Response({'error': 'Profile not found'}, status=404)
-        except Exception as e:
+        except Exception as e:  # Changed from Profile.DoesNotExist to catch all exceptions
             return Response({'error': str(e)}, status=500)
 
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-
-@api_view(['POST'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+# FIXED: Regular Django view function (NOT DRF APIView)
 def uploadFile(request):
-    try:
-        if 'file' not in request.FILES:
-            return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        file = request.FILES['file']
-        
-        # Save the file
-        uploaded_file = UploadedFile.objects.create(file=file)
-        
-        # Process the resume
-        processed_data = processResume(uploaded_file.file.path)
-        print("Processed resume data:", json.dumps(processed_data, indent=2))
-        
-        # Delete the file after processing
-        os.remove(uploaded_file.file.path)
-        uploaded_file.delete()
-        
-        return Response({
-            'success': True,
-            'processed_data': processed_data
-        }, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        print(f"Error in uploadFile view: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-def job_description_parse(request):
-    """View to handle job description parsing through web interface"""
+    """
+    Web interface for file upload - AUTHENTICATION REMOVED FOR TESTING
+    Handles both GET (show form) and POST (process upload) requests
+    """
     if request.method == "POST":
-        form = jobPostingForm(request.POST)
+        form = fileUploadForm(request.POST, request.FILES)
         if form.is_valid():
             try:
-                job_url = form.cleaned_data["job_posting_url"]
-                job_details = extractJobDescription(job_url)
-                return render(request, "file_upload/job_description_results.html", {
-                    "job_details": job_details,
-                    "form": form
-                })
+                uploaded_file = form.save()
+                print(f"File uploaded: {uploaded_file.file.path}")
+                
+                # Process the resume
+                processed_data = processResume(uploaded_file.file.path)
+                uploaded_file.processed_content = json.dumps(processed_data)
+                uploaded_file.save()
+                
+                print(f"Processed resume data: {json.dumps(processed_data, indent=2)}")
+                
+                messages.success(request, "File uploaded and processed successfully!")
+                return redirect('displayFile', file_id=uploaded_file.id)
+                
             except Exception as e:
-                messages.error(request, f"Error parsing job description: {str(e)}")
-                return render(request, "file_upload/job_description_parse.html", {"form": form})
+                print(f"Error in uploadFile view: {str(e)}")
+                messages.error(request, f"Error processing file: {str(e)}")
+                return render(request, "file_upload/upload.html", {"form": form})
     else:
-        form = jobPostingForm()
+        # GET request - show the upload form
+        form = fileUploadForm()
 
-    return render(request, "file_upload/job_description_parse.html", {"form": form})
+    return render(request, "file_upload/upload.html", {"form": form})
 
 
 def displayFile(request, file_id):
@@ -273,3 +282,24 @@ def fileList(request):
         files = paginator.page(paginator.num_pages)
 
     return render(request, "file_upload/list.html", {"files": files})
+
+
+def job_description_parse(request):
+    """View to handle job description parsing through web interface"""
+    if request.method == "POST":
+        form = jobPostingForm(request.POST)
+        if form.is_valid():
+            try:
+                job_url = form.cleaned_data["job_posting_url"]
+                job_details = extractJobDescription(job_url)
+                return render(request, "file_upload/job_description_results.html", {
+                    "job_details": job_details,
+                    "form": form
+                })
+            except Exception as e:
+                messages.error(request, f"Error parsing job description: {str(e)}")
+                return render(request, "file_upload/job_description_parse.html", {"form": form})
+    else:
+        form = jobPostingForm()
+
+    return render(request, "file_upload/job_description_parse.html", {"form": form})

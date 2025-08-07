@@ -11,7 +11,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   
   return (
-    <div className="fixed left-0 top-0 h-full w-36 bg-gray-800 p-4">
+    <div className="fixed left-0 top-0 h-full w-40 bg-gray-800/50 border-r border-gray-500 pt-8 px-6">
       <div className="mb-12">
         <Link href="/">
           <Image 
@@ -38,16 +38,16 @@ export default function Sidebar() {
           </Link>
         </li>
         <li>
-          <Link href="/resume" className={`flex items-center space-x-2 ${pathname === '/resume' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}>
+          <div className="flex items-center space-x-2 text-gray-500 cursor-not-allowed">
           <Image 
-            src="/FileDoc.svg"
+            src="/nullFileDoc.svg"
             alt="PrepPad Logo"
             width={20}
             height={20}
             priority
           />
-            <span>Resume</span>
-          </Link>
+            <span>Resumes</span>
+          </div>
         </li>
         <li>
           <Link href="/profile" className={`flex items-center space-x-2 ${pathname === '/profile' ? 'text-purple-400' : 'text-gray-400 hover:text-white'}`}>
@@ -65,7 +65,7 @@ export default function Sidebar() {
       
       <button 
         onClick={logout}
-        className="absolute bottom-8 left-0 right-0 flex items-center justify-center space-x-2 px-4 text-gray-400 hover:text-white"
+        className="absolute bottom-8 left-0 right-0 flex items-center justify-center space-x-2 px-4 text-gray-400 hover:text-white font-medium"
       >
          <Image 
             src="/SignOut.svg"

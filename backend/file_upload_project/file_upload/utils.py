@@ -18,6 +18,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
 from dotenv import load_dotenv
+from .pii_anonymizer import PIIAnonymizer, anonymize_resume_text, anonymize_resume_data
 
 # Load environment variables
 load_dotenv()
@@ -178,13 +179,14 @@ def jobProcessorPrompt(job_posting: str) -> list:
     return prompt
 
 
-def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
+def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str, anonymize_pii: bool = True) -> dict:
     """
-    Analyzes resume against job posting and provides comparison.
+    Analyzes resume against job posting and provides comparison with PII protection.
     
     Args:
         resume_file_path: Path to uploaded resume file
         job_posting_url: URL of job posting
+        anonymize_pii: Whether to anonymize PII before sending to external AI
     
     Returns:
         dict: Analysis results including match score, strengths, weaknesses
@@ -192,15 +194,31 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
         ValueError: If resume processing or job analysis fails
     """
     try:
-        # Process the resume
-        resume_data = str(processResume(resume_file_path))
+        # Process the resume with anonymization option
+        resume_data = processResume(resume_file_path, anonymize_pii=anonymize_pii)
         if not resume_data:
             raise ValueError("Failed to process resume")
 
-        # Extract job description details
-        job_data = str(analyzeJobPosting(job_posting_url))
+        # Extract job description details (no PII in job postings)
+        job_data = analyzeJobPosting(job_posting_url)
         if not job_data:
             raise ValueError("Failed to analyze job posting")
+
+        # Prepare data for analysis
+        resume_data_str = str(resume_data)
+        job_data_str = str(job_data)
+        
+        # If we anonymized the resume, we need to anonymize the combined analysis data too
+        pii_mapping = {}
+        if anonymize_pii:
+            print("🔒 Anonymizing combined analysis data...")
+            anonymizer = PIIAnonymizer()
+            
+            # Anonymize the resume data string for analysis
+            anonymized_resume_str, resume_mapping = anonymizer.anonymize_text(resume_data_str)
+            pii_mapping.update(resume_mapping)
+            
+            resume_data_str = anonymized_resume_str
 
         # Implement job description and resume comparison here
         url = "https://api.deepseek.com/chat/completions"
@@ -209,8 +227,12 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
             "Authorization": f"Bearer {API_KEY}",
         }
 
-        analysis_prompt = analysisPrompt(resume_data, job_data)
-        print("Sending prompt to API:", json.dumps(analysis_prompt, indent=2))
+        analysis_prompt = analysisPrompt(resume_data_str, job_data_str)
+        
+        if anonymize_pii:
+            print("🚀 Sending anonymized analysis data to DeepSeek API...")
+        else:
+            print("⚠️  Sending original analysis data to DeepSeek API...")
 
         data = {
             "model": "deepseek-chat",
@@ -230,6 +252,29 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
                     and "content" in result["choices"][0]["message"]
                 ):
                     content = json.loads(result["choices"][0]["message"]["content"])
+                    
+                    # If we anonymized, deanonymize the response
+                    if anonymize_pii and pii_mapping:
+                        print("🔓 Deanonymizing analysis response...")
+                        anonymizer = PIIAnonymizer()
+                        
+                        # Deanonymize all string fields in the response
+                        for key, value in content.items():
+                            if isinstance(value, str):
+                                content[key] = anonymizer.deanonymize_text(value, pii_mapping)
+                            elif isinstance(value, list):
+                                content[key] = [
+                                    anonymizer.deanonymize_text(item, pii_mapping) if isinstance(item, str) else item
+                                    for item in value
+                                ]
+                        
+                        # Add metadata
+                        content["_pii_anonymized"] = True
+                        content["_analysis_with_privacy_protection"] = True
+                    else:
+                        content["_pii_anonymized"] = False
+                        content["_analysis_with_privacy_protection"] = False
+                    
                     print("Parsed content:", json.dumps(content, indent=2))
                     return content
                 else:
@@ -265,20 +310,21 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str) -> dict:
         return {
             "error": str(e),
             "status": "failed",
-            "resume_processed": bool(resume_data),
-            "job_data_processed": bool(job_data),
+            "resume_processed": bool(resume_data) if 'resume_data' in locals() else False,
+            "job_data_processed": bool(job_data) if 'job_data' in locals() else False,
         }
 
 
-def processResume(resume_file_path: str) -> dict:
+def processResume(resume_file_path: str, anonymize_pii: bool = True) -> dict:
     """
-    Extracts and processes text from resume files.
+    Extracts and processes text from resume files with optional PII anonymization.
     
     Args:
         resume_file_path: Path to PDF or DOCX resume
+        anonymize_pii: Whether to anonymize PII before sending to external AI
     
     Returns:
-        dict: Structured resume data
+        dict: Structured resume data with anonymization metadata if applicable
     Raises:
         ValueError: If file format is not supported
     """
@@ -293,12 +339,32 @@ def processResume(resume_file_path: str) -> dict:
     else:
         raise ValueError("Unsupported file format. Use PDF or DOCX.")
 
+    resume_text = re.sub(r"\s+", " ", resume_text).strip()
+    
+    # Anonymize PII if requested
+    pii_mapping = {}
+    processed_text = resume_text
+    
+    if anonymize_pii:
+        print("🔒 Anonymizing PII before sending to external AI service...")
+        anonymizer = PIIAnonymizer()
+        processed_text, pii_mapping = anonymizer.anonymize_text(resume_text)
+        
+        # Create anonymization report
+        anonymization_report = anonymizer.create_anonymization_report(pii_mapping)
+        print(f"📊 Anonymization Report: {anonymization_report['total_items']} PII items anonymized")
+        print(f"   Types: {anonymization_report['types']}")
+
     url = "https://api.deepseek.com/chat/completions"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
 
-    resume_text = re.sub(r"\s+", " ", resume_text).strip()
-    prompt = resumeProcessorPrompt(resume_text)
-    print("Sending prompt to API:", json.dumps(prompt, indent=2))
+    prompt = resumeProcessorPrompt(processed_text)
+    
+    if anonymize_pii:
+        print("🚀 Sending anonymized resume to DeepSeek API...")
+    else:
+        print("⚠️  Sending original resume text to DeepSeek API...")
+    
     data = {
         "model": "deepseek-chat",
         "messages": prompt,
@@ -317,6 +383,27 @@ def processResume(resume_file_path: str) -> dict:
                 and "content" in result["choices"][0]["message"]
             ):
                 content = json.loads(result["choices"][0]["message"]["content"])
+                
+                # If we anonymized, we need to deanonymize the response
+                if anonymize_pii and pii_mapping:
+                    print("🔓 Deanonymizing AI response...")
+                    anonymizer = PIIAnonymizer()
+                    
+                    # Convert content back to string, deanonymize, then parse back
+                    content_str = json.dumps(content)
+                    deanonymized_str = anonymizer.deanonymize_text(content_str, pii_mapping)
+                    
+                    try:
+                        content = json.loads(deanonymized_str)
+                    except json.JSONDecodeError:
+                        print("Warning: Could not parse deanonymized content as JSON, using original")
+                    
+                    # Add metadata about anonymization
+                    content["_pii_anonymized"] = True
+                    content["_anonymization_report"] = anonymization_report
+                else:
+                    content["_pii_anonymized"] = False
+                
                 print("Parsed content:", json.dumps(content, indent=2))
                 return content
             else:

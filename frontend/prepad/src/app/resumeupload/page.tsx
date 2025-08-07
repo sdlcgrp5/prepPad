@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from 'next/navigation';
 import HybridDateSelector from '@/components/HybridDateSelector';
+import ConsentModal from '@/components/privacy/ConsentModal';
 import Cookies from 'js-cookie';
 
 // Define validation error type
@@ -39,15 +40,16 @@ interface ParsedResumeData {
 }
 
 export default function Home() {
+  // All useState hooks must be declared before any conditional returns
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
   const [isEducationModalOpen, setIsEducationModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const router = useRouter();
-
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  
   // Form state
   const [basicInfo, setBasicInfo] = useState({
     firstName: '',
@@ -82,6 +84,35 @@ export default function Home() {
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationErrors>({});
   const [experienceInfoErrors, setExperienceInfoErrors] = useState<ValidationErrors>({});
   const [educationInfoErrors, setEducationInfoErrors] = useState<ValidationErrors>({});
+
+  // Auth and router hooks
+  const { user, logout, isLoading, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
+  const router = useRouter();
+
+  // Authentication guard - show loading while auth is being determined
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border border-purple-600 mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Redirect to signin if not authenticated
+  if (!user) {
+    router.push('/signin');
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border border-purple-600 mx-auto mb-4"></div>
+          <p className="text-white">Redirecting...</p>
+        </div>
+      </main>
+    );
+  }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -124,6 +155,17 @@ export default function Home() {
   };
 
   const handleFileUpload = async (file: File) => {
+    // Check if user has given consent, if not show consent modal
+    if (!hasDataProcessingConsent) {
+      setPendingFile(file);
+      setIsConsentModalOpen(true);
+      return;
+    }
+    
+    await processFileUpload(file);
+  };
+
+  const processFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
       
@@ -144,8 +186,10 @@ export default function Home() {
       // Step 1: Upload and Parse Resume
       const formData = new FormData();
       formData.append('file', file);
+      // Add privacy preference to request
+      formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
 
-      const parseResponse = await fetch('http://localhost:8000/api/resume-upload/', {
+      const parseResponse = await fetch('/api/resume', {
         method: 'POST',
         body: formData
       });
@@ -155,12 +199,14 @@ export default function Home() {
         throw new Error(errorData.message || 'Resume parsing failed');
       }
 
-      // Step 2: Get Parsed Data and log raw response
+      // Step 2: Get Parsed Data
       const rawResponse = await parseResponse.text();
-      console.log('Raw response from backend:', rawResponse);
-      
       const rawData: ParsedResumeData = JSON.parse(rawResponse);
-      console.log('Raw parsed data:', rawData);
+      
+      // Log in development only (without sensitive data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Resume parsing completed successfully');
+      }
 
       // Extract data from processed_content
       if (rawData.processed_content) {
@@ -199,7 +245,9 @@ export default function Home() {
           skills: content.skills || []
         };
         
-        console.log('Processed profile data:', profileData);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Profile data processed successfully');
+        }
 
         // Validate required fields with detailed error messages
         const missingFields = [];
@@ -547,10 +595,18 @@ export default function Home() {
         skills: skillsInfo.skills
       };
 
-      // Get the auth token
-      const token = Cookies.get('auth_token');
+      // Get the auth token - check both JWT and NextAuth methods
+      let token = Cookies.get('auth_token');
+      
+      // If no JWT token found, check if user is authenticated via NextAuth
+      if (!token && user) {
+        // For NextAuth users, we'll send the placeholder token
+        // The API will detect this and use NextAuth session instead
+        token = 'nextauth';
+      }
+      
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error('No authentication found');
       }
 
       // Create profile using the profile API
@@ -570,7 +626,9 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log('Profile created successfully:', data);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Profile created successfully');
+      }
 
       // Close the modal and show success message
       setIsSkillsModalOpen(false);
@@ -590,6 +648,28 @@ export default function Home() {
     return Math.round(diffInYears);
   };
 
+  const handleConsentResponse = (granted: boolean) => {
+    setDataProcessingConsent(granted);
+    setIsConsentModalOpen(false);
+    
+    if (granted && pendingFile) {
+      // User granted consent, proceed with file upload
+      processFileUpload(pendingFile);
+      setPendingFile(null);
+    } else {
+      // User declined consent or no pending file
+      setPendingFile(null);
+      if (!granted) {
+        alert('Resume processing requires consent for AI analysis. You can change this preference in your profile settings later.');
+      }
+    }
+  };
+
+  const handleConsentModalClose = () => {
+    setIsConsentModalOpen(false);
+    setPendingFile(null);
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center relative overflow-hidden px-4 py-8">
       {/* User info and logout */}
@@ -599,7 +679,7 @@ export default function Home() {
         </div>
         <button
           onClick={logout}
-          className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md transition"
+          className="text-white py-1 px-3 bg-red-600 hover:bg-red-700 rounded-md font-medium transition"
         >
           Logout
         </button>
@@ -665,7 +745,7 @@ export default function Home() {
       </div>
 
       {/* Beta banner */}
-      <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm">
+      <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm border border-gray-500/50">
         We are currently on beta
       </div>
 
@@ -682,7 +762,7 @@ export default function Home() {
       {/* Resume Upload Section */}
       <div className="w-full max-w-md z-10">
         <div
-          className={`border-2 border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-600 hover:border-purple-500"
+          className={`border border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-500 hover:border-purple-500"
             }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -701,10 +781,10 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="mb-2 text-sm text-gray-400">
+          <p className="mb-2 text-sm text-gray-200">
             {isUploading ? 'Uploading...' : 'Drag and drop resume file to upload (.docx, .pdf)'}
           </p>
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-gray-400 mb-4">
             Your profile will be created once you upload
           </p>
           <label className={`bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -722,7 +802,7 @@ export default function Home() {
         <div className="text-center">
           <button
             onClick={openModal}
-            className="text-white hover:text-purple-400 transition"
+            className="text-white hover:text-purple-400 font-medium transition"
           >
             <span className="mr-1">Do not have a resume?</span>
             <span className="font-semibold text-amber-200 hover:underline">Create profile here</span>
@@ -812,7 +892,7 @@ export default function Home() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Next
                 </button>
@@ -927,13 +1007,13 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleBackToBasicInfo}
-                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                    className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                   >
                     Next
                   </button>
@@ -1039,13 +1119,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleBackToExperience}
-                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                 >
                   Next
                 </button>
@@ -1136,13 +1216,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleBackToEducation}
-                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded transition duration-300 border border-purple-500"
+                  className="bg-gray-600 hover:bg-gray-500 text-white py-3 px-6 rounded font-medium transition duration-300 border border-purple-500"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded transition duration-300"
+                  className="bg-purple-700 hover:bg-purple-600 text-white py-3 px-6 rounded font-medium transition duration-300"
                   disabled={skillsInfo.skills.length === 0}
                 >
                   Create Profile
@@ -1156,6 +1236,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={isConsentModalOpen}
+        onConsent={handleConsentResponse}
+        onClose={handleConsentModalClose}
+        type="resume-upload"
+      />
     </main>
   )
 }

@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
 import Image from "next/image";
-// import Link from 'next/link';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 
 interface ProfileData {
   firstName: string;
@@ -28,7 +28,8 @@ export default function Profile() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { token, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -71,6 +72,19 @@ export default function Profile() {
     fetchProfile();
   }, [token, router]);
 
+  const handleEditProfile = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleProfileUpdate = (updatedProfile: ProfileData) => {
+    setProfile(updatedProfile);
+    setIsEditModalOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">
@@ -93,7 +107,7 @@ export default function Profile() {
         <p className="mb-6">No profile found. Please create one first.</p>
         <button
           onClick={() => router.push('/resumeupload')}
-          className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded"
+          className="bg-purple-700 hover:bg-purple-600 text-white px-6 py-2 rounded font-medium"
         >
           Create Profile
         </button>
@@ -107,13 +121,13 @@ export default function Profile() {
       <Sidebar />
       
       {/* Main content */}
-      <div className="ml-36 p-8">
+      <div className="ml-40 mr-1 p-8">
         {/* Header with title and edit button */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Profile</h1>
           <button
-            onClick={() => router.push('/resumeupload')}
-            className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded flex items-center"
+            onClick={handleEditProfile}
+            className="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded font-medium flex items-center"
           >
               <Image
                 className="fill-purple-400 mr-2"
@@ -131,7 +145,7 @@ export default function Profile() {
         {/* Profile content */}
         <div className="space-y-8">
           {/* Basic Info */}
-          <section className="bg-gray-800 rounded-md p-6">
+          <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
             <h2 className="text-xl font-semibold mb-4 text-purple-400">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -159,7 +173,7 @@ export default function Profile() {
 
           {/* Professional Experience */}
           {(profile.jobTitle || profile.company || profile.yearsOfExperience) && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Professional Experience</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.jobTitle && (
@@ -186,7 +200,7 @@ export default function Profile() {
 
           {/* Education */}
           {(profile.highestDegree || profile.fieldOfStudy || profile.institution || profile.graduationYear) && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Education</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.highestDegree && (
@@ -219,7 +233,7 @@ export default function Profile() {
 
           {/* Skills */}
           {profile.skills && profile.skills.length > 0 && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill, index) => (
@@ -233,8 +247,73 @@ export default function Profile() {
               </div>
             </section>
           )}
+
+          {/* Privacy Settings */}
+          <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
+            <h2 className="text-xl font-semibold mb-4 text-purple-400">Privacy Settings</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-medium text-white mb-1">AI Data Processing</h3>
+                  <p className="text-sm text-gray-400">
+                    Allow your data to be processed by external AI services for resume analysis and job matching. 
+                    When enabled, your personal information is anonymized before processing.
+                  </p>
+                </div>
+                <div className="ml-6">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={hasDataProcessingConsent}
+                      onChange={(e) => setDataProcessingConsent(e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-400 mb-1">Privacy Protection</h4>
+                  <p className="text-xs text-blue-200">
+                    {hasDataProcessingConsent 
+                      ? "Your personal information is anonymized before being sent to AI services. Names, emails, and phone numbers are replaced with placeholders during processing."
+                      : "AI processing is disabled. You can enable it anytime to use resume analysis and job matching features."
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {hasDataProcessingConsent && (
+                <div className="text-xs text-gray-400 mt-2">
+                  ✓ Data anonymization active<br/>
+                  ✓ PII protection enabled<br/>
+                  ✓ Secure transmission<br/>
+                  ✓ No long-term storage by external services
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {profile && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseModal}
+          onSuccess={handleProfileUpdate}
+          initialData={profile}
+        />
+      )}
     </div>
   );
 }

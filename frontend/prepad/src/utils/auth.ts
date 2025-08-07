@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import jwt, {Secret} from 'jsonwebtoken';
+import { auth } from '../../auth';
 
 // User interface representing the JWT token payload
 export interface TokenUser {
@@ -7,6 +8,37 @@ export interface TokenUser {
   email: string;
   iat: number;
   exp: number;
+}
+
+/**
+ * Hybrid authentication function that supports both JWT and NextAuth sessions
+ * @param request - The Next.js request object
+ * @returns The user data from either JWT or NextAuth session, or null if neither is valid
+ */
+export async function getHybridAuthData(request: NextRequest): Promise<TokenUser | null> {
+  try {
+    // First, try JWT token authentication
+    const jwtUser = getTokenData(request);
+    if (jwtUser) {
+      return jwtUser;
+    }
+
+    // Fallback to NextAuth session
+    const session = await auth();
+    if (session?.user?.id && session?.user?.email) {
+      return {
+        id: Number(session.user.id),
+        email: session.user.email,
+        iat: Math.floor(Date.now() / 1000), // Current timestamp
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours from now
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Hybrid authentication error:', error);
+    return null;
+  }
 }
 
 /**
@@ -33,7 +65,7 @@ export function getTokenData(request: NextRequest): TokenUser | null {
       return null;
     }
     
-    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
+    const decoded = jwt.verify(token, secret) as TokenUser;
     return decoded;
   } catch (error) {
     console.error('Token validation error:', error);
@@ -79,7 +111,7 @@ export function isTokenExpired(token: string): boolean {
       throw new Error('JWT_SECRET environment variable is not set');
     }
     
-    const decoded = jwt.verify(token, Buffer.from(secret)) as TokenUser;
+    const decoded = jwt.verify(token, secret) as TokenUser;
     const currentTime = Math.floor(Date.now() / 1000);
     
     return decoded.exp < currentTime;

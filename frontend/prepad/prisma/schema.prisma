@@ -1,68 +1,268 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  //Auto generates IDs
-  id       Int    @id @default(autoincrement())
-  email    String @unique
-  password String
-  profile  Profile?
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String?   // Optional for OAuth users - hashed with bcrypt
+  name          String?   // For OAuth display name
+  image         String?   // For OAuth profile picture
+  emailVerified DateTime? // For NextAuth email verification
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Security fields
+  failedLoginAttempts Int @default(0)
+  lockedUntil        DateTime?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  
+  // Privacy consent
+  dataProcessingConsent Boolean @default(false)
+  consentDate          DateTime?
+  
+  // Relations
+  profile       Profile?
+  analyses      Analysis[]
+  accounts      Account[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  rateLimits    RateLimit[]
+  
+  @@index([email])
+  @@index([isActive])
+  @@index([lastLoginAt])
+  @@map("users")
 }
 
 model Profile {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) //Timestamps: createdAt and updatedAt track when records are modified
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   
-  // Basic info
-  firstName    String
-  lastName     String
-  phone        String?
-  zipCode      String?
+  // Basic information - consider encryption for production
+  firstName         String
+  lastName          String
+  phone             String?  // Should be encrypted in production
+  zipCode           String?
   
-  // Professional info
+  // Professional information
   jobTitle          String?
   company           String?
   yearsOfExperience String?
   linkedinUrl       String?
   
-  // Resume
-  resumeFile      String?
-  resumeFileName  String?
-  resumeFileType  String?
+  // Education information
+  highestDegree     String?
+  fieldOfStudy      String?
+  institution       String?
+  graduationYear    String?
   
-  // Education
-  highestDegree    String?
-  fieldOfStudy     String?
-  institution      String?
-  graduationYear   String?
+  // Resume files - stored securely
+  resumeFile        String?  // File path or S3 URL
+  resumeFileName    String?
+  resumeFileType    String?
+  resumeUploadedAt  DateTime?
   
-  // Skills
-  skills           Skill[]
+  // Data classification
+  dataClassification String @default("PII") // PII, SENSITIVE, INTERNAL, PUBLIC
+  isDeleted         Boolean @default(false) // Soft delete for GDPR
+  deletedAt         DateTime?
   
-  // Link to user
-  userId           Int     @unique
-  user             User    @relation(fields: [userId], references: [id])
+  // Relations
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills            Skill[]
+  
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([dataClassification])
+  @@map("profiles")
 }
 
 model Skill {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   name      String
-  
-  // Link to profile
   profileId Int
-  profile   Profile  @relation(fields: [profileId], references: [id])
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  @@index([profileId])
+  @@map("skills")
+}
+
+model Analysis {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Job details
+  jobTitle        String
+  company         String
+  jobUrl          String
+  
+  // Analysis results - potentially contains processed PII
+  matchScore      Int
+  strengths       Json     // May contain anonymized data
+  weaknesses      Json     // May contain anonymized data
+  improvementTips Json     // May contain anonymized data
+  keywordsFound   Json
+  keywordsMissing Json
+  
+  // Privacy tracking
+  wasAnonymized   Boolean  @default(false)
+  dataClassification String @default("PROCESSED") // PROCESSED, ANONYMIZED, RAW
+  
+  // Data retention
+  isDeleted       Boolean  @default(false)
+  deletedAt       DateTime?
+  retentionDate   DateTime? // Auto-delete after certain period
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isDeleted])
+  @@index([retentionDate])
+  @@map("analyses")
+}
+
+// Security and audit models
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  action      String   // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT
+  resource    String   // USER, PROFILE, ANALYSIS, etc.
+  resourceId  String?  // ID of the affected resource (stored as string for flexibility)
+  details     Json?    // Additional details about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  // Relations - Only link to User, resourceId is stored as string for flexibility
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Data retention and cleanup
+model DataRetentionPolicy {
+  id          Int      @id @default(autoincrement())
+  dataType    String   // USER, PROFILE, ANALYSIS, AUDIT_LOG
+  retentionDays Int    // Days to retain data
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([dataType])
+  @@map("data_retention_policies")
+}
+
+// NextAuth models for OAuth integration - Enhanced for security
+model Account {
+  id                String   @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Security fields
+  isRevoked         Boolean  @default(false)
+  revokedAt         DateTime?
+  lastUsedAt        DateTime?
+  
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+  @@index([isRevoked])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Security fields
+  ipAddress    String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+  lastAccessAt DateTime @default(now())
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([expires])
+  @@index([isActive])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  
+  // Security fields
+  isUsed     Boolean  @default(false)
+  usedAt     DateTime?
+  attempts   Int      @default(0)
+  
+  @@unique([identifier, token])
+  @@index([expires])
+  @@index([isUsed])
+  @@map("verification_tokens")
+}
+
+// Rate limiting for analysis endpoints
+model RateLimit {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     // For authenticated users
+  ipAddress   String?  // For IP-based tracking (fallback)
+  requestCount Int     @default(1)
+  windowStart DateTime @default(now()) // Start of the 24-hour window
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Ensure unique rate limit per user or IP
+  @@unique([userId])
+  @@unique([ipAddress])
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([windowStart])
+  @@map("rate_limits")
 }

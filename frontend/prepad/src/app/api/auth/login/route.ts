@@ -33,6 +33,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
     
+    // Check if user has a password (for traditional auth)
+    if (!user.password) {
+      return NextResponse.json({ error: 'Please sign in with Google' }, { status: 401 });
+    }
+
     // Compare password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {

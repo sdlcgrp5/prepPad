@@ -1,14 +1,7 @@
 import type { Metadata } from 'next';
-import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/context/AuthContext";
-
-const hankenGrotesk = Hanken_Grotesk({
-  variable: "--font-hanken-grotesk",
-  subsets: ["latin"],
-  display: 'swap',
-  weight: ['300', '400', '500', '700', '900']
-});
 
 export const metadata: Metadata = {
   title: 'prePad | Your Seamless Job Application Optimizer',
@@ -22,12 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${hankenGrotesk.variable}antialiased`}
-      >
+      <body className="antialiased">
+        <SessionProvider>
           <AuthProvider>
-        {children}
-        </AuthProvider>
+            {children}
+          </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );

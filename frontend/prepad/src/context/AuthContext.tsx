@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Cookies from 'js-cookie';
 
 type User = {
@@ -14,9 +15,12 @@ type AuthContextType = {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  hasDataProcessingConsent: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, confirmPassword: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
+  setDataProcessingConsent: (consent: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,20 +29,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasDataProcessingConsent, setHasDataProcessingConsent] = useState(false);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
-  // Check for existing session on component mount
+
+  // Check for existing session on component mount (JWT or NextAuth)
   useEffect(() => {
+    if (status === 'loading') {
+      setIsLoading(true);
+      return;
+    }
+
+    // Check for NextAuth session first
+    if (session?.user) {
+      setUser({
+        id: Number(session.user.id),
+        email: session.user.email || '',
+        name: session.user.name || '',
+      });
+      setToken('nextauth'); // Use a placeholder token for NextAuth sessions
+      setIsLoading(false);
+      return;
+    }
+
+    // Fallback to JWT token from cookies
     const storedToken = Cookies.get('auth_token');
     const storedUser = Cookies.get('user') ? JSON.parse(Cookies.get('user') || '{}') : null;
+    const storedConsent = Cookies.get('data_processing_consent') === 'true';
     
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(storedUser);
     }
     
-    setIsLoading(false);
-  }, []);
+    setHasDataProcessingConsent(storedConsent);
+    
+    // Add a small delay to ensure session is fully loaded
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+  }, [session, status]);
 
   // Signup function
   const signup = async (email: string, password: string, confirmPassword: string): Promise<boolean> => {
@@ -144,22 +175,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
-  const logout = () => {
+  // Google login function - redirect to dashboard to check profile
+  const loginWithGoogle = async () => {
+    try {
+      await signIn('google', { 
+        callbackUrl: '/dashboard',
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
+  };
+
+  // Set data processing consent
+  const setDataProcessingConsent = (consent: boolean) => {
+    setHasDataProcessingConsent(consent);
+    if (consent) {
+      Cookies.set('data_processing_consent', 'true', { expires: 365 }); // 1 year
+    } else {
+      Cookies.remove('data_processing_consent');
+    }
+  };
+
+  // Enhanced logout function for both auth methods
+  const logout = async () => {
     // Clear state
     setUser(null);
     setToken(null);
+    setHasDataProcessingConsent(false);
     
-    // Clear cookies
+    // Clear JWT cookies
     Cookies.remove('auth_token');
     Cookies.remove('user');
+    Cookies.remove('data_processing_consent');
     
-    // Redirect to home page
-    router.push('/');
+    // Sign out from NextAuth if session exists
+    if (session) {
+      await signOut({ callbackUrl: '/' });
+    } else {
+      // Redirect to home page for JWT logout
+      router.push('/');
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      isLoading, 
+      hasDataProcessingConsent, 
+      login, 
+      signup, 
+      loginWithGoogle, 
+      logout, 
+      setDataProcessingConsent 
+    }}>
       {children}
     </AuthContext.Provider>
   );

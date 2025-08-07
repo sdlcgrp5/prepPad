@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import AnalysisResults from './AnalysisResults';
+import ConsentModal from '@/components/privacy/ConsentModal';
 import Image from 'next/image';
 import { AnalysisResult } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface JobAnalysisModalProps {
   isOpen: boolean;
@@ -16,11 +18,14 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
+  const { token, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [pendingSubmission, setPendingSubmission] = useState(false);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,15 +62,31 @@ export default function JobAnalysisModal({
       return;
     }
     
+    // Check if user has given consent for data processing
+    if (!hasDataProcessingConsent) {
+      setPendingSubmission(true);
+      setIsConsentModalOpen(true);
+      return;
+    }
+    
+    await performAnalysis();
+  };
+
+  const performAnalysis = async () => {
     try {
       setIsLoading(true);
       
       const formData = new FormData();
-      formData.append('resume', resumeFile);
+      formData.append('resume', resumeFile!);
       formData.append('jobUrl', jobUrl);
+      // Add privacy preference to the request
+      formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
       
       const response = await fetch('/api/analyze', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
       
@@ -84,6 +105,25 @@ export default function JobAnalysisModal({
       console.error('Job analysis error:', err);
     }
   };
+
+  const handleConsentResponse = (granted: boolean) => {
+    setDataProcessingConsent(granted);
+    setIsConsentModalOpen(false);
+    
+    if (granted && pendingSubmission) {
+      // User granted consent, proceed with analysis
+      performAnalysis();
+    } else if (!granted) {
+      alert('Job analysis requires consent for AI processing. You can change this preference in your profile settings later.');
+    }
+    
+    setPendingSubmission(false);
+  };
+
+  const handleConsentModalClose = () => {
+    setIsConsentModalOpen(false);
+    setPendingSubmission(false);
+  };
   
   if (!isOpen) return null;
   
@@ -93,12 +133,12 @@ export default function JobAnalysisModal({
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="bg-gray-800 rounded-md w-full max-w-lg">
-        <div className="relative p-6">
+      <div className="bg-gray-900 rounded-md w-full max-w-lg border border-gray-500/50">
+        <div className="relative p-12">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-1"
+            className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full bg-gray-500/60 p-1"
             disabled={isLoading}
           >
              <Image
@@ -113,7 +153,7 @@ export default function JobAnalysisModal({
           
           {/* Title */}
           <div className="flex justify-center mb-8 mt-2">
-            <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md">
+            <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md border border-gray-500/50">
               Job Analysis
             </div>
           </div>
@@ -130,7 +170,7 @@ export default function JobAnalysisModal({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Upload Resume
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-700 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border border-gray-500/70 border-dashed rounded-md hover:border-purple-500 transition-colors duration-200">
                 <div className="space-y-1 text-center">
                   <Image
                      className="fill-purple-400 mx-auto h-12 w-12 text-gray-400"
@@ -210,6 +250,14 @@ export default function JobAnalysisModal({
           </form>
         </div>
       </div>
+      
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={isConsentModalOpen}
+        onConsent={handleConsentResponse}
+        onClose={handleConsentModalClose}
+        type="job-analysis"
+      />
     </div>
   );
 }
