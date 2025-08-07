@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getHybridAuthData } from '@/utils/auth';
+import { checkRateLimit, incrementRateLimit } from '@/utils/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +9,19 @@ export async function POST(request: NextRequest) {
     const tokenData = await getHybridAuthData(request);
     if (!tokenData) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check rate limit before processing
+    const rateLimitResult = await checkRateLimit(request, tokenData.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: rateLimitResult.error || 'Rate limit exceeded',
+          remaining: rateLimitResult.remaining,
+          resetTime: rateLimitResult.resetTime
+        }, 
+        { status: 429 }
+      );
     }
 
     const formData = await request.formData();
@@ -27,7 +41,8 @@ export async function POST(request: NextRequest) {
     backendFormData.append('job_posting_url', jobUrl);
 
     // Call Django backend for analysis
-    const response = await fetch('http://localhost:8000/api/analysis/', {
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/api/analysis/`, {
       method: 'POST',
       body: backendFormData,
     });
@@ -58,11 +73,15 @@ export async function POST(request: NextRequest) {
 
         console.log(`Analysis saved to Supabase with ID: ${savedAnalysis.id} for user: ${tokenData.id}`);
 
+        // Increment rate limit counter after successful analysis
+        await incrementRateLimit(request, tokenData.id);
+
         // Return the analysis with save confirmation
         return NextResponse.json({
           ...result,
           saved: true,
-          analysisId: savedAnalysis.id
+          analysisId: savedAnalysis.id,
+          rateLimitRemaining: rateLimitResult.remaining - 1
         });
 
       } catch (saveError) {

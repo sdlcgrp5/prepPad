@@ -189,7 +189,7 @@ export default function Home() {
       // Add privacy preference to request
       formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
 
-      const parseResponse = await fetch('http://localhost:8000/api/resume-upload/', {
+      const parseResponse = await fetch('/api/resume', {
         method: 'POST',
         body: formData
       });
@@ -199,12 +199,14 @@ export default function Home() {
         throw new Error(errorData.message || 'Resume parsing failed');
       }
 
-      // Step 2: Get Parsed Data and log raw response
+      // Step 2: Get Parsed Data
       const rawResponse = await parseResponse.text();
-      console.log('Raw response from backend:', rawResponse);
-      
       const rawData: ParsedResumeData = JSON.parse(rawResponse);
-      console.log('Raw parsed data:', rawData);
+      
+      // Log in development only (without sensitive data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Resume parsing completed successfully');
+      }
 
       // Extract data from processed_content
       if (rawData.processed_content) {
@@ -243,7 +245,9 @@ export default function Home() {
           skills: content.skills || []
         };
         
-        console.log('Processed profile data:', profileData);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Profile data processed successfully');
+        }
 
         // Validate required fields with detailed error messages
         const missingFields = [];
@@ -622,7 +626,9 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log('Profile created successfully:', data);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Profile created successfully');
+      }
 
       // Close the modal and show success message
       setIsSkillsModalOpen(false);

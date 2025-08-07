@@ -31,22 +31,26 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isPublicOnlyRoute = publicOnlyRoutes.some(route => pathname === route);
   
-  // Add debugging
-  console.log('[MIDDLEWARE]', {
-    pathname,
-    hasJWT: !!token,
-    hasNextAuthSession: !!session?.user,
-    userEmail: session?.user?.email || 'none',
-    isProtectedRoute,
-    isPublicOnlyRoute
-  });
+  // Add debugging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[MIDDLEWARE]', {
+      pathname,
+      hasJWT: !!token,
+      hasNextAuthSession: !!session?.user,
+      userEmail: session?.user?.email || 'none',
+      isProtectedRoute,
+      isPublicOnlyRoute
+    });
+  }
   
   // Check if user is authenticated (either JWT or NextAuth session)
   const isAuthenticated = !!token || !!session?.user;
   
   // If there's no authentication and the route is protected, redirect to login
   if (!isAuthenticated && isProtectedRoute) {
-    console.log('[MIDDLEWARE] No authentication found, redirecting to signin');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[MIDDLEWARE] No authentication found, redirecting to signin');
+    }
     return NextResponse.redirect(new URL('/signin', request.url));
   }
   
@@ -55,7 +59,9 @@ export async function middleware(request: NextRequest) {
     // If the user is on a public-only route (like signin) and is authenticated,
     // redirect them to the dashboard
     if (isPublicOnlyRoute) {
-      console.log('[MIDDLEWARE] Authenticated user on public route, redirecting to dashboard');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[MIDDLEWARE] Authenticated user on public route, redirecting to dashboard');
+      }
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     
@@ -72,7 +78,9 @@ export async function middleware(request: NextRequest) {
         requestHeaders.set('x-user-email', payload.email as string);
         requestHeaders.set('x-auth-method', 'jwt');
         
-        console.log('[MIDDLEWARE] JWT authenticated, continuing to protected route');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[MIDDLEWARE] JWT authenticated, continuing to protected route');
+        }
         return NextResponse.next({
           request: {
             headers: requestHeaders,
@@ -83,11 +91,15 @@ export async function middleware(request: NextRequest) {
         
         // If NextAuth session exists, continue with that instead
         if (session?.user) {
-          console.log('[MIDDLEWARE] JWT failed but NextAuth session exists, continuing');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[MIDDLEWARE] JWT failed but NextAuth session exists, continuing');
+          }
         } else {
           // If on a protected route with invalid token and no NextAuth session, redirect to login
           if (isProtectedRoute) {
-            console.log('[MIDDLEWARE] Invalid JWT and no NextAuth session, redirecting to signin');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[MIDDLEWARE] Invalid JWT and no NextAuth session, redirecting to signin');
+            }
             const response = NextResponse.redirect(new URL('/signin', request.url));
             response.cookies.delete('auth_token');
             response.cookies.delete('user');
@@ -104,7 +116,9 @@ export async function middleware(request: NextRequest) {
       requestHeaders.set('x-user-email', session.user.email as string);
       requestHeaders.set('x-auth-method', 'nextauth');
       
-      console.log('[MIDDLEWARE] NextAuth authenticated, continuing to protected route');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[MIDDLEWARE] NextAuth authenticated, continuing to protected route');
+      }
       return NextResponse.next({
         request: {
           headers: requestHeaders,

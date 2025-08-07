@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getHybridAuthData } from '@/utils/auth';
+import { checkRateLimit, incrementRateLimit } from '@/utils/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,19 @@ export async function POST(request: NextRequest) {
     if (!tokenData) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Check rate limit before processing
+    const rateLimitResult = await checkRateLimit(request, tokenData.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: rateLimitResult.error || 'Rate limit exceeded',
+          remaining: rateLimitResult.remaining,
+          resetTime: rateLimitResult.resetTime
+        }, 
+        { status: 429 }
+      );
+    }
     
     // Get the JWT token from the Authorization header for Django call
     const authHeader = request.headers.get('Authorization');
@@ -20,7 +34,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Forward the request to Django backend for analysis processing
-    const response = await fetch('http://localhost:8000/api/analysis/', {
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/api/analysis/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,12 +75,16 @@ export async function POST(request: NextRequest) {
         });
         
         console.log(`Analysis saved to Supabase with ID: ${savedAnalysis.id}`);
+
+        // Increment rate limit counter after successful analysis
+        await incrementRateLimit(request, tokenData.id);
         
         // Return the original result plus confirmation of save
         return NextResponse.json({
           ...result,
           saved: true,
-          analysisId: savedAnalysis.id
+          analysisId: savedAnalysis.id,
+          rateLimitRemaining: rateLimitResult.remaining - 1
         });
         
       } catch (saveError) {
