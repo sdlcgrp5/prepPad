@@ -11,7 +11,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   
   return (
-    <div className="fixed left-0 top-0 h-full w-40 bg-gray-800/50 border-r border-gray-500 pt-8 px-6">
+    <div className="fixed left-0 top-0 h-full w-44 bg-gray-800/50 border-r border-gray-500 pt-8 px-6">
       <div className="mb-12">
         <Link href="/">
           <Image 
