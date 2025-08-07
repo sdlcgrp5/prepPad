@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "dockerfilePath": "/backend/Dockerfile"
   },
   "deploy": {
     "startCommand": "cd file_upload_project && python manage.py migrate --settings=file_upload_project.settings_production && python manage.py collectstatic --noinput --settings=file_upload_project.settings_production && gunicorn --workers 3 --bind 0.0.0.0:$PORT file_upload_project.wsgi:application --settings=file_upload_project.settings_production",
