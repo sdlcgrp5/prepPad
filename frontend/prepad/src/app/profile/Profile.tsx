@@ -121,7 +121,7 @@ export default function Profile() {
       <Sidebar />
       
       {/* Main content */}
-      <div className="ml-36 p-8">
+      <div className="ml-40 mr-1 p-8">
         {/* Header with title and edit button */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Profile</h1>
@@ -145,7 +145,7 @@ export default function Profile() {
         {/* Profile content */}
         <div className="space-y-8">
           {/* Basic Info */}
-          <section className="bg-gray-800 rounded-md p-6">
+          <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
             <h2 className="text-xl font-semibold mb-4 text-purple-400">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -173,7 +173,7 @@ export default function Profile() {
 
           {/* Professional Experience */}
           {(profile.jobTitle || profile.company || profile.yearsOfExperience) && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Professional Experience</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.jobTitle && (
@@ -200,7 +200,7 @@ export default function Profile() {
 
           {/* Education */}
           {(profile.highestDegree || profile.fieldOfStudy || profile.institution || profile.graduationYear) && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Education</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile.highestDegree && (
@@ -233,7 +233,7 @@ export default function Profile() {
 
           {/* Skills */}
           {profile.skills && profile.skills.length > 0 && (
-            <section className="bg-gray-800 rounded-md p-6">
+            <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
               <h2 className="text-xl font-semibold mb-4 text-purple-400">Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill, index) => (
@@ -249,7 +249,7 @@ export default function Profile() {
           )}
 
           {/* Privacy Settings */}
-          <section className="bg-gray-800 rounded-md p-6">
+          <section className="bg-gray-800/50 rounded-md p-6 border border-gray-500/50">
             <h2 className="text-xl font-semibold mb-4 text-purple-400">Privacy Settings</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">

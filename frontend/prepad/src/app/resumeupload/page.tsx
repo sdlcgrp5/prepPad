@@ -94,7 +94,7 @@ export default function Home() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border border-purple-600 mx-auto mb-4"></div>
           <p className="text-white">Loading...</p>
         </div>
       </main>
@@ -107,7 +107,7 @@ export default function Home() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border border-purple-600 mx-auto mb-4"></div>
           <p className="text-white">Redirecting...</p>
         </div>
       </main>
@@ -739,7 +739,7 @@ export default function Home() {
       </div>
 
       {/* Beta banner */}
-      <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm">
+      <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 backdrop-blur-sm border border-gray-500/50">
         We are currently on beta
       </div>
 
@@ -756,7 +756,7 @@ export default function Home() {
       {/* Resume Upload Section */}
       <div className="w-full max-w-md z-10">
         <div
-          className={`border-2 border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-600 hover:border-purple-500"
+          className={`border border-dashed rounded-lg p-8 mb-4 text-center transition-colors ${isDragging ? "border-purple-500 bg-purple-900/20" : "border-gray-500 hover:border-purple-500"
             }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -775,10 +775,10 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="mb-2 text-sm text-gray-400">
+          <p className="mb-2 text-sm text-gray-200">
             {isUploading ? 'Uploading...' : 'Drag and drop resume file to upload (.docx, .pdf)'}
           </p>
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-gray-400 mb-4">
             Your profile will be created once you upload
           </p>
           <label className={`bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded cursor-pointer inline-block transition ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>

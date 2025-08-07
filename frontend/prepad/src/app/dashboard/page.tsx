@@ -106,7 +106,7 @@ export default function Dashboard() {
       <Sidebar />
 
       {/* Main content */}
-      <div className="ml-36 p-8">
+      <div className="ml-40 mr-1- p-8">
         {/* Header */}
         <Header title="Dashboard" />
 

@@ -64,7 +64,7 @@ export default function ConsentModal({ isOpen, onConsent, onClose, type }: Conse
 
           {/* Title */}
           <div className="flex justify-center mb-8 mt-2">
-            <div className="bg-gray-700/80 backdrop-blur-sm px-6 py-2 rounded-full border border-gray-600/50">
+            <div className="bg-gray-700/80 backdrop-blur-sm px-6 py-2 rounded-full border border-gray-500/50">
               <span className="text-white font-medium">{getTitle()}</span>
             </div>
           </div>
@@ -80,7 +80,7 @@ export default function ConsentModal({ isOpen, onConsent, onClose, type }: Conse
             </div>
 
             {/* Privacy Information */}
-            <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-600/30">
+            <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-500/50">
               <h3 className="text-lg font-semibold text-yellow-400 mb-4">🔒 Privacy & Data Protection</h3>
               
               <div className="space-y-4 text-gray-300">
@@ -115,7 +115,7 @@ export default function ConsentModal({ isOpen, onConsent, onClose, type }: Conse
             </div>
 
             {/* What data is processed */}
-            <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-600/30">
+            <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-500/50">
               <h3 className="text-lg font-semibold text-blue-400 mb-4">📋 Data Processing Details</h3>
               
               <div className="text-gray-300">
@@ -158,13 +158,13 @@ export default function ConsentModal({ isOpen, onConsent, onClose, type }: Conse
             </div>
 
             {/* Consent Checkbox */}
-            <div className="flex items-start space-x-3 bg-gray-700/30 rounded-lg p-4">
+            <div className="flex items-start space-x-3 bg-gray-700/30 rounded-lg p-4 border border-gray-500/50">
               <input
                 type="checkbox"
                 id="consent-terms"
                 checked={hasReadTerms}
                 onChange={(e) => setHasReadTerms(e.target.checked)}
-                className="mt-1 w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                className="mt-1 w-4 h-4 text-purple-600 bg-gray-700 rounded focus:ring-purple-500 focus:ring-2"
               />
               <label htmlFor="consent-terms" className="text-gray-300 text-sm">
                 I have read and understand the privacy notice above. I consent to the processing of my data by external AI services for the purpose of resume analysis and job matching. I understand that I can withdraw this consent at any time.

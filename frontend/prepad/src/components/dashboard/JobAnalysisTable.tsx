@@ -78,7 +78,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   if (loading) {
     return (
-      <div className="bg-gray-800 rounded-md p-8 flex flex-col items-center justify-center">
+      <div className="bg-gray-800/50 rounded-md p-8 flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
         <p className="text-gray-400">Loading job analyses...</p>
       </div>
@@ -87,7 +87,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   // Table header component for reuse
   const TableHeader = () => (
-    <div className="grid grid-cols-5 gap-4 p-4 border-b border-gray-500 font-normal">
+    <div className="grid grid-cols-5 gap-4 pt-4 pb-4 pl-6 border-b border-gray-500 font-normal">
       <div className="flex items-center">
         <input 
           type="checkbox" 
@@ -140,7 +140,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   if (analyses.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-lg overflow-hidden">
+      <div className="bg-gray-800/50 rounded-lg overflow-hidden">
         <TableHeader />
         <EmptyState onAnalyzeClick={onAnalyzeClick} />
       </div>
@@ -148,7 +148,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden">
+    <div className="bg-gray-800/50 rounded-lg overflow-hidden">
       <TableHeader />
       
       {/* Table rows */}
