@@ -104,7 +104,7 @@ export default function SignIn() {
       
       {/* Main heading */}
       <h1 className="text-5xl md:text-6xl font-semibold text-center mb-6 max-w-3xl">
-        Seamless job application 
+        Seamless resume 
         <br /> optimization for <span className="text-amber-200 italic">free</span>
       </h1>
       
@@ -126,7 +126,7 @@ export default function SignIn() {
             type="email"
             placeholder="Enter your email address"
             required
-            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full p-4 bg-neutral-700/40 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -137,7 +137,7 @@ export default function SignIn() {
             type="password"
             placeholder="Enter your password"
             required
-            className="w-full p-4 bg-neutral-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full p-4 bg-neutral-700/40 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

@@ -112,7 +112,7 @@ export default function Home() {
       
       {/* Main heading */}
       <h1 className="text-5xl md:text-6xl font-semibold text-center mb-6 max-w-3xl">
-        Seamless job application 
+        Seamless resume 
         <br /> optimization for <span className="text-amber-200 italic">free</span>
       </h1>
       
