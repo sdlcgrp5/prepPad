@@ -39,8 +39,13 @@ COPY requirements.txt /tmp/
 WORKDIR /tmp
 
 # Install Python packages in virtual environment
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel
+
+# Install PyTorch CPU version separately (major size optimization)
+RUN pip install torch==2.1.2+cpu --index-url https://download.pytorch.org/whl/cpu
+
+# Install other requirements
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Download NLP models (in builder stage to avoid runtime downloads)
 # Using en_core_web_sm (50MB) instead of en_core_web_lg (800MB) for size optimization

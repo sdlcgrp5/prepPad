@@ -31,8 +31,8 @@ python-docx==1.1.2
 # ============================================================================
 # Machine Learning - CPU Only (Major Size Reduction)
 # ============================================================================
-# PyTorch CPU-only version (significantly smaller than default with CUDA)
-torch==2.1.2+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+# PyTorch CPU-only version installed separately in Dockerfile
+# torch==2.1.2+cpu (installed via Dockerfile with correct syntax)
 # Transformers with optimized dependencies
 transformers==4.36.2
 accelerate==0.25.0
