@@ -128,6 +128,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium-driver \
     # PostgreSQL client
     libpq5 \
+    # Health check utility
+    curl \
     # Cleanup
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge -y --auto-remove \
@@ -152,6 +154,9 @@ RUN chown -R appuser:appuser /app
 # Copy application code (excluding unnecessary files via .dockerignore)
 COPY --chown=appuser:appuser . .
 
+# Make startup script executable
+RUN chmod +x startup.sh
+
 # Remove unnecessary files that might have been copied
 RUN find . -name "*.pyc" -delete && \
     find . -name "__pycache__" -type d -exec rm -rf {} + && \
@@ -172,7 +177,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/api/health/ || exit 1
 
-# Production command using Gunicorn
-CMD ["gunicorn", "--workers", "3", "--bind", "0.0.0.0:8000", "--timeout", "120", "--keepalive", "5", "file_upload_project.wsgi:application"]
+# Production startup command
+CMD ["./startup.sh"]
