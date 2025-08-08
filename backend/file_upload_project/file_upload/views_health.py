@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db import connections
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +21,30 @@ def health_check(request):
     try:
         # Check database connection
         db_conn = connections['default']
-        db_conn.cursor()
+        cursor = db_conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
         
         # Basic response data
         health_data = {
             'status': 'healthy',
             'service': 'PrepPad Backend API',
             'database': 'connected',
-            'timestamp': request.META.get('HTTP_DATE', 'unknown')
+            'timestamp': request.META.get('HTTP_DATE', 'unknown'),
+            'environment': {
+                'debug': os.getenv('DEBUG', 'False'),
+                'database_url_set': bool(os.getenv('DATABASE_URL')),
+                'secret_key_set': bool(os.getenv('SECRET_KEY')),
+                'allowed_hosts_set': bool(os.getenv('ALLOWED_HOSTS')),
+                'cors_origins_set': bool(os.getenv('CORS_ALLOWED_ORIGINS')),
+                'jwt_secret_set': bool(os.getenv('JWT_SECRET_KEY')),
+                'redis_url_set': bool(os.getenv('REDIS_URL')),
+                'cloudinary_configured': all([
+                    os.getenv('CLOUDINARY_CLOUD_NAME'),
+                    os.getenv('CLOUDINARY_API_KEY'),
+                    os.getenv('CLOUDINARY_API_SECRET')
+                ])
+            }
         }
         
         return JsonResponse(health_data, status=200)
@@ -39,8 +56,22 @@ def health_check(request):
             'status': 'unhealthy',
             'service': 'PrepPad Backend API',
             'database': 'disconnected',
-            'error': 'Database connection failed',
-            'timestamp': request.META.get('HTTP_DATE', 'unknown')
+            'error': str(e),
+            'timestamp': request.META.get('HTTP_DATE', 'unknown'),
+            'environment': {
+                'debug': os.getenv('DEBUG', 'False'),
+                'database_url_set': bool(os.getenv('DATABASE_URL')),
+                'secret_key_set': bool(os.getenv('SECRET_KEY')),
+                'allowed_hosts_set': bool(os.getenv('ALLOWED_HOSTS')),
+                'cors_origins_set': bool(os.getenv('CORS_ALLOWED_ORIGINS')),
+                'jwt_secret_set': bool(os.getenv('JWT_SECRET_KEY')),
+                'redis_url_set': bool(os.getenv('REDIS_URL')),
+                'cloudinary_configured': all([
+                    os.getenv('CLOUDINARY_CLOUD_NAME'),
+                    os.getenv('CLOUDINARY_API_KEY'),
+                    os.getenv('CLOUDINARY_API_SECRET')
+                ])
+            }
         }
         
         return JsonResponse(error_data, status=503)
