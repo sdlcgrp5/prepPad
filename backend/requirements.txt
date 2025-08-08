@@ -1,85 +1,64 @@
 # ============================================================================
-# PrepPad Backend Requirements - Optimized for Production and Docker Size
+# PrepPad Backend Requirements - Docker Compatible Version
+# Using tested versions that work reliably in Docker environments
 # ============================================================================
 
 # ============================================================================
-# Web Framework Core
+# Core Web Framework (Essential)
 # ============================================================================
-Django==5.0.8
-djangorestframework==3.15.2
-django-cors-headers==4.4.0
-djangorestframework-simplejwt==5.3.0
-dj_database_url==2.2.0
+Django>=5.0,<5.1
+djangorestframework>=3.14,<3.16
+django-cors-headers>=4.0,<5.0
+djangorestframework-simplejwt>=5.0,<6.0
+dj-database-url>=2.0,<3.0
+python-dotenv>=1.0,<2.0
 
 # ============================================================================
-# Environment and Configuration
+# Database (Essential)
 # ============================================================================
-python-dotenv==1.0.1
+psycopg2-binary>=2.9,<3.0
 
 # ============================================================================
-# NLP Libraries - CPU Optimized
+# Production Server (Essential)
 # ============================================================================
-nltk==3.8.1
-spacy==3.7.6
+gunicorn>=21.0,<22.0
+whitenoise>=6.0,<7.0
 
 # ============================================================================
-# File Processing
+# File Processing (Core Features)
 # ============================================================================
-pdfplumber==0.11.4
-python-docx==1.1.2
+pdfplumber>=0.10,<1.0
+python-docx>=1.0,<2.0
 
 # ============================================================================
-# Machine Learning - CPU Only (Major Size Reduction)
+# Basic NLP Libraries (Core Features)
 # ============================================================================
-# PyTorch CPU-only version installed separately in Dockerfile
-# torch==2.1.2+cpu (installed via Dockerfile with correct syntax)
-# Transformers with optimized dependencies
-transformers==4.36.2
-accelerate==0.25.0
-huggingface_hub==0.20.1
+nltk>=3.8,<4.0
+spacy>=3.7,<4.0
 
 # ============================================================================
-# Web Scraping - Minimal Setup
+# ML/AI Libraries (Core Features) - PyTorch installed separately
 # ============================================================================
-requests==2.31.0
-beautifulsoup4==4.12.3
-lxml==5.1.0
-selenium==4.18.1
-webdriver-manager==4.0.1
+transformers>=4.30,<5.0
+huggingface-hub>=0.19,<1.0
+accelerate>=0.20,<1.0
 
 # ============================================================================
-# Database - PostgreSQL
+# Web Scraping (Core Features)
 # ============================================================================
-psycopg2-binary==2.9.9
+requests>=2.28,<3.0
+beautifulsoup4>=4.11,<5.0
+lxml>=4.9,<5.0
+selenium>=4.15,<5.0
+webdriver-manager>=4.0,<5.0
 
 # ============================================================================
-# Production Server and Static Files
+# Cloud Storage (Optional - can be commented out for testing)
 # ============================================================================
-gunicorn==21.2.0
-whitenoise[brotli]==6.6.0
+cloudinary>=1.30,<2.0
+django-cloudinary-storage>=0.3,<1.0
 
 # ============================================================================
-# Caching (Optional - can be excluded if not using Redis)
+# Additional Production Dependencies
 # ============================================================================
-django-redis==5.4.0
-
-# ============================================================================
-# Cloud Media Storage
-# ============================================================================
-cloudinary==1.37.0
-django-cloudinary-storage==0.3.0
-
-# ============================================================================
-# Security and Additional Production Dependencies
-# ============================================================================
-cryptography==41.0.8
-
-# ============================================================================
-# Size Optimization Notes:
-# ============================================================================
-# 1. PyTorch CPU-only version saves ~2-3GB vs GPU version
-# 2. Pinned versions prevent unexpected size increases
-# 3. Removed duplicate python-dotenv entry
-# 4. Using specific versions for reproducible builds
-# 5. Brotli compression for whitenoise (better compression)
-# ============================================================================
+cryptography>=41.0,<42.0

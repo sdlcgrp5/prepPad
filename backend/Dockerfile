@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libxslt1-dev \
     zlib1g-dev \
+    pkg-config \
+    libfreetype6-dev \
+    libpng-dev \
+    libjpeg-dev \
     wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -38,14 +42,57 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt /tmp/
 WORKDIR /tmp
 
-# Install Python packages in virtual environment
+# Install Python packages in virtual environment with verbose output for debugging
 RUN pip install --upgrade pip setuptools wheel
 
 # Install PyTorch CPU version separately (major size optimization)
-RUN pip install torch==2.1.2+cpu --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --verbose torch==2.1.2+cpu --index-url https://download.pytorch.org/whl/cpu
 
-# Install other requirements
-RUN pip install --no-cache-dir -r requirements.txt
+# Install requirements in stages for better debugging
+# Stage 1: Core Django packages
+RUN pip install --no-cache-dir --verbose \
+    "Django>=5.0,<5.1" \
+    "djangorestframework>=3.14,<3.16" \
+    "django-cors-headers>=4.0,<5.0" \
+    "djangorestframework-simplejwt>=5.0,<6.0" \
+    "dj-database-url>=2.0,<3.0" \
+    "python-dotenv>=1.0,<2.0"
+
+# Stage 2: Production server
+RUN pip install --no-cache-dir --verbose \
+    "gunicorn>=21.0,<22.0" \
+    "whitenoise>=6.0,<7.0" \
+    "psycopg2-binary>=2.9,<3.0"
+
+# Stage 3: File processing and basic libraries
+RUN pip install --no-cache-dir --verbose \
+    "requests>=2.28,<3.0" \
+    "beautifulsoup4>=4.11,<5.0" \
+    "pdfplumber>=0.10,<1.0" \
+    "python-docx>=1.0,<2.0"
+
+# Stage 4: NLP libraries (potential issue packages)
+RUN pip install --no-cache-dir --verbose \
+    "nltk>=3.8,<4.0" \
+    "spacy>=3.7,<4.0"
+
+# Stage 5: ML libraries (depend on PyTorch)
+RUN pip install --no-cache-dir --verbose \
+    "transformers>=4.30,<5.0" \
+    "huggingface-hub>=0.19,<1.0" \
+    "accelerate>=0.20,<1.0"
+
+# Stage 6: Web scraping (complex dependencies)
+RUN pip install --no-cache-dir --verbose \
+    "selenium>=4.15,<5.0" \
+    "webdriver-manager>=4.0,<5.0" \
+    "lxml>=4.9,<5.0"
+
+# Stage 7: Optional cloud storage and security
+RUN pip install --no-cache-dir --verbose \
+    "cryptography>=41.0,<42.0" \
+    "cloudinary>=1.30,<2.0" \
+    "django-cloudinary-storage>=0.3,<1.0"
 
 # Download NLP models (in builder stage to avoid runtime downloads)
 # Using en_core_web_sm (50MB) instead of en_core_web_lg (800MB) for size optimization
