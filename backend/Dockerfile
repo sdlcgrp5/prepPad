@@ -154,10 +154,14 @@ RUN chown -R appuser:appuser /app
 # Copy application code (excluding unnecessary files via .dockerignore)
 COPY --chown=appuser:appuser . .
 
-# Make startup script executable and verify it exists
-RUN chmod +x /app/startup.sh && \
-    ls -la /app/startup.sh && \
-    test -x /app/startup.sh && echo "✅ Script is executable"
+# Copy debug tools
+COPY --chown=appuser:appuser simple_health_server.py /app/simple_health_server.py
+COPY --chown=appuser:appuser debug_startup.sh /app/debug_startup.sh
+
+# Make startup scripts executable and verify they exist
+RUN chmod +x /app/startup.sh /app/debug_startup.sh /app/simple_health_server.py && \
+    ls -la /app/startup.sh /app/debug_startup.sh /app/simple_health_server.py && \
+    test -x /app/startup.sh && echo "✅ Scripts are executable"
 
 # Remove unnecessary files that might have been copied
 RUN find . -name "*.pyc" -delete && \
@@ -179,5 +183,5 @@ EXPOSE 8000
 
 # Health check removed - Railway handles health checks via railway.json
 
-# Production startup command
-CMD ["/app/startup.sh"]
+# Debug startup command (switch to /app/startup.sh after debugging)
+CMD ["/app/debug_startup.sh"]
