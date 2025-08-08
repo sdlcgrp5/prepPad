@@ -20,8 +20,9 @@ urlpatterns = [
     path('api/job-upload/', views.JobPostingAPIView.as_view(), name='job-upload'),
     path('api/profile/', views.ProfileAPIView.as_view(), name='profile'),
     
-    # Health check endpoints for production deployment
+    # Health check endpoints for production deployment (no auth required)
     path('api/health/', views_health.health_check, name='health-check'),
     path('api/ready/', views_health.ready_check, name='ready-check'),
     path('api/version/', views_health.version_info, name='version-info'),
+    path('health/', views_health.health_check, name='health-simple'),  # Simple alias for Railway
 ]
