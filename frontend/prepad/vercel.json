@@ -4,17 +4,6 @@
   "framework": "nextjs",
   "installCommand": "npm ci",
   "devCommand": "npm run dev",
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "DIRECT_URL": "@direct_url",
-    "JWT_SECRET": "@jwt_secret",
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "NEXTAUTH_URL": "@nextauth_url",
-    "AUTH_GOOGLE_ID": "@auth_google_id",
-    "AUTH_GOOGLE_SECRET": "@auth_google_secret",
-    "BACKEND_API_URL": "@backend_api_url",
-    "NODE_ENV": "production"
-  },
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
