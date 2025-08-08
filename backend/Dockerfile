@@ -154,8 +154,10 @@ RUN chown -R appuser:appuser /app
 # Copy application code (excluding unnecessary files via .dockerignore)
 COPY --chown=appuser:appuser . .
 
-# Make startup script executable
-RUN chmod +x startup.sh
+# Make startup script executable and verify it exists
+RUN chmod +x /app/startup.sh && \
+    ls -la /app/startup.sh && \
+    file /app/startup.sh
 
 # Remove unnecessary files that might have been copied
 RUN find . -name "*.pyc" -delete && \
@@ -179,5 +181,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/api/health/ || exit 1
 
-# Production startup command
-CMD ["./startup.sh"]
+# Debug startup - check if script exists and is executable, then run it
+CMD ["sh", "-c", "ls -la /app/startup.sh && /app/startup.sh"]
