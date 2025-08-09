@@ -107,7 +107,7 @@ export default function Home() {
 
        {/* Beta banner */}
        <div className="bg-neutral-700/40 text-white py-2 px-6 rounded-full mb-6 border border-gray-500/50 backdrop-blur-sm">
-        We are currently on beta
+        We are currently in beta
       </div>
       
       {/* Main heading */}

@@ -58,11 +58,26 @@ python manage.py check --settings=file_upload_project.settings_production || {
 echo "🚀 [RAILWAY] Starting Gunicorn server..."
 echo "🔗 [RAILWAY] Binding to 0.0.0.0:${PORT:-8000}"
 
+# Verify WSGI application is available
+python -c "
+import sys
+import os
+sys.path.insert(0, '/app/file_upload_project')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_upload_project.settings_production')
+try:
+    from file_upload_project.wsgi import application
+    print('✅ [RAILWAY] WSGI application loaded successfully')
+except Exception as e:
+    print(f'❌ [RAILWAY] WSGI application load failed: {e}')
+    sys.exit(1)
+"
+
+# Final gunicorn startup
 exec gunicorn \
     --workers 1 \
     --bind 0.0.0.0:${PORT:-8000} \
-    --timeout 60 \
-    --keep-alive 2 \
+    --timeout 120 \
+    --keep-alive 5 \
     --worker-class sync \
     --worker-connections 1000 \
     --max-requests 1000 \
@@ -70,5 +85,5 @@ exec gunicorn \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
-    --capture-output \
+    --preload \
     file_upload_project.wsgi:application
