@@ -90,9 +90,10 @@ export async function POST(request: NextRequest) {
     
     const response = await fetch(`${backendUrl}/api/resume-upload/`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${jwtToken || 'session-auth'}` // Send JWT if available, or session indicator
-      },
+      // TEMPORARY: Remove Authorization header since backend uses development views (no auth)
+      // headers: {
+      //   'Authorization': `Bearer ${jwtToken || 'session-auth'}`
+      // },
       body: backendFormData
     });
 
