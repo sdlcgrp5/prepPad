@@ -50,15 +50,32 @@ def get_supabase_user(user_id):
         return None
 
 class SupabaseUser:
-    """Mock user object for Supabase users"""
+    """Mock user object for Supabase users with Django compatibility"""
     def __init__(self, user_data):
         self.id = user_data['id']
+        self.pk = user_data['id']  # Django primary key compatibility
         self.email = user_data['email']
         self.name = user_data.get('name', '')
+        self.username = user_data['email']  # Use email as username
         self.is_authenticated = True
+        self.is_active = True
+        self.is_staff = False
+        self.is_superuser = False
     
     def __str__(self):
         return f"SupabaseUser({self.id}, {self.email})"
+    
+    def get_username(self):
+        """Return the username for this user"""
+        return self.username
+    
+    def get_full_name(self):
+        """Return the full name for this user"""
+        return self.name or self.email
+    
+    def get_short_name(self):
+        """Return the short name for this user"""
+        return self.name or self.email.split('@')[0]
 
 class SupabaseJWTAuthentication(JWTAuthentication):
     """
