@@ -252,6 +252,118 @@ class ProfileAPIView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class ProfileDetailAPIView(APIView):
+    """
+    Handles profile data retrieval by ID - PRODUCTION VERSION
+    
+    Authentication:
+        Required - JWT Bearer token
+    
+    Returns:
+        200: Profile data for specified ID (if user owns it)
+        403: Forbidden (trying to access another user's profile)
+        404: Profile not found
+        401: Unauthorized
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, profile_id):
+        try:
+            # Import here to avoid circular imports
+            from .models import Profile, Experience, Education, Skills
+            
+            # Get the profile by ID, but ensure user can only access their own profile
+            profile = Profile.objects.get(id=profile_id, user=request.user)
+            
+            # Get related data for this user only
+            experiences = Experience.objects.filter(profile=profile)
+            education = Education.objects.filter(profile=profile)
+            skills = Skills.objects.filter(profile=profile)
+
+            # Format the response
+            response_data = {
+                'id': profile.id,
+                'firstName': profile.firstName,
+                'lastName': profile.lastName,
+                'email': profile.email,
+                'phone': profile.phone,
+                'zipCode': profile.zipCode,
+                'experience': [{
+                    'jobTitle': exp.jobTitle,
+                    'company': exp.company,
+                    'startDate': exp.startDate,
+                    'endDate': exp.endDate,
+                    'location': exp.location,
+                    'jobDescription': exp.jobDescription
+                } for exp in experiences],
+                'education': [{
+                    'highestDegree': edu.highestDegree,
+                    'fieldOfStudy': edu.fieldOfStudy,
+                    'institution': edu.institution,
+                    'graduationYear': edu.graduationYear
+                } for edu in education],
+                'skills': [skill.skills for skill in skills],
+                'user_id': request.user.id
+            }
+            
+            logger.info(f"Profile {profile_id} data retrieved for user: {request.user.id}")
+            return Response(response_data)
+        except Profile.DoesNotExist:
+            return Response({'error': 'Profile not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving profile {profile_id} for user {request.user.id}: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ResumeDetailAPIView(APIView):
+    """
+    Handles resume data retrieval by ID - PRODUCTION VERSION
+    
+    Authentication:
+        Required - JWT Bearer token
+    
+    Returns:
+        200: Resume data for specified ID (if user owns it)
+        403: Forbidden (trying to access another user's resume)
+        404: Resume not found
+        401: Unauthorized
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, resume_id):
+        try:
+            # Get the resume by ID, but ensure user can only access their own resume
+            resume = UploadedFile.objects.get(id=resume_id, user=request.user)
+            
+            # Parse the processed content if it exists
+            processed_content = {}
+            if resume.processed_content:
+                try:
+                    processed_content = json.loads(resume.processed_content)
+                except json.JSONDecodeError:
+                    processed_content = {"raw_content": resume.processed_content}
+
+            # Format the response
+            response_data = {
+                'id': resume.id,
+                'filename': os.path.basename(resume.file.name),
+                'file_url': resume.file.url,
+                'uploaded_at': resume.uploaded_at,
+                'processed_content': processed_content,
+                'user_id': request.user.id
+            }
+            
+            logger.info(f"Resume {resume_id} data retrieved for user: {request.user.id}")
+            return Response(response_data)
+        except UploadedFile.DoesNotExist:
+            return Response({'error': 'Resume not found or access denied'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving resume {resume_id} for user {request.user.id}: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # Web views with authentication
 @login_required
 def uploadFile(request):
