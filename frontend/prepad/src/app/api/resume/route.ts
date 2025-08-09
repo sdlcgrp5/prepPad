@@ -1,15 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { auth } from '../../../../auth';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the JWT token from the Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    // Try to get NextAuth session first
+    const session = await auth();
     
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+    // Also check for JWT token in Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    let userId: number | null = null;
+    
+    // Try NextAuth session first
+    if (session?.user?.email) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true }
+        });
+        if (user) {
+          userId = user.id;
+        }
+      } catch (error) {
+        console.log('NextAuth user lookup failed, trying JWT...');
+      }
+    }
+    
+    // If NextAuth failed, try JWT token
+    if (!userId && jwtToken) {
+      try {
+        const secret = process.env.JWT_SECRET as string;
+        if (!secret) {
+          console.error('JWT_SECRET environment variable is not set');
+          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
+            status: 500,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          });
+        }
+        
+        const decodedToken = jwt.verify(jwtToken, secret) as { id: number };
+        userId = decodedToken.id;
+      } catch (error) {
+        console.log('JWT verification failed:', error);
+      }
+    }
+    
+    // If neither authentication method worked, return unauthorized
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, { 
         status: 401,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -18,30 +65,14 @@ export async function POST(request: NextRequest) {
         }
       });
     }
-    
-    // Decode and verify the token
-    const secret = process.env.JWT_SECRET as string;
-    if (!secret) {
-      console.error('JWT_SECRET environment variable is not set');
-      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      });
-    }
-    
-    const decodedToken = jwt.verify(token, secret) as { id: number };
-    const userId = decodedToken.id;
 
-    // Get the form data
+    // Get the file from the request
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const anonymizePii = formData.get('anonymize_pii') as string;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Forward to Django backend
@@ -52,7 +83,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`${backendUrl}/api/resume-upload/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${jwtToken || 'session-auth'}` // Send JWT if available, or session indicator
       },
       body: backendFormData
     });
@@ -93,12 +124,56 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the JWT token from the Authorization header
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    // Try to get NextAuth session first
+    const session = await auth();
     
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+    // Also check for JWT token in Authorization header
+    const authHeader = request.headers.get('Authorization');
+    const jwtToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    let userId: number | null = null;
+    
+    // Try NextAuth session first
+    if (session?.user?.email) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true }
+        });
+        if (user) {
+          userId = user.id;
+        }
+      } catch (error) {
+        console.log('NextAuth user lookup failed, trying JWT...');
+      }
+    }
+    
+    // If NextAuth failed, try JWT token
+    if (!userId && jwtToken) {
+      try {
+        const secret = process.env.JWT_SECRET as string;
+        if (!secret) {
+          console.error('JWT_SECRET environment variable is not set');
+          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
+            status: 500,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+          });
+        }
+        
+        const decodedToken = jwt.verify(jwtToken, secret) as { id: number };
+        userId = decodedToken.id;
+      } catch (error) {
+        console.log('JWT verification failed:', error);
+      }
+    }
+    
+    // If neither authentication method worked, return unauthorized
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, { 
         status: 401,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -107,24 +182,7 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-    
-    // Decode and verify the token
-    const secret = process.env.JWT_SECRET as string;
-    if (!secret) {
-      console.error('JWT_SECRET environment variable is not set');
-      return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      });
-    }
-    
-    const decodedToken = jwt.verify(token, secret) as { id: number };
-    const userId = decodedToken.id;
-    
+
     // Get user profile with resume
     const profile = await prisma.profile.findUnique({
       where: { userId },
@@ -142,15 +200,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Return the resume data
-    return NextResponse.json({ 
-      success: true, 
-      resume: {
-        id: profile.id,
-        fileName: profile.resumeFileName || 'resume',
-        fileType: profile.resumeFileType || 'application/pdf',
-        fileUrl: profile.resumeFile,
-        uploadedAt: profile.updatedAt.toISOString()
-      }
+    return NextResponse.json({
+      file: profile.resumeFile,
+      fileName: profile.resumeFileName,
+      fileType: profile.resumeFileType,
+      updatedAt: profile.updatedAt
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
@@ -158,23 +212,16 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       }
     });
-    
+
   } catch (error) {
-    console.error('Resume fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { 
-      status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
-    });
+    console.error('Error in GET /api/resume:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// Handle OPTIONS requests for CORS
 export async function OPTIONS(_request: NextRequest) {
-  return NextResponse.json({}, {
+  return new NextResponse(null, {
+    status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

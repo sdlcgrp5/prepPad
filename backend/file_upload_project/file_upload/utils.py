@@ -1,11 +1,7 @@
 import re
 import json
 from xml.dom.minidom import Document
-from transformers import (
-    AutoTokenizer,
-    AutoModelForTokenClassification,
-    pipeline,
-)
+# Remove heavy imports from module level - will import when needed
 import requests
 import pdfplumber
 from docx import Document
@@ -24,16 +20,9 @@ from .pii_anonymizer import PIIAnonymizer, anonymize_resume_text, anonymize_resu
 load_dotenv()
 
 # Get API key from environment
-
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-# Load the pre-trained models for question answering and NER
-qa_pipeline = pipeline(
-    "question-answering", model="distilbert-base-cased-distilled-squad"
-)
-tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
-model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
-ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
+# Remove model loading from module level - will load when needed
 
 
 def analysisPrompt(resume_text: str, job_details: str) -> list:
@@ -528,6 +517,14 @@ def ner(text: str) -> dict:
     Returns:
         dict: NER results
     """
+    from transformers import (
+        AutoTokenizer,
+        AutoModelForTokenClassification,
+        pipeline,
+    )
+    tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+    model = AutoModelForTokenClassification.from_pretrained("dslim/bert-base-NER")
+    ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
 
     return ner_pipeline(text)
 
@@ -544,6 +541,14 @@ def askQuestion(text: str, question: str) -> str:
     Returns:
         str: Extracted answer from text
     """
+    from transformers import (
+        AutoTokenizer,
+        AutoModelForTokenClassification,
+        pipeline,
+    )
+    qa_pipeline = pipeline(
+        "question-answering", model="distilbert-base-cased-distilled-squad"
+    )
     answer = qa_pipeline(question=question, context=text)
     return answer["answer"]
 
