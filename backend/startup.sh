@@ -8,6 +8,13 @@ echo "📍 Current directory: $(pwd)"
 echo "🔧 Python version: $(python --version)"
 echo "🌐 PORT variable: ${PORT:-8000}"
 
+# Kill any existing processes on the port to prevent conflicts
+if [ -n "$PORT" ]; then
+    echo "🧹 Cleaning up any processes on port $PORT..."
+    pkill -f "gunicorn.*:$PORT" || true
+    sleep 2
+fi
+
 # Change to Django project directory
 cd /app/file_upload_project
 echo "📍 Changed to Django project directory: $(pwd)"
@@ -30,6 +37,10 @@ if [ -z "$SECRET_KEY" ]; then
 fi
 echo "✅ Critical environment variables are set"
 
+echo "📦 Ensuring static files directory exists..."
+mkdir -p /app/file_upload_project/staticfiles
+chmod 755 /app/file_upload_project/staticfiles
+
 echo "📋 Running database migrations..."
 python manage.py migrate --settings=file_upload_project.settings_production --noinput
 
@@ -49,16 +60,27 @@ from file_upload.views_health import health_check
 print('✅ Health endpoint is importable')
 "
 
-echo "🚀 Starting Gunicorn server on 0.0.0.0:${PORT:-8000}..."
+# Verify port is available before starting
+PORT_TO_USE=${PORT:-8000}
+echo "🔍 Testing port availability on $PORT_TO_USE..."
+if netstat -tlnp 2>/dev/null | grep ":$PORT_TO_USE " > /dev/null; then
+    echo "⚠️  Port $PORT_TO_USE appears to be in use, attempting cleanup..."
+    pkill -f "gunicorn" || true
+    sleep 3
+fi
+
+echo "🚀 Starting Gunicorn server on 0.0.0.0:$PORT_TO_USE..."
 exec gunicorn \
-    --workers 3 \
-    --bind 0.0.0.0:${PORT:-8000} \
-    --timeout 120 \
+    --workers 1 \
+    --bind 0.0.0.0:$PORT_TO_USE \
+    --timeout 300 \
     --keep-alive 5 \
     --max-requests 1000 \
     --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
+    --worker-class sync \
+    --worker-connections 1000 \
     --preload \
     file_upload_project.wsgi:application

@@ -69,23 +69,43 @@ from django.conf import settings
 print('✅ Settings accessible')
 " || echo "❌ Django settings test failed"
 
+# Create static files directory before testing
+echo "📦 Creating static files directory..."
+mkdir -p /app/file_upload_project/staticfiles
+chmod 755 /app/file_upload_project/staticfiles
+
 # Option 3: Test Django startup with runserver (for debugging)
-echo "🧪 Testing Django development server (5 second test)..."
-timeout 5 python3 manage.py runserver 0.0.0.0:${PORT:-8000} --settings=file_upload_project.settings_production || echo "❌ Django runserver test failed"
+echo "🧪 Testing Django development server (3 second test)..."
+timeout 3 python3 manage.py runserver 0.0.0.0:${PORT:-8000} --settings=file_upload_project.settings_production || echo "❌ Django runserver test failed"
 
 echo ""
 echo "🚀 === ATTEMPTING GUNICORN STARTUP ==="
 echo "📍 Current directory: $(pwd)"
 
+# Kill any existing processes to prevent port conflicts
+PORT_TO_USE=${PORT:-8000}
+echo "🧹 Cleaning up processes on port $PORT_TO_USE..."
+pkill -f "gunicorn" || true
+pkill -f "python.*runserver" || true
+sleep 2
+
+# Check if port is still in use
+if netstat -tlnp 2>/dev/null | grep ":$PORT_TO_USE " > /dev/null; then
+    echo "⚠️  Port $PORT_TO_USE still in use after cleanup"
+else
+    echo "✅ Port $PORT_TO_USE is available"
+fi
+
 # Final attempt: Start Gunicorn with maximum debugging
 exec gunicorn \
     --workers 1 \
-    --bind 0.0.0.0:${PORT:-8000} \
+    --bind 0.0.0.0:$PORT_TO_USE \
     --timeout 300 \
     --keep-alive 5 \
     --access-logfile - \
     --error-logfile - \
     --log-level debug \
     --capture-output \
+    --worker-class sync \
     --preload \
     file_upload_project.wsgi:application
