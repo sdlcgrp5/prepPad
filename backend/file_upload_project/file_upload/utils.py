@@ -345,23 +345,82 @@ def processResumeFromContent(file_content: bytes, filename: str, anonymize_pii: 
     if not resume_text.strip():
         raise ValueError("No text could be extracted from the resume file.")
     
-    # Apply PII anonymization if requested
-    if anonymize_pii:
-        print(f"🔒 [PII] Anonymizing resume text before AI processing")
-        anonymized_text = anonymize_resume_text(resume_text)
-        processed_data = parseResumeStructured(anonymized_text)
-        # Mark as anonymized and store original metadata
-        processed_data['pii_anonymized'] = True
-        processed_data['original_text_length'] = len(resume_text)
-        processed_data['anonymized_text_length'] = len(anonymized_text)
-        print(f"🔒 [PII] Text anonymized: {len(resume_text)} → {len(anonymized_text)} characters")
-    else:
-        print(f"⚠️  [PII] Processing resume WITHOUT anonymization (user consent required)")
-        processed_data = parseResumeStructured(resume_text)
-        processed_data['pii_anonymized'] = False
-        processed_data['original_text_length'] = len(resume_text)
+    # Clean up text
+    resume_text = re.sub(r"\s+", " ", resume_text).strip()
     
-    return processed_data
+    # Anonymize PII if requested
+    pii_mapping = {}
+    processed_text = resume_text
+    
+    if anonymize_pii:
+        print("🔒 Anonymizing PII before sending to external AI service...")
+        anonymizer = PIIAnonymizer()
+        processed_text, pii_mapping = anonymizer.anonymize_text(resume_text)
+        
+        # Create anonymization report
+        anonymization_report = anonymizer.create_anonymization_report(pii_mapping)
+        print(f"📊 Anonymization Report: {anonymization_report['total_items']} PII items anonymized")
+        print(f"   Types: {anonymization_report['types']}")
+
+    # Process with DeepSeek API
+    url = "https://api.deepseek.com/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
+
+    prompt = resumeProcessorPrompt(processed_text)
+    
+    if anonymize_pii:
+        print("🚀 Sending anonymized resume to DeepSeek API...")
+    else:
+        print("⚠️  Sending original resume text to DeepSeek API...")
+    
+    data = {
+        "model": "deepseek-chat",
+        "messages": prompt,
+        "response_format": {"type": "json_object"},
+        "stream": False,
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            result = response.json()
+            print("Raw API response:", json.dumps(result, indent=2))
+            
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                content = json.loads(result["choices"][0]["message"]["content"])
+                
+                # If we anonymized, we need to deanonymize the response
+                if anonymize_pii and pii_mapping:
+                    print("🔓 Deanonymizing AI response...")
+                    anonymizer = PIIAnonymizer()
+                    content = anonymizer.deanonymize_data(content, pii_mapping)
+                
+                # Add processing metadata
+                content['pii_anonymized'] = anonymize_pii
+                content['original_text_length'] = len(resume_text)
+                if anonymize_pii:
+                    content['anonymized_text_length'] = len(processed_text)
+                    content['pii_items_anonymized'] = anonymization_report['total_items']
+                
+                return content
+            else:
+                raise ValueError("Invalid response format from DeepSeek API")
+        else:
+            raise ValueError(f"DeepSeek API error: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Error processing resume: {str(e)}")
+        # Return basic structure on error
+        return {
+            "error": str(e),
+            "pii_anonymized": anonymize_pii,
+            "original_text_length": len(resume_text),
+            "processing_failed": True
+        }
 
 def processResume(resume_file_path: str, anonymize_pii: bool = True) -> dict:
     """
