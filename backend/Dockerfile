@@ -158,11 +158,10 @@ COPY --chown=appuser:appuser . .
 COPY --chown=appuser:appuser simple_health_server.py /app/simple_health_server.py
 COPY --chown=appuser:appuser debug_startup.sh /app/debug_startup.sh
 COPY --chown=appuser:appuser railway_startup.sh /app/railway_startup.sh
-COPY --chown=appuser:appuser railway_debug_startup.sh /app/railway_debug_startup.sh
 
 # Make startup scripts executable and verify they exist
-RUN chmod +x /app/startup.sh /app/debug_startup.sh /app/railway_startup.sh /app/railway_debug_startup.sh /app/simple_health_server.py && \
-    ls -la /app/startup.sh /app/debug_startup.sh /app/railway_startup.sh /app/railway_debug_startup.sh /app/simple_health_server.py && \
+RUN chmod +x /app/startup.sh /app/debug_startup.sh /app/railway_startup.sh /app/simple_health_server.py && \
+    ls -la /app/startup.sh /app/debug_startup.sh /app/railway_startup.sh /app/simple_health_server.py && \
     test -x /app/startup.sh && echo "✅ Scripts are executable"
 
 # Remove unnecessary files that might have been copied
