@@ -220,6 +220,102 @@ class ProfileAPIView(APIView):
             return Response({'error': str(e)}, status=500)
 
 
+class ProfileDetailAPIView(APIView):
+    """
+    Handles profile data retrieval by ID - DEVELOPMENT VERSION (NO AUTH)
+    
+    Returns:
+        200: Profile data for specified ID
+        404: Profile not found
+    """
+    
+    def get(self, request, profile_id):
+        try:
+            # Import here to avoid circular imports
+            from .models import Profile, Experience, Education, Skills
+            
+            # Get profile by ID (no user restriction in development)
+            profile = Profile.objects.get(id=profile_id)
+            
+            # Get related data
+            experiences = Experience.objects.filter(profile=profile)
+            education = Education.objects.filter(profile=profile)
+            skills = Skills.objects.filter(profile=profile)
+
+            # Format the response
+            response_data = {
+                'id': profile.id,
+                'firstName': profile.firstName,
+                'lastName': profile.lastName,
+                'email': profile.email,
+                'phone': profile.phone,
+                'zipCode': profile.zipCode,
+                'experience': [{
+                    'jobTitle': exp.jobTitle,
+                    'company': exp.company,
+                    'startDate': exp.startDate,
+                    'endDate': exp.endDate,
+                    'location': exp.location,
+                    'jobDescription': exp.jobDescription
+                } for exp in experiences],
+                'education': [{
+                    'highestDegree': edu.highestDegree,
+                    'fieldOfStudy': edu.fieldOfStudy,
+                    'institution': edu.institution,
+                    'graduationYear': edu.graduationYear
+                } for edu in education],
+                'skills': [skill.skills for skill in skills],
+            }
+            
+            logger.info(f"Profile {profile_id} data retrieved (development mode)")
+            return Response(response_data)
+        except Profile.DoesNotExist:
+            return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving profile {profile_id}: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ResumeDetailAPIView(APIView):
+    """
+    Handles resume data retrieval by ID - DEVELOPMENT VERSION (NO AUTH)
+    
+    Returns:
+        200: Resume data for specified ID
+        404: Resume not found
+    """
+    
+    def get(self, request, resume_id):
+        try:
+            # Get resume by ID (no user restriction in development)
+            resume = UploadedFile.objects.get(id=resume_id)
+            
+            # Parse the processed content if it exists
+            processed_content = {}
+            if resume.processed_content:
+                try:
+                    processed_content = json.loads(resume.processed_content)
+                except json.JSONDecodeError:
+                    processed_content = {"raw_content": resume.processed_content}
+
+            # Format the response
+            response_data = {
+                'id': resume.id,
+                'filename': os.path.basename(resume.file.name),
+                'file_url': resume.file.url,
+                'uploaded_at': resume.uploaded_at,
+                'processed_content': processed_content,
+            }
+            
+            logger.info(f"Resume {resume_id} data retrieved (development mode)")
+            return Response(response_data)
+        except UploadedFile.DoesNotExist:
+            return Response({'error': 'Resume not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving resume {resume_id}: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # FIXED: Regular Django view function (NOT DRF APIView)
 def uploadFile(request):
     """

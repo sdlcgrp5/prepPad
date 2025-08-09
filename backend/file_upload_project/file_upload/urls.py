@@ -21,10 +21,9 @@ urlpatterns = [
     path('api/job-upload/', views.JobPostingAPIView.as_view(), name='job-upload'),
     path('api/profile/', views.ProfileAPIView.as_view(), name='profile'),
     
-    # TEMPORARY: Comment out production-only endpoints
-    # TODO: Re-enable these when using production views
-    # path('api/profile/<int:profile_id>/', views.ProfileDetailAPIView.as_view(), name='profile-detail'),
-    # path('api/resume/<int:resume_id>/', views.ResumeDetailAPIView.as_view(), name='resume-detail'),
+    # Development detail endpoints (no authentication required)
+    path('api/profile/<int:profile_id>/', views.ProfileDetailAPIView.as_view(), name='profile-detail'),
+    path('api/resume/<int:resume_id>/', views.ResumeDetailAPIView.as_view(), name='resume-detail'),
     
     # Health check endpoints for production deployment (no auth required)
     path('api/health/', views_health.health_check, name='health-check'),
