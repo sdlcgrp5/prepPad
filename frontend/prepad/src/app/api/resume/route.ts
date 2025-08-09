@@ -145,13 +145,46 @@ export async function POST(request: NextRequest) {
       throw new Error(result.error || result.detail || 'Resume parsing failed');
     }
 
-    // Update profile with resume data
-    await prisma.profile.update({
+    // Upsert profile with resume data (create if doesn't exist, update if it does)
+    await prisma.profile.upsert({
       where: { userId },
-      data: {
+      create: {
+        userId,
+        firstName: result.processed_content?.name || 'Unknown',
+        lastName: '',
+        phone: result.processed_content?.contact_info?.phone || null,
+        zipCode: result.processed_content?.contact_info?.zipCode || null,
+        jobTitle: result.processed_content?.work_experience?.jobTitle || null,
+        company: result.processed_content?.work_experience?.company || null,
+        yearsOfExperience: result.processed_content?.work_experience?.yearsOfExperience || null,
+        highestDegree: result.processed_content?.education?.highestDegree || null,
+        fieldOfStudy: result.processed_content?.education?.fieldOfStudy || null,
+        institution: result.processed_content?.education?.institution || null,
+        graduationYear: result.processed_content?.education?.graduationYear || null,
+        linkedinUrl: result.processed_content?.linkedinUrl || null,
         resumeFile: result.file,
         resumeFileName: file.name,
         resumeFileType: file.type,
+        resumeUploadedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      update: {
+        firstName: result.processed_content?.name || 'Unknown',
+        phone: result.processed_content?.contact_info?.phone || null,
+        zipCode: result.processed_content?.contact_info?.zipCode || null,
+        jobTitle: result.processed_content?.work_experience?.jobTitle || null,
+        company: result.processed_content?.work_experience?.company || null,
+        yearsOfExperience: result.processed_content?.work_experience?.yearsOfExperience || null,
+        highestDegree: result.processed_content?.education?.highestDegree || null,
+        fieldOfStudy: result.processed_content?.education?.fieldOfStudy || null,
+        institution: result.processed_content?.education?.institution || null,
+        graduationYear: result.processed_content?.education?.graduationYear || null,
+        linkedinUrl: result.processed_content?.linkedinUrl || null,
+        resumeFile: result.file,
+        resumeFileName: file.name,
+        resumeFileType: file.type,
+        resumeUploadedAt: new Date(),
         updatedAt: new Date()
       }
     });
