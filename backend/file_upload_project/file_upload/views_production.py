@@ -11,6 +11,10 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from django.db import connection
+import jwt as pyjwt
+import os
 from rest_framework.throttling import UserRateThrottle
 from django.contrib.auth.decorators import login_required
 import logging
@@ -24,6 +28,67 @@ from .utils import processResume, extractJobDescription, resumeJobDescAnalysis
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_supabase_user(user_id):
+    """
+    Get user from Supabase users table by ID
+    Returns user data or None if not found
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, email, name FROM users WHERE id = %s", [user_id])
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'id': result[0],
+                    'email': result[1], 
+                    'name': result[2]
+                }
+            return None
+    except Exception as e:
+        logger.error(f"Error fetching Supabase user {user_id}: {str(e)}")
+        return None
+
+class SupabaseUser:
+    """Mock user object for Supabase users"""
+    def __init__(self, user_data):
+        self.id = user_data['id']
+        self.email = user_data['email']
+        self.name = user_data.get('name', '')
+        self.is_authenticated = True
+    
+    def __str__(self):
+        return f"SupabaseUser({self.id}, {self.email})"
+
+class SupabaseJWTAuthentication(JWTAuthentication):
+    """
+    Custom JWT authentication that validates against Supabase users table
+    """
+    
+    def get_user(self, validated_token):
+        """
+        Get user from Supabase based on JWT token claims
+        """
+        try:
+            user_id = validated_token.get('user_id')
+            if not user_id:
+                logger.error("JWT token missing user_id claim")
+                raise InvalidToken('Token missing user_id')
+            
+            logger.info(f"🔍 Looking up Supabase user with ID: {user_id}")
+            
+            # Get user from Supabase
+            user_data = get_supabase_user(user_id)
+            if not user_data:
+                logger.error(f"Supabase user {user_id} not found")
+                raise InvalidToken('User not found')
+            
+            logger.info(f"🔍 Found Supabase user: {user_data['email']}")
+            return SupabaseUser(user_data)
+            
+        except Exception as e:
+            logger.error(f"Error in get_user: {str(e)}")
+            raise InvalidToken('Authentication failed')
 
 
 class AnalysisAPIView(APIView):
@@ -43,7 +108,7 @@ class AnalysisAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = AnalysisSerializer
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle]
 
@@ -104,7 +169,7 @@ class FileUploadAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = FileUploadSerializer
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle]
 
@@ -163,7 +228,7 @@ class JobPostingAPIView(APIView):
     """
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = JobPostingSerializer
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle]
 
@@ -202,7 +267,7 @@ class ProfileAPIView(APIView):
         404: Profile not found
         401: Unauthorized
     """
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -265,7 +330,7 @@ class ProfileDetailAPIView(APIView):
         404: Profile not found
         401: Unauthorized
     """
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request, profile_id):
@@ -329,7 +394,7 @@ class ResumeDetailAPIView(APIView):
         404: Resume not found
         401: Unauthorized
     """
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [SupabaseJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request, resume_id):
