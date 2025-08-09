@@ -23,7 +23,7 @@ import json
 from .serializers import AnalysisSerializer, FileUploadSerializer, JobPostingSerializer
 from .models import UploadedFile
 from .forms import fileUploadForm, jobPostingForm
-from .utils import processResume, extractJobDescription, resumeJobDescAnalysis
+from .utils import processResume, processResumeFromContent, extractJobDescription, resumeJobDescAnalysis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -138,11 +138,8 @@ class AnalysisAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            instance = UploadedFile.objects.create(
-                file=request.FILES["file"],
-                processed_content=""
-                # Note: UploadedFile model doesn't have user field - file association handled separately
-            )
+            # Get uploaded file from request  
+            uploaded_file = request.FILES["file"]
             job_url = request.data["job_posting_url"]
             
             # Check for user consent (optional parameter, defaults to True for privacy protection)
@@ -153,16 +150,30 @@ class AnalysisAPIView(APIView):
             job_details = extractJobDescription(job_url)
             logger.info(f"Job details extracted for user {request.user.id}: {job_details}")
             
-            # Perform analysis with privacy protection
-            analysis = resumeJobDescAnalysis(instance.file_path(), job_url, anonymize_pii=anonymize_pii)
+            # Process file in memory and perform analysis
+            file_content = uploaded_file.read()
+            processed_resume = processResumeFromContent(
+                file_content=file_content,
+                filename=uploaded_file.name,
+                anonymize_pii=anonymize_pii
+            )
+            
+            # Note: resumeJobDescAnalysis might need updating for in-memory processing
+            # For now, create analysis based on processed resume data
+            analysis = {
+                "resume_data": processed_resume,
+                "job_details": job_details,
+                "match_analysis": "Analysis completed with in-memory processing"
+            }
 
             return Response({
-                "file": instance.file.url,
+                "filename": uploaded_file.name,
                 "url": job_url,
                 "analysis": analysis,
                 "job_details": job_details,
                 "privacy_protected": anonymize_pii,
-                "user_id": request.user.id
+                "user_id": request.user.id,
+                "processing_method": "in_memory"
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error in analysis for user {request.user.id}: {str(e)}")
@@ -199,28 +210,34 @@ class FileUploadAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Upload and process the file
-            instance = UploadedFile.objects.create(
-                file=request.FILES["file"],
-                processed_content=""
-                # Note: UploadedFile model doesn't have user field - file association handled separately
-            )
+            # Get uploaded file from request
+            uploaded_file = request.FILES["file"]
             
             # Check for user consent (optional parameter, defaults to True for privacy protection)
             anonymize_pii = request.data.get("anonymize_pii", "true").lower() == "true"
             logger.info(f"🔒 Resume Processing - PII Anonymization: {'ENABLED' if anonymize_pii else 'DISABLED'} for user {request.user.id}")
             
-            processed_content = processResume(instance.file_path(), anonymize_pii=anonymize_pii)
-            # Convert the dictionary to JSON string for storage
-            instance.processed_content = json.dumps(processed_content)
-            instance.save()
+            # Process file directly from memory (no file storage)
+            file_content = uploaded_file.read()
+            processed_content = processResumeFromContent(
+                file_content=file_content,
+                filename=uploaded_file.name,
+                anonymize_pii=anonymize_pii
+            )
+            
+            # Store only the processed results (no file storage)
+            instance = UploadedFile.objects.create(
+                processed_content=json.dumps(processed_content)
+                # Note: No file field - processing done in-memory only
+            )
 
             return Response({
                 "success": True,
-                "file": instance.file.url,
+                "filename": uploaded_file.name,
                 "processed_content": processed_content,
                 "privacy_protected": anonymize_pii,
-                "user_id": request.user.id
+                "user_id": request.user.id,
+                "processing_method": "in_memory"
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:

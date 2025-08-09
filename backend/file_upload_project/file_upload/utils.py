@@ -304,6 +304,65 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str, anonymize
         }
 
 
+def processResumeFromContent(file_content: bytes, filename: str, anonymize_pii: bool = True) -> dict:
+    """
+    Extracts and processes text from resume file content (in-memory processing).
+    
+    Args:
+        file_content: Raw file content as bytes
+        filename: Original filename to determine file type
+        anonymize_pii: Whether to anonymize PII before sending to external AI
+    
+    Returns:
+        dict: Structured resume data with anonymization metadata if applicable
+    Raises:
+        ValueError: If file format is not supported
+    """
+    import io
+    import tempfile
+    
+    resume_text = ""
+    
+    # Determine file type from filename
+    if filename.lower().endswith(".pdf"):
+        # Process PDF from memory
+        pdf_file = io.BytesIO(file_content)
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    resume_text += page_text
+                    
+    elif filename.lower().endswith(".docx"):
+        # Process DOCX from memory  
+        docx_file = io.BytesIO(file_content)
+        doc = Document(docx_file)
+        resume_text = "\n".join([p.text for p in doc.paragraphs])
+        
+    else:
+        raise ValueError("Unsupported file format. Only PDF and DOCX files are supported.")
+    
+    if not resume_text.strip():
+        raise ValueError("No text could be extracted from the resume file.")
+    
+    # Apply PII anonymization if requested
+    if anonymize_pii:
+        print(f"🔒 [PII] Anonymizing resume text before AI processing")
+        anonymized_text = anonymize_resume_text(resume_text)
+        processed_data = parseResumeStructured(anonymized_text)
+        # Mark as anonymized and store original metadata
+        processed_data['pii_anonymized'] = True
+        processed_data['original_text_length'] = len(resume_text)
+        processed_data['anonymized_text_length'] = len(anonymized_text)
+        print(f"🔒 [PII] Text anonymized: {len(resume_text)} → {len(anonymized_text)} characters")
+    else:
+        print(f"⚠️  [PII] Processing resume WITHOUT anonymization (user consent required)")
+        processed_data = parseResumeStructured(resume_text)
+        processed_data['pii_anonymized'] = False
+        processed_data['original_text_length'] = len(resume_text)
+    
+    return processed_data
+
 def processResume(resume_file_path: str, anonymize_pii: bool = True) -> dict:
     """
     Extracts and processes text from resume files with optional PII anonymization.
