@@ -151,6 +151,11 @@ ENV NLTK_DATA=/home/appuser/nltk_data
 WORKDIR /app
 RUN chown -R appuser:appuser /app
 
+# Create and set permissions for Hugging Face cache directory
+RUN mkdir -p /home/appuser/.cache && \
+    chown -R appuser:appuser /home/appuser/.cache && \
+    chmod -R 755 /home/appuser/.cache
+
 # Copy application code (excluding unnecessary files via .dockerignore)
 COPY --chown=appuser:appuser . .
 
