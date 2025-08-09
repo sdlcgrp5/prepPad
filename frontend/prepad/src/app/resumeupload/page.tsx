@@ -625,7 +625,7 @@ export default function Home() {
         throw new Error(errorData.error || 'Failed to create profile');
       }
 
-      const data = await response.json();
+      await response.json();
       if (process.env.NODE_ENV === 'development') {
         console.log('Profile created successfully');
       }

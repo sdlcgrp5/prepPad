@@ -338,7 +338,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Update profile in transaction
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update profile data
       const updatedProfile = await tx.profile.update({
         where: { id: existingProfile.id },
@@ -412,6 +412,11 @@ export async function PUT(request: NextRequest) {
       fieldOfStudy: profileWithSkills.fieldOfStudy,
       institution: profileWithSkills.institution,
       graduationYear: profileWithSkills.graduationYear,
+      userId: profileWithSkills.userId,
+      dataClassification: profileWithSkills.dataClassification,
+      isDeleted: profileWithSkills.isDeleted,
+      deletedAt: profileWithSkills.deletedAt,
+      resumeUploadedAt: profileWithSkills.resumeUploadedAt,
       skills: profileWithSkills.skills.map(skill => skill.name)
     };
     

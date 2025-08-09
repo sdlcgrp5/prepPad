@@ -33,7 +33,7 @@ function getClientIp(request: NextRequest): string {
   }
   
   // Fallback to a default IP (shouldn't happen in production)
-  return request.ip || 'unknown';
+  return 'unknown';
 }
 
 /**

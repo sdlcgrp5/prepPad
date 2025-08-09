@@ -91,6 +91,12 @@ export default function Dashboard() {
     fetchDashboardData();
   };
 
+  const handleAnalysisClick = (analysisId: number) => {
+    // Handle viewing specific analysis details
+    console.log('Analysis clicked:', analysisId);
+    // TODO: Implement analysis detail view
+  };
+
   // Show loading state while auth is being checked
   if (authLoading || !hasProfile) {
     return (
@@ -118,6 +124,7 @@ export default function Dashboard() {
           analyses={jobAnalyses}
           loading={isLoading}
           onAnalyzeClick={handleOpenModal}
+          onAnalysisClick={handleAnalysisClick}
         />
 
         {/* Job Analysis Modal */}

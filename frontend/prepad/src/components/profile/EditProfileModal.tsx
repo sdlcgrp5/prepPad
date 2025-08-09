@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
-import HybridDateSelector from '@/components/HybridDateSelector';
 
 interface ProfileData {
   firstName: string;
@@ -540,9 +539,9 @@ export default function EditProfileModal({
                     >
                       <option value="">Highest Degree</option>
                       <option value="high_school">High School</option>
-                      <option value="associate">Associate's</option>
-                      <option value="bachelor">Bachelor's</option>
-                      <option value="master">Master's</option>
+                      <option value="associate">Associate&apos;s</option>
+                      <option value="bachelor">Bachelor&apos;s</option>
+                      <option value="master">Master&apos;s</option>
                       <option value="doctorate">Doctorate</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
