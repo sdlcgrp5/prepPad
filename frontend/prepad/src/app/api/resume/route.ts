@@ -80,12 +80,16 @@ export async function POST(request: NextRequest) {
     try {
       const secret = process.env.JWT_SECRET as string;
       if (secret) {
-        // Create JWT token with user ID for backend
+        // Create Django Simple JWT compatible token
+        const now = Math.floor(Date.now() / 1000);
         backendJwtToken = jwt.sign(
           { 
-            id: userId,
+            user_id: userId,  // Django expects 'user_id' not 'id'
             email: session?.user?.email,
-            exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiry
+            token_type: 'access',  // Django Simple JWT token type
+            exp: now + (60 * 60),  // 1 hour expiry
+            iat: now,  // Issued at time
+            jti: `${userId}_${now}_${Math.random().toString(36).substr(2, 9)}` // Unique token ID
           }, 
           secret
         );
