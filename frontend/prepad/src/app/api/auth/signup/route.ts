@@ -6,12 +6,9 @@ import { z } from 'zod';
 
 // Define validation schema for signup credentials
 const signupSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
 export async function POST(request: NextRequest) {
@@ -28,7 +25,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    const { email, password } = result.data;
+    const { name, email, password } = result.data;
     
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -43,12 +40,32 @@ export async function POST(request: NextRequest) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-      }
+    // Create user and profile in a transaction
+    const result_data = await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+        }
+      });
+
+      // Split name into first and last name
+      const nameParts = name.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Create minimal profile
+      const profile = await tx.profile.create({
+        data: {
+          userId: user.id,
+          firstName,
+          lastName,
+        }
+      });
+
+      return { user, profile };
     });
     
     // Generate JWT token
@@ -59,8 +76,9 @@ export async function POST(request: NextRequest) {
     
     const token = jwt.sign(
       {
-        id: user.id,
-        email: user.email,
+        id: result_data.user.id,
+        email: result_data.user.email,
+        name: result_data.user.name,
       },
       secret,
       { expiresIn: '7d' }  // Token valid for 7 days
@@ -71,8 +89,9 @@ export async function POST(request: NextRequest) {
       success: true, 
       token,
       user: {
-        id: user.id,
-        email: user.email
+        id: result_data.user.id,
+        email: result_data.user.email,
+        name: result_data.user.name
       }
     });
     

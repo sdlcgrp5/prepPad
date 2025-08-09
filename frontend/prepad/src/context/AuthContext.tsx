@@ -17,7 +17,7 @@ type AuthContextType = {
   isLoading: boolean;
   hasDataProcessingConsent: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, confirmPassword: string) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
   setDataProcessingConsent: (consent: boolean) => void;
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, status]);
 
   // Signup function
-  const signup = async (email: string, password: string, confirmPassword: string): Promise<boolean> => {
+  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, confirmPassword }),
+        body: JSON.stringify({ name, email, password }),
       });
       
       const data = await response.json();
@@ -110,8 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          path: '/'
        });
       
-      // Direct user to resume upload page to complete their profile
-      router.push('/resumeupload');
+      // Direct user to dashboard - profile will be auto-created
+      router.push('/dashboard');
       
       return true;
     } catch (error) {
@@ -149,22 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Cookies.set('auth_token', data.token, { expires: 1 }); // 1 day
       Cookies.set('user', JSON.stringify(data.user), { expires: 1 });
       
-      // Check if profile exists
-      try {
-        const profileResponse = await fetch('/api/profile', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${data.token}`
-          }
-        });
-        
-        // If profile exists, go to dashboard, otherwise go to resume upload
-        router.push(profileResponse.ok ? '/dashboard' : '/resumeupload');
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        // On error, default to resume upload
-        router.push('/resumeupload');
-      }
+      // Direct all login users to dashboard
+      router.push('/dashboard');
       
       return true;
     } catch (error) {

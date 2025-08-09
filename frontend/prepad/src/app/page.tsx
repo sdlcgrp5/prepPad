@@ -6,9 +6,9 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -20,14 +20,8 @@ export default function Home() {
     setError("");
     setIsLoading(true);
     
-    if (password !== confirmPassword) {
-      setError("Passwords don't match");
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      const success = await signup(email, password, confirmPassword);
+      const success = await signup(name, email, password);
       
       if (!success) {
         setError("Signup failed. Please try again.");
@@ -130,6 +124,17 @@ export default function Home() {
 
         <div>
           <input
+            type="text"
+            placeholder="Enter your full name"
+            required
+            className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <input
             type="email"
             placeholder="Enter your email address"
             required
@@ -147,16 +152,6 @@ export default function Home() {
             className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Confirm your password"
-            required
-            className="w-full p-4 bg-neutral-700/50 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
 

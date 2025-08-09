@@ -44,37 +44,20 @@ export default function Dashboard() {
   }, [token]);
 
   useEffect(() => {
-    const checkProfile = async () => {
+    const initializeDashboard = async () => {
       if (!token) {
         router.push('/');
         return;
       }
 
-      try {
-        const response = await fetch('/api/profile', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          // No profile, redirect to resume upload
-          router.push('/resumeupload');
-        } else {
-          setHasProfile(true);
-          fetchDashboardData();
-        }
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        // On error, redirect to resume upload
-        router.push('/resumeupload');
-      }
+      // Assume user has at least minimal profile (created during signup)
+      setHasProfile(true);
+      fetchDashboardData();
     };
 
-    // Only check profile after auth is loaded and if we have a token
+    // Only initialize after auth is loaded and if we have a token
     if (!authLoading) {
-      checkProfile();
+      initializeDashboard();
     }
   }, [router, token, authLoading, fetchDashboardData]);
 
