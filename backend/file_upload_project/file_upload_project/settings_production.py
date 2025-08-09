@@ -180,6 +180,7 @@ SIMPLE_JWT = {
 
 # PRODUCTION: Enhanced middleware stack
 MIDDLEWARE = [
+    'file_upload_project.debug_middleware.DebugMiddleware',  # DEBUG: Catch all errors
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # For static files
     'django.contrib.sessions.middleware.SessionMiddleware',
