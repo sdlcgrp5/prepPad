@@ -46,7 +46,8 @@ DEBUG = False
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # PRODUCTION: Security headers and HTTPS
-SECURE_SSL_REDIRECT = True
+# Temporarily disabled SSL redirect for Railway health checks compatibility
+SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
