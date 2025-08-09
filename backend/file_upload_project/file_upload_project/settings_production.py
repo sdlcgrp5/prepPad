@@ -9,18 +9,29 @@ from datetime import timedelta
 
 load_dotenv()
 
-# Validate required environment variables
-REQUIRED_ENV_VARS = [
+# Validate critical environment variables (Railway-compatible)
+CRITICAL_ENV_VARS = [
     'SECRET_KEY',
     'DATABASE_URL',
-    'ALLOWED_HOSTS',
-    'CORS_ALLOWED_ORIGINS',
-    'JWT_SECRET_KEY',
 ]
 
-for var in REQUIRED_ENV_VARS:
+# Check critical vars that must be present
+for var in CRITICAL_ENV_VARS:
     if os.getenv(var) is None:
-        raise Exception(f'Required environment variable "{var}" is missing!')
+        raise Exception(f'Critical environment variable "{var}" is missing!')
+
+# Optional environment variables with defaults
+OPTIONAL_ENV_VARS = {
+    'ALLOWED_HOSTS': 'api.preppad.xyz,localhost,127.0.0.1',
+    'CORS_ALLOWED_ORIGINS': 'https://www.preppad.xyz,https://preppad.xyz',
+    'JWT_SECRET_KEY': os.getenv('SECRET_KEY'),  # Fallback to SECRET_KEY if JWT_SECRET_KEY not set
+    'DEEPSEEK_API_KEY': '',  # Optional for some deployments
+}
+
+# Set defaults for optional vars if not provided
+for var, default in OPTIONAL_ENV_VARS.items():
+    if os.getenv(var) is None and default:
+        os.environ[var] = default
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -218,7 +229,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# PRODUCTION: Logging configuration
+# PRODUCTION: Railway-compatible logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -233,30 +244,34 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
+        'console': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/django/preppad.log',
+            'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'console': {
+        'error_console': {
             'level': 'ERROR',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'verbose',
         },
     },
     'root': {
-        'handlers': ['file', 'console'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'file_upload': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'gunicorn': {
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },

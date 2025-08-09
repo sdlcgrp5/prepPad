@@ -82,7 +82,7 @@ exec gunicorn \
     --workers 1 \
     --bind 0.0.0.0:${PORT:-8000} \
     --timeout 300 \
-    --keepalive 5 \
+    --keep-alive 5 \
     --access-logfile - \
     --error-logfile - \
     --log-level debug \

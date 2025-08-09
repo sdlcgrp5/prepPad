@@ -48,13 +48,15 @@ async function authenticate(request: NextRequest): Promise<{ userId: number; ema
     
     if (token && token !== 'nextauth') {
       const secret = process.env.JWT_SECRET as string;
-      if (secret) {
-        try {
-          const decoded = jwt.verify(token, secret) as { id: number; email: string };
-          return { userId: decoded.id, email: decoded.email };
-        } catch {
-          console.log('JWT validation failed, trying NextAuth session...');
-        }
+      if (!secret) {
+        console.error('JWT_SECRET environment variable is not set');
+        return null;
+      }
+      try {
+        const decoded = jwt.verify(token, secret) as { id: number; email: string };
+        return { userId: decoded.id, email: decoded.email };
+      } catch (error) {
+        console.error('JWT validation failed:', error);
       }
     }
     
@@ -439,12 +441,12 @@ export async function PUT(request: NextRequest) {
 }
 
 // Handle OPTIONS requests for CORS
-//export async function OPTIONS(_request: NextRequest) {
-  //return NextResponse.json({}, {
-    //headers: {
-      //'Access-Control-Allow-Origin': '*',
-      //'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-      //'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-   // }
-  //});
-// }
+export async function OPTIONS(_request: NextRequest) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
+}
