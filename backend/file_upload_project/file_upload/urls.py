@@ -4,10 +4,9 @@ from django.conf import settings
 from . import views
 from . import views_health
 
-# TEMPORARY: Use development views to test ML libraries (bypass authentication)
-# TODO: Re-enable production views once frontend JWT authentication is fixed
-# if not settings.DEBUG:
-#     from . import views_production as views
+# Enable production views with proper JWT authentication
+if not settings.DEBUG:
+    from . import views_production as views
 
 urlpatterns = [
     path('', views.fileList, name='fileList'),

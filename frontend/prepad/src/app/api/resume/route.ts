@@ -63,11 +63,38 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // TEMPORARY: Bypass authentication for testing
+    // If neither authentication method worked, return unauthorized
     if (!userId) {
-      console.log('🔍 No valid authentication found, but proceeding for testing...');
-      // Set a temporary userId for testing (this should be removed later)
-      userId = 1; // Temporary test user ID
+      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+    
+    // Generate JWT token for backend authentication
+    let backendJwtToken: string | null = null;
+    try {
+      const secret = process.env.JWT_SECRET as string;
+      if (secret) {
+        // Create JWT token with user ID for backend
+        backendJwtToken = jwt.sign(
+          { 
+            id: userId,
+            email: session?.user?.email,
+            exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiry
+          }, 
+          secret
+        );
+        console.log('🔍 Generated JWT token for backend authentication');
+      } else {
+        console.log('🔍 No JWT_SECRET available, cannot generate backend token');
+      }
+    } catch (error) {
+      console.log('🔍 Failed to generate JWT token:', error);
     }
 
     // Get the file from the request
@@ -88,12 +115,18 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Backend URL:', backendUrl);
     console.log('🔍 Making request to:', `${backendUrl}/api/resume-upload/`);
     
+    // Prepare headers with proper JWT authentication
+    const headers: Record<string, string> = {};
+    if (backendJwtToken) {
+      headers['Authorization'] = `Bearer ${backendJwtToken}`;
+      console.log('🔍 Sending request with generated JWT token');
+    } else {
+      console.log('🔍 Sending request without authentication (no JWT token available)');
+    }
+    
     const response = await fetch(`${backendUrl}/api/resume-upload/`, {
       method: 'POST',
-      // TEMPORARY: Remove Authorization header since backend uses development views (no auth)
-      // headers: {
-      //   'Authorization': `Bearer ${jwtToken || 'session-auth'}`
-      // },
+      headers,
       body: backendFormData
     });
 
