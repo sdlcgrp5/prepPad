@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('file', file);
 
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
     const response = await fetch(`${backendUrl}/api/resume-upload/`, {
       method: 'POST',
       headers: {
