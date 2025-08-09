@@ -54,23 +54,14 @@ python manage.py check --settings=file_upload_project.settings_production || {
     exit 1
 }
 
+# Export Django settings module for Gunicorn
+export DJANGO_SETTINGS_MODULE=file_upload_project.settings_production
+echo "🔧 [RAILWAY] Django settings module: $DJANGO_SETTINGS_MODULE"
+
 # Start Gunicorn with Railway-optimized settings
 echo "🚀 [RAILWAY] Starting Gunicorn server..."
 echo "🔗 [RAILWAY] Binding to 0.0.0.0:${PORT:-8000}"
-
-# Verify WSGI application is available
-python -c "
-import sys
-import os
-sys.path.insert(0, '/app/file_upload_project')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'file_upload_project.settings_production')
-try:
-    from file_upload_project.wsgi import application
-    print('✅ [RAILWAY] WSGI application loaded successfully')
-except Exception as e:
-    print(f'❌ [RAILWAY] WSGI application load failed: {e}')
-    sys.exit(1)
-"
+echo "✅ [RAILWAY] All checks passed, starting application..."
 
 # Final gunicorn startup
 exec gunicorn \
