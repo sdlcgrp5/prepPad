@@ -22,11 +22,9 @@ load_dotenv()
 # Get API key from environment
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-# DEBUG: Log API key status at module load
-if API_KEY:
-    print(f"✅ [UTILS] DEEPSEEK_API_KEY loaded: {API_KEY[:10]}...")
-else:
-    print("❌ [UTILS] DEEPSEEK_API_KEY not found in environment")
+# Verify API key is loaded
+if not API_KEY:
+    print("❌ DEEPSEEK_API_KEY environment variable not set")
 
 # Remove model loading from module level - will load when needed
 
@@ -731,8 +729,14 @@ def extractJobDescription(url: str) -> dict:
     temp_user_data_dir = None
     
     try:
-        # Create unique temporary directory for this session
-        temp_user_data_dir = tempfile.mkdtemp(prefix=f"chrome_user_data_{uuid.uuid4().hex[:8]}_")
+        # Create unique temporary directory for this session with multiple uniqueness factors
+        import time
+        timestamp = int(time.time() * 1000)  # Millisecond timestamp
+        process_id = os.getpid()
+        unique_id = uuid.uuid4().hex[:8]
+        temp_user_data_dir = tempfile.mkdtemp(
+            prefix=f"chrome_user_data_{timestamp}_{process_id}_{unique_id}_"
+        )
         
         # Set up Chrome options with unique user data directory
         chrome_options = Options()
@@ -755,9 +759,56 @@ def extractJobDescription(url: str) -> dict:
         chrome_options.add_argument("--disable-web-security")
         chrome_options.binary_location = "/usr/bin/chromium"
 
-        # Initialize the driver with explicit service
+        # Initialize the driver with explicit service and retry logic
         service = Service(executable_path="/usr/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Retry WebDriver creation up to 3 times in case of conflicts
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                print(f"✅ WebDriver session created on attempt {attempt + 1}")
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️  WebDriver creation attempt {attempt + 1} failed: {str(e)[:100]}...")
+                    print(f"🔄 Retrying in {attempt + 1} seconds...")
+                    import time
+                    time.sleep(attempt + 1)  # Progressive backoff
+                    
+                    # Create a new temp directory for retry
+                    if temp_user_data_dir and os.path.exists(temp_user_data_dir):
+                        import shutil
+                        shutil.rmtree(temp_user_data_dir, ignore_errors=True)
+                    
+                    # Generate new unique directory
+                    timestamp = int(time.time() * 1000)
+                    unique_id = uuid.uuid4().hex[:8]
+                    temp_user_data_dir = tempfile.mkdtemp(
+                        prefix=f"chrome_user_data_{timestamp}_{process_id}_{unique_id}_"
+                    )
+                    chrome_options = Options()
+                    chrome_options.add_argument("--headless")
+                    chrome_options.add_argument("--no-sandbox") 
+                    chrome_options.add_argument("--disable-dev-shm-usage")
+                    chrome_options.add_argument("--disable-gpu")
+                    chrome_options.add_argument("--disable-software-rasterizer")
+                    chrome_options.add_argument("--disable-background-timer-throttling")
+                    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+                    chrome_options.add_argument("--disable-renderer-backgrounding")
+                    chrome_options.add_argument("--disable-features=TranslateUI")
+                    chrome_options.add_argument("--disable-ipc-flooding-protection")
+                    chrome_options.add_argument(f"--user-data-dir={temp_user_data_dir}")
+                    chrome_options.add_argument("--single-process")
+                    chrome_options.add_argument("--disable-extensions")
+                    chrome_options.add_argument("--disable-plugins")
+                    chrome_options.add_argument("--disable-images")
+                    chrome_options.add_argument("--disable-javascript")
+                    chrome_options.add_argument("--disable-web-security")
+                    chrome_options.binary_location = "/usr/bin/chromium"
+                else:
+                    # Final attempt failed
+                    raise e
 
         # Load the page and wait for content to load
         driver.get(url)

@@ -256,6 +256,41 @@ class PIIAnonymizer:
         
         return anonymized_data, mapping
     
+    def deanonymize_data(self, data: Dict, mapping: Dict) -> Dict:
+        """
+        Deanonymize structured data (like JSON) using the mapping
+        """
+        if not mapping:
+            return data
+            
+        # Deep copy to avoid modifying original
+        result = json.loads(json.dumps(data)) if isinstance(data, dict) else data
+        
+        def deanonymize_recursive(obj):
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, str):
+                        # Replace any placeholders in string values
+                        for placeholder, info in mapping.items():
+                            if placeholder in value:
+                                value = value.replace(placeholder, info['original_value'])
+                        obj[key] = value
+                    elif isinstance(value, (dict, list)):
+                        obj[key] = deanonymize_recursive(value)
+            elif isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    if isinstance(item, str):
+                        # Replace any placeholders in string values
+                        for placeholder, info in mapping.items():
+                            if placeholder in item:
+                                item = item.replace(placeholder, info['original_value'])
+                        obj[i] = item
+                    elif isinstance(item, (dict, list)):
+                        obj[i] = deanonymize_recursive(item)
+            return obj
+        
+        return deanonymize_recursive(result)
+    
     def create_anonymization_report(self, mapping: Dict) -> Dict:
         """
         Create a report of what was anonymized
