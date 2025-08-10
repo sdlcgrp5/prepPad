@@ -22,6 +22,12 @@ load_dotenv()
 # Get API key from environment
 API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
+# DEBUG: Log API key status at module load
+if API_KEY:
+    print(f"✅ [UTILS] DEEPSEEK_API_KEY loaded: {API_KEY[:10]}...")
+else:
+    print("❌ [UTILS] DEEPSEEK_API_KEY not found in environment")
+
 # Remove model loading from module level - will load when needed
 
 

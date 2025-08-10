@@ -25,13 +25,20 @@ OPTIONAL_ENV_VARS = {
     'ALLOWED_HOSTS': 'api.preppad.xyz,localhost,127.0.0.1,healthcheck.railway.app',
     'CORS_ALLOWED_ORIGINS': 'https://www.preppad.xyz,https://preppad.xyz',
     'JWT_SECRET_KEY': os.getenv('SECRET_KEY'),  # Fallback to SECRET_KEY if JWT_SECRET_KEY not set
-    'DEEPSEEK_API_KEY': '',  # Optional for some deployments
+    # NOTE: DEEPSEEK_API_KEY is intentionally excluded - don't override if Railway provides it
 }
 
 # Set defaults for optional vars if not provided
 for var, default in OPTIONAL_ENV_VARS.items():
     if os.getenv(var) is None and default:
         os.environ[var] = default
+
+# DEBUG: Log environment variable loading for critical APIs
+DEEPSEEK_API_KEY_VALUE = os.getenv('DEEPSEEK_API_KEY')
+if DEEPSEEK_API_KEY_VALUE:
+    print(f"✅ [SETTINGS] DEEPSEEK_API_KEY loaded: {DEEPSEEK_API_KEY_VALUE[:10]}...")
+else:
+    print("❌ [SETTINGS] DEEPSEEK_API_KEY not found in environment")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
