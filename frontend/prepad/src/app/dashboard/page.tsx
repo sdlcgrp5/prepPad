@@ -17,6 +17,9 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
+  
+  // Ensure jobAnalyses is always a safe array for components
+  const safeJobAnalyses = Array.isArray(jobAnalyses) ? jobAnalyses : [];
   const [hasProfile, setHasProfile] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
@@ -46,8 +49,21 @@ export default function Dashboard() {
       }
 
       const data: AnalysisHistoryResponse = await response.json();
-      // Ensure we always set an array, even if the response is malformed
-      const analyses = Array.isArray(data?.analyses) ? data.analyses : [];
+      // Multiple layers of safety for array handling
+      let analyses: JobAnalysis[] = [];
+      
+      if (data && typeof data === 'object') {
+        if (Array.isArray(data.analyses)) {
+          analyses = data.analyses.filter(analysis => 
+            analysis && 
+            typeof analysis === 'object' && 
+            analysis.id && 
+            analysis.company && 
+            analysis.role
+          );
+        }
+      }
+      
       setJobAnalyses(analyses);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -140,7 +156,7 @@ export default function Dashboard() {
             </div>
           }>
             <JobAnalysisTable
-              analyses={jobAnalyses}
+              analyses={safeJobAnalyses}
               loading={isLoading}
               onAnalyzeClick={handleOpenModal}
               onAnalysisClick={handleAnalysisClick}
