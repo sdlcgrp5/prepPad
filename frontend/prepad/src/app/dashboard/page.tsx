@@ -7,6 +7,7 @@ import Header from '@/components/layout/header';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
 import AnalysisCard from '@/components/dashboard/AnalysisCard';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAuth } from '@/context/AuthContext';
 import { JobAnalysis, AnalysisHistoryResponse } from '@/types';
 
@@ -19,6 +20,12 @@ export default function Dashboard() {
   const [hasProfile, setHasProfile] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
+    if (!token) {
+      console.log('No token available for fetching dashboard data');
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/analysis/history', {
@@ -30,22 +37,36 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch analysis history');
+        if (response.status === 401) {
+          console.log('Unauthorized - redirecting to login');
+          router.push('/');
+          return;
+        }
+        throw new Error(`Failed to fetch analysis history: ${response.status}`);
       }
 
       const data: AnalysisHistoryResponse = await response.json();
-      setJobAnalyses(data.analyses || []);
+      // Ensure we always set an array, even if the response is malformed
+      const analyses = Array.isArray(data?.analyses) ? data.analyses : [];
+      setJobAnalyses(analyses);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Always ensure we have an array to prevent map errors
       setJobAnalyses([]);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, router]);
 
   useEffect(() => {
-    const initializeDashboard = async () => {
+    const initializeDashboard = () => {
+      if (authLoading) {
+        // Still loading authentication, wait
+        return;
+      }
+
       if (!token) {
+        console.log('No token found, redirecting to login');
         router.push('/');
         return;
       }
@@ -55,10 +76,7 @@ export default function Dashboard() {
       fetchDashboardData();
     };
 
-    // Only initialize after auth is loaded and if we have a token
-    if (!authLoading) {
-      initializeDashboard();
-    }
+    initializeDashboard();
   }, [router, token, authLoading, fetchDashboardData]);
 
   const handleOpenModal = () => {
@@ -90,33 +108,53 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Sidebar */}
-      <Sidebar />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Sidebar */}
+        <Sidebar />
 
-      {/* Main content */}
-      <div className="ml-40 mr-1- p-8">
-        {/* Header */}
-        <Header title="Dashboard" />
+        {/* Main content */}
+        <div className="ml-40 mr-1- p-8">
+          {/* Header */}
+          <Header title="Dashboard" />
 
-        {/* Analysis Card */}
-        <AnalysisCard onAnalyzeClick={handleOpenModal} loading={isLoading} />
+          {/* Analysis Card */}
+          <ErrorBoundary fallback={
+            <div className="bg-gray-800/50 rounded-md p-8 text-center">
+              <p className="text-gray-400">Unable to load analysis card</p>
+            </div>
+          }>
+            <AnalysisCard onAnalyzeClick={handleOpenModal} loading={isLoading} />
+          </ErrorBoundary>
 
-        {/* Job Analysis Table */}
-        <JobAnalysisTable
-          analyses={jobAnalyses}
-          loading={isLoading}
-          onAnalyzeClick={handleOpenModal}
-          onAnalysisClick={handleAnalysisClick}
-        />
+          {/* Job Analysis Table */}
+          <ErrorBoundary fallback={
+            <div className="bg-gray-800/50 rounded-md p-8 text-center">
+              <p className="text-gray-400">Unable to load analysis history</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-md transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
+          }>
+            <JobAnalysisTable
+              analyses={jobAnalyses}
+              loading={isLoading}
+              onAnalyzeClick={handleOpenModal}
+              onAnalysisClick={handleAnalysisClick}
+            />
+          </ErrorBoundary>
 
-        {/* Job Analysis Modal */}
-        <JobAnalysisModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSuccess={handleAnalysisSuccess}
-        />
+          {/* Job Analysis Modal */}
+          <JobAnalysisModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            onSuccess={handleAnalysisSuccess}
+          />
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

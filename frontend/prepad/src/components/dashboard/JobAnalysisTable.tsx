@@ -15,17 +15,18 @@ interface JobAnalysisTableProps {
 }
 
 export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick, onAnalysisClick }: JobAnalysisTableProps) {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Ensure analyses is always an array to prevent map errors
+  const safeAnalyses = Array.isArray(analyses) ? analyses : [];
+  
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
   
   const toggleAllRows = () => {
-    if (selectedRows.length === analyses.length) {
+    if (selectedRows.length === safeAnalyses.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(analyses.map(analysis => analysis.id));
+      setSelectedRows(safeAnalyses.map(analysis => analysis.id));
     }
   };
   
@@ -38,10 +39,10 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   };
   
   // Calculate pagination
-  const totalPages = Math.ceil(analyses.length / itemsPerPage);
+  const totalPages = Math.ceil(safeAnalyses.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentItems = analyses.slice(startIndex, endIndex);
+  const currentItems = safeAnalyses.slice(startIndex, endIndex);
   
   // Generate array of page numbers
   const pageNumbers = [];
@@ -92,9 +93,9 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
         <input 
           type="checkbox" 
           className="mr-2"
-          checked={analyses.length > 0 && selectedRows.length === analyses.length}
+          checked={safeAnalyses.length > 0 && selectedRows.length === safeAnalyses.length}
           onChange={toggleAllRows}
-          disabled={analyses.length === 0}
+          disabled={safeAnalyses.length === 0}
         />
         <button className="flex items-center ">
           Company
@@ -138,7 +139,7 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
     </div>
   );
   
-  if (analyses.length === 0) {
+  if (safeAnalyses.length === 0) {
     return (
       <div className="bg-gray-800/50 rounded-lg overflow-hidden">
         <TableHeader />

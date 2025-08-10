@@ -48,14 +48,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!session.user?.id || !session.user?.email) {
           console.log('Session user data incomplete, using nextauth placeholder');
           setUser({
-            id: 0,
-            email: '',
-            name: '',
+            id: Number(session.user?.id) || 0,
+            email: session.user?.email || '',
+            name: session.user?.name || '',
           });
           setToken('nextauth');
           setIsLoading(false);
           return;
         }
+
+        // Set user data immediately to prevent undefined state
+        setUser({
+          id: Number(session.user.id),
+          email: session.user.email || '',
+          name: session.user.name || '',
+        });
 
         try {
           const response = await fetch('/api/auth/nextauth-token', {
@@ -72,29 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (response.ok) {
             const data = await response.json();
-            setUser({
-              id: Number(session.user.id),
-              email: session.user.email || '',
-              name: session.user.name || '',
-            });
             setToken(data.token);
+            console.log('Successfully generated JWT token for NextAuth user');
           } else {
             // Fallback to nextauth placeholder if token generation fails
-            setUser({
-              id: Number(session.user.id),
-              email: session.user.email || '',
-              name: session.user.name || '',
-            });
+            console.log('Failed to generate JWT token, using nextauth placeholder');
             setToken('nextauth');
           }
         } catch (error) {
           console.log('Failed to generate JWT token for NextAuth user:', error);
-          // Fallback to nextauth placeholder
-          setUser({
-            id: Number(session.user.id),
-            email: session.user.email || '',
-            name: session.user.name || '',
-          });
+          // Fallback to nextauth placeholder - user is already set above
           setToken('nextauth');
         }
         setIsLoading(false);
