@@ -6,12 +6,6 @@ import requests
 import pdfplumber
 from docx import Document
 from lxml import html
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import os
 from dotenv import load_dotenv
 from .pii_anonymizer import PIIAnonymizer, anonymize_resume_text, anonymize_resume_data
@@ -700,10 +694,11 @@ def extractQAFields(text: str) -> dict:
     }
     return {k: askQuestion(text, q) for k, q in questions.items()}
 
-# Extract job description from a URL using Selenium
+# Extract job description from a URL using HTTP requests + lxml
 def extractJobDescription(url: str) -> dict:
     """
-    Scrapes job posting content using Selenium.
+    Scrapes job posting content using HTTP requests and lxml parsing.
+    Fast, lightweight alternative to WebDriver.
     
     Args:
         url: Job posting URL
@@ -711,9 +706,6 @@ def extractJobDescription(url: str) -> dict:
     Returns:
         dict: Processed job posting data or error details
     """
-    import uuid
-    import tempfile
-    
     # Validate API key early
     if not API_KEY:
         print("❌ DEEPSEEK_API_KEY environment variable not set")
@@ -725,143 +717,118 @@ def extractJobDescription(url: str) -> dict:
             "html": "",
         }
     
-    driver = None
-    temp_user_data_dir = None
-    
     try:
-        # Create unique temporary directory for this session with multiple uniqueness factors
-        import time
-        timestamp = int(time.time() * 1000)  # Millisecond timestamp
-        process_id = os.getpid()
-        unique_id = uuid.uuid4().hex[:8]
-        temp_user_data_dir = tempfile.mkdtemp(
-            prefix=f"chrome_user_data_{timestamp}_{process_id}_{unique_id}_"
+        print(f"🚀 Fetching job posting: {url}")
+        
+        # Set up headers to mimic a real browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        }
+        
+        # Make HTTP request with timeout
+        response = requests.get(
+            url, 
+            headers=headers, 
+            timeout=10,  # 10 second timeout - much faster than WebDriver
+            allow_redirects=True,
+            verify=True  # Verify SSL certificates
         )
         
-        # Set up Chrome options with unique user data directory
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox") 
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--disable-software-rasterizer")
-        chrome_options.add_argument("--disable-background-timer-throttling")
-        chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-        chrome_options.add_argument("--disable-renderer-backgrounding")
-        chrome_options.add_argument("--disable-features=TranslateUI")
-        chrome_options.add_argument("--disable-ipc-flooding-protection")
-        chrome_options.add_argument(f"--user-data-dir={temp_user_data_dir}")
-        chrome_options.add_argument("--single-process")
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-plugins")
-        chrome_options.add_argument("--disable-images")
-        chrome_options.add_argument("--disable-javascript")
-        chrome_options.add_argument("--disable-web-security")
-        chrome_options.binary_location = "/usr/bin/chromium"
-
-        # Initialize the driver with explicit service and retry logic
-        service = Service(executable_path="/usr/bin/chromedriver")
+        # Check if request was successful
+        if response.status_code != 200:
+            print(f"⚠️  HTTP {response.status_code} for {url}")
+            return {
+                "url": url,
+                "status_code": response.status_code,
+                "description": f"HTTP error: {response.status_code} - {response.reason}",
+                "full_text": "",
+                "html": "",
+            }
         
-        # Retry WebDriver creation up to 3 times in case of conflicts
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-                print(f"✅ WebDriver session created on attempt {attempt + 1}")
-                break
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    print(f"⚠️  WebDriver creation attempt {attempt + 1} failed: {str(e)[:100]}...")
-                    print(f"🔄 Retrying in {attempt + 1} seconds...")
-                    import time
-                    time.sleep(attempt + 1)  # Progressive backoff
-                    
-                    # Create a new temp directory for retry
-                    if temp_user_data_dir and os.path.exists(temp_user_data_dir):
-                        import shutil
-                        shutil.rmtree(temp_user_data_dir, ignore_errors=True)
-                    
-                    # Generate new unique directory
-                    timestamp = int(time.time() * 1000)
-                    unique_id = uuid.uuid4().hex[:8]
-                    temp_user_data_dir = tempfile.mkdtemp(
-                        prefix=f"chrome_user_data_{timestamp}_{process_id}_{unique_id}_"
-                    )
-                    chrome_options = Options()
-                    chrome_options.add_argument("--headless")
-                    chrome_options.add_argument("--no-sandbox") 
-                    chrome_options.add_argument("--disable-dev-shm-usage")
-                    chrome_options.add_argument("--disable-gpu")
-                    chrome_options.add_argument("--disable-software-rasterizer")
-                    chrome_options.add_argument("--disable-background-timer-throttling")
-                    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-                    chrome_options.add_argument("--disable-renderer-backgrounding")
-                    chrome_options.add_argument("--disable-features=TranslateUI")
-                    chrome_options.add_argument("--disable-ipc-flooding-protection")
-                    chrome_options.add_argument(f"--user-data-dir={temp_user_data_dir}")
-                    chrome_options.add_argument("--single-process")
-                    chrome_options.add_argument("--disable-extensions")
-                    chrome_options.add_argument("--disable-plugins")
-                    chrome_options.add_argument("--disable-images")
-                    chrome_options.add_argument("--disable-javascript")
-                    chrome_options.add_argument("--disable-web-security")
-                    chrome_options.binary_location = "/usr/bin/chromium"
-                else:
-                    # Final attempt failed
-                    raise e
-
-        # Load the page and wait for content to load
-        driver.get(url)
-
-        # Wait for the page to load by checking for the presence of a specific element
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
-
-        # Get the page source after JavaScript execution
-        job_posting_html = driver.page_source
+        print(f"✅ Successfully fetched {url} ({len(response.content)} bytes)")
         
-        # Parse HTML and extract text
-        tree = html.fromstring(job_posting_html)
-        job_posting = getRawText(tree)
+        # Parse HTML using lxml (same as before)
+        try:
+            tree = html.fromstring(response.content)
+            job_posting = getRawText(tree)  # Reuse existing function
+            
+            if not job_posting.strip():
+                return {
+                    "url": url,
+                    "status_code": 200,
+                    "description": "No text content found in job posting",
+                    "full_text": "",
+                    "html": response.text,
+                }
+            
+            print(f"✅ Extracted {len(job_posting)} characters of text")
+            
+        except Exception as parse_error:
+            print(f"⚠️  HTML parsing error: {str(parse_error)}")
+            return {
+                "url": url,
+                "status_code": 200,
+                "description": f"HTML parsing error: {str(parse_error)}",
+                "full_text": "",
+                "html": response.text,
+            }
 
-        # Process with your existing analysis
+        # Process with DeepSeek API (same as before)
         job_details_deepseek = analyzeJobPosting(job_posting)
         if job_details_deepseek:
+            print(f"✅ Job analysis completed successfully")
             return job_details_deepseek
         else:
             return {
                 "url": url,
                 "status_code": 200,
-                "description": "No job details extracted",
+                "description": "Job posting fetched but DeepSeek analysis failed",
                 "full_text": job_posting,
-                "html": job_posting_html,
+                "html": response.text,
             }
 
-    except Exception as e:
-        print(f"WebDriver error for {url}: {str(e)}")
+    except requests.exceptions.Timeout:
+        print(f"⏰ Timeout fetching {url}")
         return {
             "url": url,
-            "status_code": 500,
-            "description": f"Error extracting job posting: {str(e)}",
+            "status_code": 408,
+            "description": "Request timeout - job posting took too long to load",
             "full_text": "",
             "html": "",
         }
     
-    finally:
-        # Always cleanup resources
-        if driver:
-            try:
-                driver.quit()
-                print("✅ WebDriver session closed successfully")
-            except Exception as e:
-                print(f"⚠️  Error closing WebDriver: {e}")
-        
-        # Clean up temporary user data directory
-        if temp_user_data_dir:
-            try:
-                import shutil
-                shutil.rmtree(temp_user_data_dir, ignore_errors=True)
-                print(f"✅ Cleaned up temporary directory: {temp_user_data_dir}")
-            except Exception as e:
-                print(f"⚠️  Error cleaning temp directory {temp_user_data_dir}: {e}")
+    except requests.exceptions.ConnectionError:
+        print(f"🔌 Connection error for {url}")
+        return {
+            "url": url,
+            "status_code": 503,
+            "description": "Connection error - could not reach job posting URL",
+            "full_text": "",
+            "html": "",
+        }
+    
+    except requests.exceptions.RequestException as e:
+        print(f"🌐 Request error for {url}: {str(e)}")
+        return {
+            "url": url,
+            "status_code": 500,
+            "description": f"Request error: {str(e)}",
+            "full_text": "",
+            "html": "",
+        }
+    
+    except Exception as e:
+        print(f"❌ Unexpected error for {url}: {str(e)}")
+        return {
+            "url": url,
+            "status_code": 500,
+            "description": f"Unexpected error: {str(e)}",
+            "full_text": "",
+            "html": "",
+        }
