@@ -15,12 +15,12 @@ interface JobAnalysisTableProps {
 }
 
 export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick, onAnalysisClick }: JobAnalysisTableProps) {
-  // Ensure analyses is always an array to prevent map errors
-  const safeAnalyses = Array.isArray(analyses) ? analyses : [];
-  
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
+  
+  // Ensure analyses is always an array to prevent map errors
+  const safeAnalyses = Array.isArray(analyses) ? analyses : [];
   
   const toggleAllRows = () => {
     if (selectedRows.length === safeAnalyses.length) {
