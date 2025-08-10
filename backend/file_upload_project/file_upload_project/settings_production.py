@@ -33,7 +33,27 @@ for var, default in OPTIONAL_ENV_VARS.items():
     if os.getenv(var) is None and default:
         os.environ[var] = default
 
-# DEBUG: Log environment variable loading for critical APIs
+# DEBUG: Comprehensive environment variable debugging
+print("🔍 [DEBUG] Environment variable analysis:")
+print(f"🔍 [DEBUG] Total environment variables: {len(os.environ)}")
+
+# Check for DEEPSEEK variations
+deepseek_variations = ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY', 'DEEPSEEKAPI_KEY', 'DEEPSEEK_KEY']
+for var in deepseek_variations:
+    value = os.getenv(var)
+    if value:
+        print(f"✅ [DEBUG] Found {var}: {value[:10]}...")
+    else:
+        print(f"❌ [DEBUG] Missing {var}")
+
+# List all environment variables containing 'DEEP' or 'API'
+print("🔍 [DEBUG] Environment variables containing 'DEEP' or 'API':")
+for key, value in os.environ.items():
+    if 'DEEP' in key.upper() or 'API' in key.upper():
+        safe_value = value[:10] + '...' if len(value) > 10 else value
+        print(f"🔍 [DEBUG] {key}={safe_value}")
+
+# Final check for the specific variable
 DEEPSEEK_API_KEY_VALUE = os.getenv('DEEPSEEK_API_KEY')
 if DEEPSEEK_API_KEY_VALUE:
     print(f"✅ [SETTINGS] DEEPSEEK_API_KEY loaded: {DEEPSEEK_API_KEY_VALUE[:10]}...")
