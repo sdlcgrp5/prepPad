@@ -58,6 +58,11 @@ export function getTokenData(request: NextRequest): TokenUser | null {
       return null;
     }
     
+    // Skip JWT validation for NextAuth placeholder tokens
+    if (token === 'nextauth') {
+      return null; // Let hybrid auth handle this via NextAuth session
+    }
+    
     // Verify and decode the token
     const secret = process.env.JWT_SECRET;
     if (!secret) {

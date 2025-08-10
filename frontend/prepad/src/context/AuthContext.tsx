@@ -43,12 +43,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for NextAuth session first
     if (session?.user) {
-      setUser({
-        id: Number(session.user.id),
-        email: session.user.email || '',
-        name: session.user.name || '',
-      });
-      setToken('nextauth'); // Use a placeholder token for NextAuth sessions
+      // Generate a proper JWT token for NextAuth users for API consistency
+      try {
+        const response = await fetch('/api/auth/nextauth-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: Number(session.user.id),
+            email: session.user.email,
+            name: session.user.name
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser({
+            id: Number(session.user.id),
+            email: session.user.email || '',
+            name: session.user.name || '',
+          });
+          setToken(data.token);
+        } else {
+          // Fallback to nextauth placeholder if token generation fails
+          setUser({
+            id: Number(session.user.id),
+            email: session.user.email || '',
+            name: session.user.name || '',
+          });
+          setToken('nextauth');
+        }
+      } catch (error) {
+        console.log('Failed to generate JWT token for NextAuth user:', error);
+        // Fallback to nextauth placeholder
+        setUser({
+          id: Number(session.user.id),
+          email: session.user.email || '',
+          name: session.user.name || '',
+        });
+        setToken('nextauth');
+      }
       setIsLoading(false);
       return;
     }
