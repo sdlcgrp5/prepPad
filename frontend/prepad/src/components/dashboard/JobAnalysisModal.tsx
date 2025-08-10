@@ -26,6 +26,10 @@ export default function JobAnalysisModal({
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult | null>(null);
   const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string>('idle'); // idle, pending, processing, completed, failed
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState<string>('');
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,6 +48,10 @@ export default function JobAnalysisModal({
     setAnalysisResults(null);
     setResumeFile(null);
     setJobUrl('');
+    setJobId(null);
+    setAnalysisStatus('idle');
+    setProgress(0);
+    setCurrentStep('');
     onSuccess();
     onClose();
   };
@@ -75,12 +83,15 @@ export default function JobAnalysisModal({
   const performAnalysis = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      setAnalysisStatus('pending');
+      setProgress(0);
+      setCurrentStep('Creating analysis job...');
       
       const formData = new FormData();
       formData.append('resume', resumeFile!);
       formData.append('jobUrl', jobUrl);
-      // Add privacy preference to the request
-      formData.append('anonymize_pii', hasDataProcessingConsent ? 'true' : 'false');
+      formData.append('anonymizePii', hasDataProcessingConsent ? 'true' : 'false');
       
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -93,17 +104,84 @@ export default function JobAnalysisModal({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || data.detail || 'Failed to analyze job posting');
+        throw new Error(data.error || data.detail || 'Failed to create analysis job');
       }
       
-      setAnalysisResults(data.analysis);
-      setIsLoading(false);
+      // Job created successfully, start polling for status
+      setJobId(data.jobId);
+      setAnalysisStatus('processing');
+      setCurrentStep('Analysis started, processing in background...');
+      
+      // Start polling for job status
+      startJobStatusPolling(data.jobId, data.polling);
       
     } catch (err) {
       setIsLoading(false);
-      setError('Failed to analyze job posting. Please try again.');
+      setAnalysisStatus('failed');
+      setError('Failed to start job analysis. Please try again.');
       console.error('Job analysis error:', err);
     }
+  };
+
+  const startJobStatusPolling = (jobId: string, pollingConfig: any) => {
+    const pollInterval = pollingConfig?.recommendedInterval || 2000;
+    const maxWaitTime = pollingConfig?.maxWaitTime || 120000;
+    const startTime = Date.now();
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/analysis-status/${jobId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const jobStatus = await response.json();
+
+        if (!response.ok) {
+          throw new Error(jobStatus.error || 'Failed to check job status');
+        }
+
+        // Update UI with job status
+        setAnalysisStatus(jobStatus.status);
+        setProgress(jobStatus.progress || 0);
+        setCurrentStep(jobStatus.currentStep || 'Processing...');
+
+        // Handle different job states
+        if (jobStatus.status === 'completed') {
+          setAnalysisResults(jobStatus.result?.analysis || jobStatus.analysis);
+          setIsLoading(false);
+          setCurrentStep('Analysis completed!');
+          return; // Stop polling
+        }
+
+        if (jobStatus.status === 'failed') {
+          setIsLoading(false);
+          setError(jobStatus.error || 'Analysis failed');
+          return; // Stop polling
+        }
+
+        // Continue polling if still processing
+        if (jobStatus.status === 'processing' || jobStatus.status === 'pending') {
+          const elapsedTime = Date.now() - startTime;
+          if (elapsedTime < maxWaitTime) {
+            setTimeout(poll, pollInterval);
+          } else {
+            // Timeout
+            setIsLoading(false);
+            setError('Analysis is taking longer than expected. Please try again later.');
+          }
+        }
+
+      } catch (err) {
+        console.error('Error polling job status:', err);
+        setIsLoading(false);
+        setError('Failed to check analysis status. Please refresh and try again.');
+      }
+    };
+
+    // Start polling
+    poll();
   };
 
   const handleConsentResponse = (granted: boolean) => {
@@ -225,6 +303,27 @@ export default function JobAnalysisModal({
               />
             </div>
             
+            {/* Progress Indicator */}
+            {isLoading && (
+              <div className="mb-4 p-4 bg-gray-800 rounded border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-300">{currentStep}</span>
+                  <span className="text-sm text-purple-400">{progress}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="bg-purple-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                {jobId && (
+                  <div className="mt-2 text-xs text-gray-400">
+                    Job ID: {jobId}
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* Submit Button */}
             <button
               type="submit"
@@ -241,7 +340,7 @@ export default function JobAnalysisModal({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Analyzing...
+                  Processing...
                 </div>
               ) : (
                 'Analyze'
