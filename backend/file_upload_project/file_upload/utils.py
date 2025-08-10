@@ -169,6 +169,7 @@ def jobProcessorPrompt(job_posting: str) -> list:
 def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str, anonymize_pii: bool = True) -> dict:
     """
     Analyzes resume against job posting and provides comparison with PII protection.
+    Uses parallel processing to optimize performance.
     
     Args:
         resume_file_path: Path to uploaded resume file
@@ -180,16 +181,49 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str, anonymize
     Raises:
         ValueError: If resume processing or job analysis fails
     """
+    import concurrent.futures
+    import threading
+    
     try:
-        # Process the resume with anonymization option
-        resume_data = processResume(resume_file_path, anonymize_pii=anonymize_pii)
+        print("🚀 Starting parallel resume and job analysis...")
+        
+        # Use ThreadPoolExecutor for parallel processing
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            # Start both operations simultaneously
+            resume_future = executor.submit(processResume, resume_file_path, anonymize_pii)
+            
+            # Start job analysis (scraping + AI processing)
+            job_future = executor.submit(extractJobDescription, job_posting_url)
+            
+            # Wait for both operations to complete
+            print("⏱️  Waiting for resume and job analysis to complete...")
+            try:
+                resume_data = resume_future.result(timeout=25)  # 25 second timeout
+                job_data = job_future.result(timeout=25)
+            except concurrent.futures.TimeoutError:
+                print("⏰ Parallel processing timed out")
+                raise ValueError("Analysis timed out - operations took longer than 25 seconds")
+            except Exception as e:
+                print(f"❌ Error in parallel processing: {str(e)}")
+                raise ValueError(f"Parallel processing failed: {str(e)}")
+        
+        print("✅ Parallel processing completed")
+        
+        # Validate results
         if not resume_data:
             raise ValueError("Failed to process resume")
-
-        # Extract job description details (no PII in job postings)
-        job_data = analyzeJobPosting(job_posting_url)
+        
+        # For job data, extractJobDescription returns structured data with status info
         if not job_data:
             raise ValueError("Failed to analyze job posting")
+        
+        # Check if job analysis succeeded (extractJobDescription includes status_code and description)
+        if "status_code" in job_data and job_data.get("status_code") != 200:
+            raise ValueError(f"Job analysis failed: {job_data.get('description', 'Unknown error')}")
+        
+        # For successful analysis, job_data contains the parsed job information
+        print(f"✅ Resume processed successfully")
+        print(f"✅ Job analysis completed successfully")
 
         # Prepare data for analysis
         resume_data_str = str(resume_data)
@@ -226,6 +260,8 @@ def resumeJobDescAnalysis(resume_file_path: str, job_posting_url: str, anonymize
             "messages": analysis_prompt,
             "response_format": {"type": "json_object"},
             "stream": False,
+            "max_tokens": 1000,  # Limit response size for faster processing
+            "temperature": 0.1,  # Lower temperature for more focused responses
         }
         response = requests.post(url, headers=headers, json=data)
         if response.status_code == 200:
@@ -376,6 +412,8 @@ def processResumeFromContent(file_content: bytes, filename: str, anonymize_pii: 
         "messages": prompt,
         "response_format": {"type": "json_object"},
         "stream": False,
+        "max_tokens": 800,  # Optimized for resume data
+        "temperature": 0.1,  # Focused responses
     }
     
     try:
@@ -475,6 +513,8 @@ def processResume(resume_file_path: str, anonymize_pii: bool = True) -> dict:
         "messages": prompt,
         "response_format": {"type": "json_object"},
         "stream": False,
+        "max_tokens": 800,  # Optimized for resume data
+        "temperature": 0.1,  # Focused responses
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
@@ -560,6 +600,8 @@ def analyzeJobPosting(job_posting: str) -> dict:
         "messages": prompt,
         "response_format": {"type": "json_object"},
         "stream": False,  # Disable streaming
+        "max_tokens": 800,  # Limit response size for faster processing
+        "temperature": 0.1,  # Lower temperature for more focused responses
     }
 
     response = requests.post(url, headers=headers, json=data)
