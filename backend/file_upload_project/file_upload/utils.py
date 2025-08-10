@@ -707,13 +707,46 @@ def extractJobDescription(url: str) -> dict:
     Returns:
         dict: Processed job posting data or error details
     """
+    import uuid
+    import tempfile
+    
+    # Validate API key early
+    if not API_KEY:
+        print("❌ DEEPSEEK_API_KEY environment variable not set")
+        return {
+            "url": url,
+            "status_code": 500,
+            "description": "DeepSeek API key not configured",
+            "full_text": "",
+            "html": "",
+        }
+    
+    driver = None
+    temp_user_data_dir = None
+    
     try:
-        # Set up Chrome options
+        # Create unique temporary directory for this session
+        temp_user_data_dir = tempfile.mkdtemp(prefix=f"chrome_user_data_{uuid.uuid4().hex[:8]}_")
+        
+        # Set up Chrome options with unique user data directory
         chrome_options = Options()
         chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--no-sandbox") 
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-software-rasterizer")
+        chrome_options.add_argument("--disable-background-timer-throttling")
+        chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+        chrome_options.add_argument("--disable-renderer-backgrounding")
+        chrome_options.add_argument("--disable-features=TranslateUI")
+        chrome_options.add_argument("--disable-ipc-flooding-protection")
+        chrome_options.add_argument(f"--user-data-dir={temp_user_data_dir}")
+        chrome_options.add_argument("--single-process")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-plugins")
+        chrome_options.add_argument("--disable-images")
+        chrome_options.add_argument("--disable-javascript")
+        chrome_options.add_argument("--disable-web-security")
         chrome_options.binary_location = "/usr/bin/chromium"
 
         # Initialize the driver with explicit service
@@ -730,8 +763,7 @@ def extractJobDescription(url: str) -> dict:
 
         # Get the page source after JavaScript execution
         job_posting_html = driver.page_source
-        driver.quit()
-
+        
         # Parse HTML and extract text
         tree = html.fromstring(job_posting_html)
         job_posting = getRawText(tree)
@@ -740,8 +772,17 @@ def extractJobDescription(url: str) -> dict:
         job_details_deepseek = analyzeJobPosting(job_posting)
         if job_details_deepseek:
             return job_details_deepseek
+        else:
+            return {
+                "url": url,
+                "status_code": 200,
+                "description": "No job details extracted",
+                "full_text": job_posting,
+                "html": job_posting_html,
+            }
 
     except Exception as e:
+        print(f"WebDriver error for {url}: {str(e)}")
         return {
             "url": url,
             "status_code": 500,
@@ -749,3 +790,21 @@ def extractJobDescription(url: str) -> dict:
             "full_text": "",
             "html": "",
         }
+    
+    finally:
+        # Always cleanup resources
+        if driver:
+            try:
+                driver.quit()
+                print("✅ WebDriver session closed successfully")
+            except Exception as e:
+                print(f"⚠️  Error closing WebDriver: {e}")
+        
+        # Clean up temporary user data directory
+        if temp_user_data_dir:
+            try:
+                import shutil
+                shutil.rmtree(temp_user_data_dir, ignore_errors=True)
+                print(f"✅ Cleaned up temporary directory: {temp_user_data_dir}")
+            except Exception as e:
+                print(f"⚠️  Error cleaning temp directory {temp_user_data_dir}: {e}")
