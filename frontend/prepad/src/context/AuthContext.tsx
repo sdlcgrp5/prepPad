@@ -45,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session?.user) {
       // Generate a proper JWT token for NextAuth users for API consistency
       const generateTokenForNextAuthUser = async () => {
+        if (!session.user?.id || !session.user?.email) {
+          console.log('Session user data incomplete, using nextauth placeholder');
+          setUser({
+            id: 0,
+            email: '',
+            name: '',
+          });
+          setToken('nextauth');
+          setIsLoading(false);
+          return;
+        }
+
         try {
           const response = await fetch('/api/auth/nextauth-token', {
             method: 'POST',
