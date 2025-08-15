@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify the request comes from an authenticated NextAuth session
     const session = await auth();
+    
     if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized - no valid NextAuth session' }, { status: 401 });
     }

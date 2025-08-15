@@ -19,19 +19,95 @@ export async function getHybridAuthData(request: NextRequest): Promise<TokenUser
   try {
     // First, try JWT token authentication
     const jwtUser = getTokenData(request);
+    
     if (jwtUser) {
       return jwtUser;
     }
 
-    // Fallback to NextAuth session
-    const session = await auth();
+    // Check if this is a 'nextauth' placeholder token
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    if (token === 'nextauth') {
+      
+      // For nextauth users, try to get user data from request body or headers
+      let userData = null;
+      
+      // Try to extract user data from a custom header (if the frontend sends it)
+      const userHeader = request.headers.get('X-User-Data');
+      if (userHeader) {
+        try {
+          userData = JSON.parse(userHeader);
+        } catch (e) {
+          // Ignore header parsing errors
+        }
+      }
+      
+      // If header approach fails, try to parse request body to look for user info
+      if (!userData) {
+        try {
+          // Try to parse as FormData first (for file uploads)
+          const clonedRequest = request.clone();
+          try {
+            const formData = await clonedRequest.formData();
+            const userId = formData.get('userId');
+            const userEmail = formData.get('userEmail');
+            
+            if (userId && userEmail) {
+              userData = {
+                id: Number(userId),
+                email: userEmail.toString()
+              };
+            }
+          } catch (formError) {
+            // If FormData parsing fails, try JSON
+            const clonedRequest2 = request.clone();
+            const body = await clonedRequest2.json();
+            
+            // Look for user data in the request body
+            if (body.userId && body.userEmail) {
+              userData = {
+                id: Number(body.userId),
+                email: body.userEmail
+              };
+            }
+          }
+        } catch (e) {
+          // Ignore parsing errors - no user data available
+        }
+      }
+      
+      if (userData && userData.id && userData.email) {
+        const userResponse = {
+          id: Number(userData.id),
+          email: userData.email,
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+        };
+        return userResponse;
+      }
+    }
+
+    // Fallback to NextAuth session (this might not work in API routes)
+    let session = null;
+    try {
+      session = await auth();
+    } catch (error) {
+      // NextAuth session not available in API route context
+    }
+    
     if (session?.user?.id && session?.user?.email) {
-      return {
-        id: Number(session.user.id),
-        email: session.user.email,
-        iat: Math.floor(Date.now() / 1000), // Current timestamp
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours from now
-      };
+      const userId = Number(session.user.id);
+      
+      if (!isNaN(userId)) {
+        const userData = {
+          id: userId,
+          email: session.user.email,
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+        };
+        return userData;
+      }
     }
 
     return null;

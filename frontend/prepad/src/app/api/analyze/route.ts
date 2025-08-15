@@ -8,8 +8,15 @@ export async function POST(request: NextRequest) {
   try {
     // Get user data from either JWT token or NextAuth session
     const tokenData = await getHybridAuthData(request);
+    console.log('🔍 tokenData from getHybridAuthData:', tokenData);
+    
     if (!tokenData) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!tokenData.id) {
+      console.error('❌ tokenData.id is undefined:', tokenData);
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
     }
 
     // Check rate limit before processing

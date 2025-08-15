@@ -18,7 +18,7 @@ export default function JobAnalysisModal({
   onClose, 
   onSuccess 
 }: JobAnalysisModalProps) {
-  const { token, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
+  const { token, user, hasDataProcessingConsent, setDataProcessingConsent } = useAuth();
   const [jobUrl, setJobUrl] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,12 +93,25 @@ export default function JobAnalysisModal({
       formData.append('jobUrl', jobUrl);
       formData.append('anonymizePii', hasDataProcessingConsent ? 'true' : 'false');
       
+      // For nextauth token users, include user data in the form
+      if (token === 'nextauth' && user) {
+        formData.append('userId', user.id.toString());
+        formData.append('userEmail', user.email);
+      }
+      
       // Step 1: Create job record in our database
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${token}`
+      };
+      
+      // Also send user data in header as backup for nextauth users
+      if (token === 'nextauth' && user) {
+        headers['X-User-Data'] = JSON.stringify({ id: user.id, email: user.email });
+      }
+      
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: formData
       });
       
@@ -166,15 +179,10 @@ export default function JobAnalysisModal({
       
       if (backendJwtToken) {
         headers['Authorization'] = `Bearer ${backendJwtToken}`;
-        console.log('🔐 Using JWT token for Django authentication');
-      } else {
-        console.warn('⚠️  No JWT token - Django may require authentication');
       }
 
       setProgress(40);
       setCurrentStep('Processing with Django backend...');
-      
-      console.log(`🚀 Calling Django directly: ${backendUrl}/api/analysis/`);
       
       const djangoResponse = await fetch(`${backendUrl}/api/analysis/`, {
         method: 'POST',
@@ -199,7 +207,6 @@ export default function JobAnalysisModal({
       setAnalysisResults(djangoResult.analysis);
       setIsLoading(false);
       
-      console.log('✅ Client-side Django processing completed successfully');
       
     } catch (error) {
       console.error('❌ Django direct call failed:', error);
@@ -229,8 +236,6 @@ export default function JobAnalysisModal({
         const saveError = await saveResponse.json();
         console.warn('Failed to save analysis results:', saveError);
         // Don't fail the whole process if save fails
-      } else {
-        console.log('✅ Analysis results saved to database');
       }
     } catch (error) {
       console.warn('Error saving analysis results:', error);
