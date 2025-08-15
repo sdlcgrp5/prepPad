@@ -147,18 +147,23 @@ export default function JobAnalysisModal({
       
       let backendJwtToken = null;
       try {
-        // Get JWT secret from environment (need to call an endpoint for this)
+        // Generate JWT token for Django backend authentication
         const tokenResponse = await fetch('/api/auth/nextauth-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
-          }
+          },
+          body: JSON.stringify({}) // Send empty body - the endpoint will use session data
         });
         
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
           backendJwtToken = tokenData.token;
+          console.log('✅ Generated Django JWT token');
+        } else {
+          const errorData = await tokenResponse.json();
+          console.warn('Failed to generate Django JWT token:', errorData);
         }
       } catch (tokenError) {
         console.warn('Failed to generate backend JWT token:', tokenError);
@@ -177,23 +182,47 @@ export default function JobAnalysisModal({
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://api.preppad.xyz';
       const headers: Record<string, string> = {};
       
+      // For now, let's try without authentication since Django has it disabled
       if (backendJwtToken) {
         headers['Authorization'] = `Bearer ${backendJwtToken}`;
+        console.log('🔐 Using JWT token for Django authentication');
+      } else {
+        console.log('ℹ️  No JWT token - calling Django without authentication (Django auth disabled)');
       }
 
       setProgress(40);
       setCurrentStep('Processing with Django backend...');
       
+      console.log(`🚀 Calling Django directly: ${backendUrl}/api/analysis/`);
+      console.log('📦 Form data:', {
+        file: resumeFile?.name,
+        job_posting_url: jobUrl,
+        anonymize_pii: anonymizePii
+      });
+      
       const djangoResponse = await fetch(`${backendUrl}/api/analysis/`, {
         method: 'POST',
         headers,
         body: djangoFormData,
+        mode: 'cors', // Explicitly set CORS mode
       });
 
-      const djangoResult = await djangoResponse.json();
+      console.log(`📊 Django response status: ${djangoResponse.status}`);
+      console.log(`📊 Django response headers:`, Object.fromEntries(djangoResponse.headers.entries()));
+
+      let djangoResult;
+      try {
+        djangoResult = await djangoResponse.json();
+        console.log(`📊 Django response body:`, djangoResult);
+      } catch (parseError) {
+        const responseText = await djangoResponse.text();
+        console.error('Failed to parse Django response as JSON:', responseText);
+        throw new Error(`Django returned non-JSON response: ${responseText.substring(0, 200)}`);
+      }
       
       if (!djangoResponse.ok) {
-        throw new Error(djangoResult.error || djangoResult.detail || `Django backend error: ${djangoResponse.status}`);
+        console.error(`❌ Django error ${djangoResponse.status}:`, djangoResult);
+        throw new Error(djangoResult.error || djangoResult.detail || `Django backend error: ${djangoResponse.status} - ${JSON.stringify(djangoResult)}`);
       }
 
       setProgress(80);
