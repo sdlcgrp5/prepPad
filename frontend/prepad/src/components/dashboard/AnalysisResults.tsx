@@ -15,6 +15,16 @@ interface AnalysisResultsProps {
 }
 
 export default function AnalysisResults({ results, onClose }: AnalysisResultsProps) {
+  // Defensive programming - ensure all required arrays exist
+  const safeResults = {
+    strengths: results?.strengths || [],
+    weaknesses: results?.weaknesses || [],
+    improvement_tips: results?.improvement_tips || [],
+    keywords_missing: results?.keywords_missing || [],
+    keywords_found: results?.keywords_found || [],
+    match_score: results?.match_score || 0
+  };
+
   return (
     <div className="fixed inset-0 z-50">
       {/* Enhanced modal with backdrop blur */}
@@ -43,22 +53,22 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
             <div className="flex justify-center mb-8">
               <div className="relative">
                 <div className={`w-48 h-48 rounded-full backdrop-blur-md border-4 flex items-center justify-center shadow-2xl ${
-                  results.match_score >= 80 
+                  safeResults.match_score >= 80 
                     ? 'bg-green-500/20 border-green-500/30' 
-                    : results.match_score >= 60 
+                    : safeResults.match_score >= 60 
                       ? 'bg-yellow-500/20 border-yellow-500/30'
                       : 'bg-red-500/20 border-red-500/30'
                 }`}>
                   <div className="text-center">
                     <div className="text-gray-300 text-sm font-medium mb-2">Match Score</div>
                     <div className={`text-5xl font-bold ${
-                      results.match_score >= 80 
+                      safeResults.match_score >= 80 
                         ? 'text-green-400' 
-                        : results.match_score >= 60 
+                        : safeResults.match_score >= 60 
                           ? 'text-yellow-400'
                           : 'text-red-400'
                     }`}>
-                      {results.match_score}%
+                      {safeResults.match_score}%
                     </div>
                   </div>
                 </div>
@@ -82,7 +92,7 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
                   <h3 className="text-lg font-semibold text-green-400">⚡ Strengths</h3>
                 </div>
                 <ul className="space-y-3">
-                  {results.strengths.map((strength, index) => (
+                  {safeResults.strengths.map((strength, index) => (
                     <li key={index} className="text-gray-200 leading-relaxed flex items-start">
                       <span className="text-green-400 mr-2 mt-1">•</span>
                       <span>{strength}</span>
@@ -98,7 +108,7 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
                   <h3 className="text-lg font-semibold text-red-400">🚀 Areas for Improvement</h3>
                 </div>
                 <ul className="space-y-3">
-                  {results.weaknesses.map((weakness, index) => (
+                  {safeResults.weaknesses.map((weakness, index) => (
                     <li key={index} className="text-gray-200 leading-relaxed flex items-start">
                       <span className="text-red-400 mr-2 mt-1">•</span>
                       <span>{weakness}</span>
@@ -114,7 +124,7 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
                   <h3 className="text-lg font-semibold text-blue-400">💎 Keywords Found</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {results.keywords_found.map((keyword, index) => (
+                  {safeResults.keywords_found.map((keyword, index) => (
                     <span key={index} className="bg-blue-900/40 border border-blue-500/30 px-3 py-1 rounded-full text-sm text-blue-200 font-medium">
                       {keyword}
                     </span>
@@ -129,7 +139,7 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
                   <h3 className="text-lg font-semibold text-yellow-400">🏷️ Missing Keywords</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {results.keywords_missing.map((keyword, index) => (
+                  {safeResults.keywords_missing.map((keyword, index) => (
                     <span key={index} className="bg-yellow-900/40 border border-yellow-500/30 px-3 py-1 rounded-full text-sm text-yellow-200 font-medium">
                       {keyword}
                     </span>
@@ -146,7 +156,7 @@ export default function AnalysisResults({ results, onClose }: AnalysisResultsPro
                   <h3 className="text-lg font-semibold text-cyan-400">💡 Improvement Tips</h3>
                 </div>
                 <ul className="space-y-3">
-                  {results.improvement_tips.map((tip, index) => (
+                  {safeResults.improvement_tips.map((tip, index) => (
                     <li key={index} className="text-gray-200 leading-relaxed flex items-start">
                       <span className="text-cyan-400 mr-2 mt-1">•</span>
                       <span>{tip}</span>

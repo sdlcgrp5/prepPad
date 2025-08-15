@@ -214,6 +214,8 @@ export default function JobAnalysisModal({
       try {
         djangoResult = await djangoResponse.json();
         console.log(`📊 Django response body:`, djangoResult);
+        console.log(`📊 Django response keys:`, Object.keys(djangoResult || {}));
+        console.log(`📊 Django response type:`, typeof djangoResult);
       } catch (parseError) {
         const responseText = await djangoResponse.text();
         console.error('Failed to parse Django response as JSON:', responseText);
@@ -233,7 +235,34 @@ export default function JobAnalysisModal({
       
       setProgress(100);
       setCurrentStep('Analysis completed!');
-      setAnalysisResults(djangoResult.analysis);
+      
+      // Handle different possible Django response formats
+      let analysisData = null;
+      
+      // Check for nested analysis data
+      if (djangoResult.analysis) {
+        analysisData = djangoResult.analysis;
+      } 
+      // Check if the response itself is the analysis data
+      else if (djangoResult.match_score !== undefined) {
+        analysisData = djangoResult;
+      }
+      // Check for other possible structures
+      else if (djangoResult.data && djangoResult.data.analysis) {
+        analysisData = djangoResult.data.analysis;
+      }
+      else if (djangoResult.result) {
+        analysisData = djangoResult.result;
+      }
+      
+      console.log('🔍 Raw Django result:', djangoResult);
+      console.log('🎯 Extracted analysis data:', analysisData);
+      
+      if (!analysisData) {
+        throw new Error('Analysis data not found in Django response. Response structure: ' + JSON.stringify(Object.keys(djangoResult || {})));
+      }
+      
+      setAnalysisResults(analysisData);
       setIsLoading(false);
       
       
