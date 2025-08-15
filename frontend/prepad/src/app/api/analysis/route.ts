@@ -6,7 +6,7 @@ import { checkRateLimit, incrementRateLimit } from '@/utils/rateLimit';
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { resumeId, jobUrl } = data;
+    const { jobId, results, action } = data;
     
     // Get user data from either JWT token or NextAuth session
     const tokenData = await getHybridAuthData(request);
@@ -14,91 +14,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check rate limit before processing
-    const rateLimitResult = await checkRateLimit(request, tokenData.id);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { 
-          error: rateLimitResult.error || 'Rate limit exceeded',
-          remaining: rateLimitResult.remaining,
-          resetTime: rateLimitResult.resetTime
-        }, 
-        { status: 429 }
-      );
-    }
-    
-    // Get the JWT token from the Authorization header for Django call
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    // Forward the request to Django backend for analysis processing
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${backendUrl}/api/analysis/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      },
-      body: JSON.stringify({
-        resume_id: resumeId,
-        job_posting_url: jobUrl
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(result.error || 'Failed to analyze job posting');
-    }
-    
-    // Extract analysis data and job details from Django response
-    const { analysis, job_details } = result;
-    
-    if (analysis && !analysis.error && job_details) {
+    // Handle different actions
+    if (action === 'complete' && jobId && results) {
+      // This is a completion request from client-side Django processing
       try {
-        // Save the analysis results to Supabase via Prisma
-        const savedAnalysis = await prisma.analysis.create({
+        // Update job status to completed
+        await prisma.analysisJob.update({
+          where: { 
+            id: jobId,
+            userId: tokenData.id, // Ensure user can only update their own jobs
+          },
           data: {
-            userId: tokenData.id,
-            jobTitle: job_details.title || 'Unknown Position',
-            company: job_details.company_name || 'Unknown Company',
-            jobUrl: jobUrl,
-            matchScore: parseInt(analysis.match_score) || 0,
-            strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
-            weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
-            improvementTips: Array.isArray(analysis.improvement_tips) ? analysis.improvement_tips : [],
-            keywordsFound: Array.isArray(analysis.keywords_found) ? analysis.keywords_found : [],
-            keywordsMissing: Array.isArray(analysis.keywords_missing) ? analysis.keywords_missing : []
-          }
+            status: 'completed',
+            progress: 100,
+            completedAt: new Date(),
+            currentStep: 'Analysis complete',
+            completedSteps: 3,
+            result: results,
+          },
         });
-        
-        console.log(`Analysis saved to Supabase with ID: ${savedAnalysis.id}`);
 
-        // Increment rate limit counter after successful analysis
-        await incrementRateLimit(request, tokenData.id);
+        // Extract analysis data and job details from results
+        const { analysis, job_details } = results;
         
-        // Return the original result plus confirmation of save
-        return NextResponse.json({
-          ...result,
-          saved: true,
-          analysisId: savedAnalysis.id,
-          rateLimitRemaining: rateLimitResult.remaining - 1
-        });
+        if (analysis && !analysis.error && job_details) {
+          // Save the analysis results to database
+          const savedAnalysis = await prisma.analysis.create({
+            data: {
+              userId: tokenData.id,
+              jobId: jobId,
+              jobTitle: job_details.title || 'Unknown Position',
+              company: job_details.company_name || 'Unknown Company',
+              jobUrl: job_details.url || 'Unknown URL',
+              matchScore: parseInt(analysis.match_score) || 0,
+              strengths: Array.isArray(analysis.strengths) ? analysis.strengths : [],
+              weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses : [],
+              improvementTips: Array.isArray(analysis.improvement_tips) ? analysis.improvement_tips : [],
+              keywordsFound: Array.isArray(analysis.keywords_found) ? analysis.keywords_found : [],
+              keywordsMissing: Array.isArray(analysis.keywords_missing) ? analysis.keywords_missing : [],
+              wasAnonymized: results.privacy_protected || false,
+            }
+          });
+          
+          console.log(`✅ Analysis saved to database with ID: ${savedAnalysis.id} for job: ${jobId}`);
+          
+          return NextResponse.json({
+            success: true,
+            jobId: jobId,
+            analysisId: savedAnalysis.id,
+            message: 'Analysis results saved successfully'
+          });
+        } else {
+          console.warn('⚠️  Invalid analysis data received for job:', jobId);
+          return NextResponse.json({
+            success: false,
+            error: 'Invalid analysis data'
+          }, { status: 400 });
+        }
         
-      } catch (saveError) {
-        console.error('Error saving analysis to Supabase:', saveError);
-        // Still return the analysis even if save fails
+      } catch (error) {
+        console.error('❌ Error saving analysis results:', error);
         return NextResponse.json({
-          ...result,
-          saved: false,
-          saveError: 'Failed to save analysis history'
-        });
+          success: false,
+          error: 'Failed to save analysis results'
+        }, { status: 500 });
       }
     }
-    
-    return NextResponse.json(result);
+
+    // Legacy support or other actions
+    return NextResponse.json({
+      error: 'Invalid request - missing required parameters'
+    }, { status: 400 });
     
   } catch (error) {
     console.error('Error in analysis:', error);
