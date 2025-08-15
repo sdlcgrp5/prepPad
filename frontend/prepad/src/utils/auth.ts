@@ -8,6 +8,8 @@ export interface TokenUser {
   email: string;
   iat: number;
   exp: number;
+  // Support both formats for compatibility
+  user_id?: number;
 }
 
 /**
@@ -146,8 +148,22 @@ export function getTokenData(request: NextRequest): TokenUser | null {
       return null;
     }
     
-    const decoded = jwt.verify(token, secret) as TokenUser;
-    return decoded;
+    const decoded = jwt.verify(token, secret) as any;
+    
+    // Handle both 'id' and 'user_id' formats for compatibility
+    const userId = decoded.id || decoded.user_id;
+    if (!userId) {
+      console.error('JWT token missing user ID field (both id and user_id are undefined)');
+      return null;
+    }
+    
+    return {
+      id: Number(userId),
+      email: decoded.email,
+      iat: decoded.iat,
+      exp: decoded.exp,
+      user_id: decoded.user_id
+    };
   } catch (error) {
     console.error('Token validation error:', error);
     return null;
