@@ -10,36 +10,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - no valid NextAuth session' }, { status: 401 });
     }
 
-    // Parse request body
-    const body = await request.json();
-    const { id, email, name } = body;
-
-    // Verify the request data matches the session data
-    if (Number(session.user.id) !== id || session.user.email !== email) {
-      return NextResponse.json({ error: 'Session data mismatch' }, { status: 400 });
+    // Try to parse request body, but make it optional
+    let bodyData = {};
+    try {
+      const bodyText = await request.text();
+      if (bodyText && bodyText.trim()) {
+        bodyData = JSON.parse(bodyText);
+      }
+    } catch (parseError) {
+      console.warn('Could not parse request body, using session data only');
     }
 
-    // Generate JWT token
+    // Use session data as the source of truth
+    const userId = Number(session.user.id);
+    const userEmail = session.user.email;
+    const userName = session.user.name || session.user.email?.split('@')[0] || 'User';
+
+    // Generate JWT token for Django backend (compatible format)
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       console.error('JWT_SECRET environment variable is not set');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    const token = jwt.sign(
+    const now = Math.floor(Date.now() / 1000);
+    const djangoToken = jwt.sign(
       {
-        id,
-        email,
-        name,
+        user_id: userId,  // Django expects 'user_id' not 'id'
+        email: userEmail,
+        name: userName,
+        token_type: 'access',  // Django Simple JWT token type
+        exp: now + (60 * 60),  // 1 hour expiry
+        iat: now,
+        jti: `${userId}_${now}_${Math.random().toString(36).substr(2, 9)}` // Unique token ID
       },
-      secret,
-      { expiresIn: '7d' }  // Token valid for 7 days
+      secret
     );
+
+    console.log(`🔐 Generated Django JWT token for user ${userId} (${userEmail})`);
 
     // Return the generated token
     return NextResponse.json({
       success: true,
-      token
+      token: djangoToken,
+      user: {
+        id: userId,
+        email: userEmail,
+        name: userName
+      }
     });
 
   } catch (error) {
