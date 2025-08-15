@@ -53,43 +53,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`📝 Created analysis job ${analysisJob.id} for user ${tokenData.id}`);
 
-    // Store file temporarily (you might want to use a different storage method)
-    // For now, we'll convert to base64 and store in job result temporarily
-    const fileBuffer = await file.arrayBuffer();
-    const fileBase64 = Buffer.from(fileBuffer).toString('base64');
-    
-    // Update job with file data (temporary solution)
+    // Store basic file info for tracking (client will handle the actual file)
     await prisma.analysisJob.update({
       where: { id: analysisJob.id },
       data: {
-        result: {
-          fileData: fileBase64,
-          fileName: file.name,
-          fileType: file.type,
-        },
+        resumeFileName: file.name,
+        resumeFileSize: file.size,
       },
     });
 
-    // Trigger background processing
-    try {
-      const processResponse = await fetch(`${request.nextUrl.origin}/api/process-analysis`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ jobId: analysisJob.id }),
-      });
-
-      if (!processResponse.ok) {
-        console.error('Failed to start background processing:', await processResponse.text());
-      } else {
-        console.log(`🚀 Background processing started for job ${analysisJob.id}`);
-      }
-    } catch (processError) {
-      console.error('Error starting background processing:', processError);
-      // Don't fail the request if background processing fails to start
-      // The job is still created and can be processed later
-    }
+    console.log(`✅ Job ${analysisJob.id} created - client will handle processing directly`);
+    // Note: No background processing triggered here - client handles Django API calls directly
 
     // Increment rate limit counter after creating job
     await incrementRateLimit(request, tokenData.id);
@@ -99,11 +73,19 @@ export async function POST(request: NextRequest) {
       success: true,
       jobId: analysisJob.id,
       status: 'pending',
-      message: 'Analysis job created successfully. Processing in background.',
+      message: 'Analysis job created successfully. Client will process directly.',
       progress: 0,
       estimatedTime: '30-60 seconds',
       rateLimitRemaining: rateLimitResult.remaining - 1,
-      // Include polling information for frontend
+      // Include file data for client-side processing
+      fileData: {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      },
+      jobUrl: jobUrl,
+      anonymizePii: anonymizePii,
+      // Include polling information for status updates
       polling: {
         statusUrl: `/api/analysis-status/${analysisJob.id}`,
         recommendedInterval: 2000, // Poll every 2 seconds

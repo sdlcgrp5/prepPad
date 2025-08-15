@@ -93,6 +93,7 @@ export default function JobAnalysisModal({
       formData.append('jobUrl', jobUrl);
       formData.append('anonymizePii', hasDataProcessingConsent ? 'true' : 'false');
       
+      // Step 1: Create job record in our database
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -107,13 +108,13 @@ export default function JobAnalysisModal({
         throw new Error(data.error || data.detail || 'Failed to create analysis job');
       }
       
-      // Job created successfully, start polling for status
+      console.log('📝 Job created:', data.jobId);
       setJobId(data.jobId);
-      setAnalysisStatus('processing');
-      setCurrentStep('Analysis started, processing in background...');
+      setProgress(10);
+      setCurrentStep('Job created, starting analysis...');
       
-      // Start polling for job status
-      startJobStatusPolling(data.jobId, data.polling);
+      // Step 2: Call Django API directly (bypasses Vercel timeout)
+      await callDjangoDirectly(data.jobId, data.fileData, data.jobUrl, data.anonymizePii);
       
     } catch (err) {
       setIsLoading(false);
@@ -123,65 +124,118 @@ export default function JobAnalysisModal({
     }
   };
 
-  const startJobStatusPolling = (jobId: string, pollingConfig: any) => {
-    const pollInterval = pollingConfig?.recommendedInterval || 2000;
-    const maxWaitTime = pollingConfig?.maxWaitTime || 120000;
-    const startTime = Date.now();
-
-    const poll = async () => {
+  const callDjangoDirectly = async (jobId: string, fileData: any, jobUrl: string, anonymizePii: boolean) => {
+    try {
+      setProgress(20);
+      setCurrentStep('Generating authentication token...');
+      
+      // Generate JWT token for Django backend
+      const now = Math.floor(Date.now() / 1000);
+      
+      let backendJwtToken = null;
       try {
-        const response = await fetch(`/api/analysis-status/${jobId}`, {
+        // Get JWT secret from environment (need to call an endpoint for this)
+        const tokenResponse = await fetch('/api/auth/nextauth-token', {
+          method: 'POST',
           headers: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           }
         });
-
-        const jobStatus = await response.json();
-
-        if (!response.ok) {
-          throw new Error(jobStatus.error || 'Failed to check job status');
+        
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          backendJwtToken = tokenData.token;
         }
-
-        // Update UI with job status
-        setAnalysisStatus(jobStatus.status);
-        setProgress(jobStatus.progress || 0);
-        setCurrentStep(jobStatus.currentStep || 'Processing...');
-
-        // Handle different job states
-        if (jobStatus.status === 'completed') {
-          setAnalysisResults(jobStatus.result?.analysis || jobStatus.analysis);
-          setIsLoading(false);
-          setCurrentStep('Analysis completed!');
-          return; // Stop polling
-        }
-
-        if (jobStatus.status === 'failed') {
-          setIsLoading(false);
-          setError(jobStatus.error || 'Analysis failed');
-          return; // Stop polling
-        }
-
-        // Continue polling if still processing
-        if (jobStatus.status === 'processing' || jobStatus.status === 'pending') {
-          const elapsedTime = Date.now() - startTime;
-          if (elapsedTime < maxWaitTime) {
-            setTimeout(poll, pollInterval);
-          } else {
-            // Timeout
-            setIsLoading(false);
-            setError('Analysis is taking longer than expected. Please try again later.');
-          }
-        }
-
-      } catch (err) {
-        console.error('Error polling job status:', err);
-        setIsLoading(false);
-        setError('Failed to check analysis status. Please refresh and try again.');
+      } catch (tokenError) {
+        console.warn('Failed to generate backend JWT token:', tokenError);
       }
-    };
 
-    // Start polling
-    poll();
+      setProgress(30);
+      setCurrentStep('Calling Django backend directly...');
+      
+      // Create form data for Django API
+      const djangoFormData = new FormData();
+      djangoFormData.append('file', resumeFile!);
+      djangoFormData.append('job_posting_url', jobUrl);
+      djangoFormData.append('anonymize_pii', anonymizePii.toString());
+      
+      // Call Django backend directly (bypasses Vercel entirely)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://api.preppad.xyz';
+      const headers: Record<string, string> = {};
+      
+      if (backendJwtToken) {
+        headers['Authorization'] = `Bearer ${backendJwtToken}`;
+        console.log('🔐 Using JWT token for Django authentication');
+      } else {
+        console.warn('⚠️  No JWT token - Django may require authentication');
+      }
+
+      setProgress(40);
+      setCurrentStep('Processing with Django backend...');
+      
+      console.log(`🚀 Calling Django directly: ${backendUrl}/api/analysis/`);
+      
+      const djangoResponse = await fetch(`${backendUrl}/api/analysis/`, {
+        method: 'POST',
+        headers,
+        body: djangoFormData,
+      });
+
+      const djangoResult = await djangoResponse.json();
+      
+      if (!djangoResponse.ok) {
+        throw new Error(djangoResult.error || djangoResult.detail || `Django backend error: ${djangoResponse.status}`);
+      }
+
+      setProgress(80);
+      setCurrentStep('Saving results...');
+      
+      // Save results back to our database via Next.js API
+      await saveAnalysisResults(jobId, djangoResult);
+      
+      setProgress(100);
+      setCurrentStep('Analysis completed!');
+      setAnalysisResults(djangoResult.analysis);
+      setIsLoading(false);
+      
+      console.log('✅ Client-side Django processing completed successfully');
+      
+    } catch (error) {
+      console.error('❌ Django direct call failed:', error);
+      setIsLoading(false);
+      setAnalysisStatus('failed');
+      setError(error instanceof Error ? error.message : 'Failed to process analysis');
+    }
+  };
+
+  const saveAnalysisResults = async (jobId: string, results: any) => {
+    try {
+      // Update job status and save analysis via Next.js API
+      const saveResponse = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          jobId: jobId,
+          results: results,
+          action: 'complete'
+        })
+      });
+
+      if (!saveResponse.ok) {
+        const saveError = await saveResponse.json();
+        console.warn('Failed to save analysis results:', saveError);
+        // Don't fail the whole process if save fails
+      } else {
+        console.log('✅ Analysis results saved to database');
+      }
+    } catch (error) {
+      console.warn('Error saving analysis results:', error);
+      // Don't fail the whole process if save fails
+    }
   };
 
   const handleConsentResponse = (granted: boolean) => {
