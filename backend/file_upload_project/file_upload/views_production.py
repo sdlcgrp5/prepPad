@@ -29,6 +29,94 @@ from .utils import processResume, processResumeFromContent, extractJobDescriptio
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def performResumeJobAnalysis(processed_resume: dict, job_details: dict, anonymize_pii: bool = True) -> dict:
+    """
+    Performs AI analysis comparing processed resume data to job posting details.
+    
+    Args:
+        processed_resume: Structured resume data from processResumeFromContent
+        job_details: Structured job posting data from extractJobDescription  
+        anonymize_pii: Whether to anonymize PII in analysis prompts
+    
+    Returns:
+        dict: Analysis results with match score, strengths, weaknesses, etc.
+    """
+    from .utils import analysisPrompt
+    import requests
+    
+    try:
+        # Get API key from environment
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            logger.error("DEEPSEEK_API_KEY environment variable not set")
+            return {
+                "error": "AI analysis service not configured",
+                "match_score": 0,
+                "strengths": [],
+                "weaknesses": [],
+                "improvement_tips": [],
+                "keywords_missing": [],
+                "keywords_found": []
+            }
+        
+        # Convert structured data to strings for analysis
+        resume_data_str = str(processed_resume)
+        job_data_str = str(job_details)
+        
+        # Create analysis prompt
+        prompt = analysisPrompt(resume_data_str, job_data_str)
+        
+        # Call DeepSeek API for analysis
+        url = "https://api.deepseek.com/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
+        
+        data = {
+            "model": "deepseek-chat",
+            "messages": prompt,
+            "response_format": {"type": "json_object"},
+            "stream": False,
+            "max_tokens": 1000,
+            "temperature": 0.1,
+        }
+        
+        logger.info("🚀 Sending analysis request to DeepSeek API...")
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            result = response.json()
+            logger.info(f"✅ DeepSeek API response received: {response.status_code}")
+            
+            if (
+                "choices" in result
+                and len(result["choices"]) > 0
+                and "message" in result["choices"][0]
+                and "content" in result["choices"][0]["message"]
+            ):
+                content = json.loads(result["choices"][0]["message"]["content"])
+                logger.info(f"✅ Analysis successful - Match Score: {content.get('match_score', 0)}%")
+                return content
+            else:
+                logger.error("Invalid response format from DeepSeek API")
+                raise ValueError("Invalid API response format")
+        else:
+            logger.error(f"DeepSeek API error: {response.status_code} - {response.text}")
+            raise ValueError(f"API request failed: {response.status_code}")
+    
+    except Exception as e:
+        logger.error(f"Error in performResumeJobAnalysis: {str(e)}")
+        return {
+            "error": str(e),
+            "match_score": 0,
+            "strengths": [],
+            "weaknesses": [],
+            "improvement_tips": [],
+            "keywords_missing": [],
+            "keywords_found": []
+        }
+
 def get_supabase_user(user_id):
     """
     Get user from Supabase users table by ID
@@ -148,7 +236,16 @@ class AnalysisAPIView(APIView):
             
             # Get job details first
             job_details = extractJobDescription(job_url)
-            logger.info(f"Job details extracted for user {request.user.id}: {job_details}")
+            logger.info(f"Job details extracted for user {request.user.id}")
+            
+            # Validate job details
+            if not job_details or (isinstance(job_details, dict) and job_details.get('status_code') != 200 and 'error' in job_details):
+                logger.error(f"Job extraction failed for user {request.user.id}: {job_details}")
+                return Response({
+                    "error": "Failed to extract job details from URL. Please check the URL is accessible.",
+                    "job_url": job_url,
+                    "details": str(job_details)
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             # Process file in memory and perform analysis
             file_content = uploaded_file.read()
@@ -157,14 +254,21 @@ class AnalysisAPIView(APIView):
                 filename=uploaded_file.name,
                 anonymize_pii=anonymize_pii
             )
+            logger.info(f"Resume processed for user {request.user.id}")
             
-            # Note: resumeJobDescAnalysis might need updating for in-memory processing
-            # For now, create analysis based on processed resume data
-            analysis = {
-                "resume_data": processed_resume,
-                "job_details": job_details,
-                "match_analysis": "Analysis completed with in-memory processing"
-            }
+            # Validate resume processing
+            if not processed_resume or (isinstance(processed_resume, dict) and processed_resume.get('processing_failed')):
+                logger.error(f"Resume processing failed for user {request.user.id}: {processed_resume}")
+                return Response({
+                    "error": "Failed to process resume file. Please check the file format and content.",
+                    "filename": uploaded_file.name,
+                    "details": str(processed_resume)
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Perform actual AI analysis comparing resume to job posting
+            logger.info(f"Starting AI analysis for user {request.user.id}")
+            analysis = performResumeJobAnalysis(processed_resume, job_details, anonymize_pii)
+            logger.info(f"Analysis completed for user {request.user.id}: match_score={analysis.get('match_score', 0)}%")
 
             return Response({
                 "filename": uploaded_file.name,
