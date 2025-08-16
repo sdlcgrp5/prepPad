@@ -12,9 +12,10 @@ interface JobAnalysisTableProps {
   loading?: boolean;
   onAnalyzeClick: () => void;
   onAnalysisClick: (analysisId: number) => void;
+  onDeleteAnalyses?: (analysisIds: number[]) => void;
 }
 
-export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick, onAnalysisClick }: JobAnalysisTableProps) {
+export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeClick, onAnalysisClick, onDeleteAnalyses }: JobAnalysisTableProps) {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
@@ -56,6 +57,13 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
     }
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedRows.length > 0 && onDeleteAnalyses) {
+      onDeleteAnalyses(selectedRows);
+      setSelectedRows([]); // Clear selection after delete
+    }
+  };
+
   const handleRowClick = (analysisId: number, event: React.MouseEvent) => {
     // Don't trigger if clicking on checkbox or link
     const target = event.target as HTMLElement;
@@ -88,54 +96,86 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   
   // Table header component for reuse
   const TableHeader = () => (
-    <div className="grid grid-cols-5 gap-4 pt-4 pb-4 pl-6 border-b border-gray-500 font-normal">
-      <div className="flex items-center">
-        <input 
-          type="checkbox" 
-          className="mr-2"
-          checked={safeAnalyses.length > 0 && selectedRows.length === safeAnalyses.length}
-          onChange={toggleAllRows}
-          disabled={safeAnalyses.length === 0}
-        />
-        <button className="flex items-center ">
-          Company
-            <div className="ml-1">
-               <Image 
-                  src="/CodeSimple.svg"
-                  alt="sorting"
-                  width={16}
-                  height={16}
-                  priority
-               />
-            </div>
+    <div className="pt-4 pb-4 pl-6 border-b border-gray-500 font-normal">
+      {/* Show delete button when items are selected */}
+      {selectedRows.length > 0 && onDeleteAnalyses ? (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <span className="text-gray-300 mr-4">
+              {selectedRows.length} item{selectedRows.length > 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={handleDeleteSelected}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors duration-200 flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="m19 6-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path>
+                <path d="m10 11 6"></path>
+                <path d="m12 17 6"></path>
+              </svg>
+              Delete
+            </button>
+          </div>
+          <button
+            onClick={() => setSelectedRows([])}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Clear selection
+          </button>
+        </div>
+      ) : null}
+      
+      {/* Regular header row */}
+      <div className="grid grid-cols-5 gap-4">
+        <div className="flex items-center">
+          <input 
+            type="checkbox" 
+            className="mr-2"
+            checked={safeAnalyses.length > 0 && selectedRows.length === safeAnalyses.length}
+            onChange={toggleAllRows}
+            disabled={safeAnalyses.length === 0}
+          />
+          <button className="flex items-center ">
+            Company
+              <div className="ml-1">
+                 <Image 
+                    src="/CodeSimple.svg"
+                    alt="sorting"
+                    width={16}
+                    height={16}
+                    priority
+                 />
+              </div>
+          </button>
+        </div>
+        <button className="flex items-center">
+          Date uploaded
+          <div className="ml-1">
+                 <Image 
+                    src="/CodeSimple.svg"
+                    alt="sorting"
+                    width={16}
+                    height={16}
+                    priority
+                 />
+              </div>
+        </button>
+        <div>Role</div>
+        <div>Source</div>
+        <button className="flex items-center">
+          Score
+          <div className="ml-1">
+                 <Image 
+                    src="/CodeSimple.svg"
+                    alt="sorting"
+                    width={16}
+                    height={16}
+                    priority
+                 />
+              </div>
         </button>
       </div>
-      <button className="flex items-center">
-        Date uploaded
-        <div className="ml-1">
-               <Image 
-                  src="/CodeSimple.svg"
-                  alt="sorting"
-                  width={16}
-                  height={16}
-                  priority
-               />
-            </div>
-      </button>
-      <div>Role</div>
-      <div>Source</div>
-      <button className="flex items-center">
-        Score
-        <div className="ml-1">
-               <Image 
-                  src="/CodeSimple.svg"
-                  alt="sorting"
-                  width={16}
-                  height={16}
-                  priority
-               />
-            </div>
-      </button>
     </div>
   );
   

@@ -6,6 +6,7 @@ import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
+import AnalysisDetailModal from '@/components/dashboard/AnalysisDetailModal';
 import AnalysisCard from '@/components/dashboard/AnalysisCard';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +16,8 @@ export default function Dashboard() {
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
   
@@ -109,9 +112,68 @@ export default function Dashboard() {
   };
 
   const handleAnalysisClick = (analysisId: number) => {
-    // Handle viewing specific analysis details
-    console.log('Analysis clicked:', analysisId);
-    // TODO: Implement analysis detail view
+    // Open analysis detail modal
+    setSelectedAnalysisId(analysisId);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDetailModalClose = () => {
+    setIsDetailModalOpen(false);
+    setSelectedAnalysisId(null);
+  };
+
+  const handleDeleteAnalyses = async (analysisIds: number[]) => {
+    if (!token) {
+      console.error('No authentication token available');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmMessage = analysisIds.length === 1 
+      ? 'Are you sure you want to delete this analysis?' 
+      : `Are you sure you want to delete ${analysisIds.length} analyses?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Use bulk delete endpoint for efficiency
+      const response = await fetch('/api/analysis/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ analysisIds })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete analyses');
+      }
+
+      const result = await response.json();
+
+      // Refresh dashboard data after successful deletion
+      await fetchDashboardData();
+      
+      // Show success message
+      const successMessage = analysisIds.length === 1 
+        ? 'Analysis deleted successfully' 
+        : `${result.deletedCount} analyses deleted successfully`;
+      
+      // You could use a toast library here instead of alert
+      alert(successMessage);
+
+    } catch (error) {
+      console.error('Error deleting analyses:', error);
+      alert('Failed to delete analyses. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Show loading state while auth is being checked
@@ -160,6 +222,7 @@ export default function Dashboard() {
               loading={isLoading}
               onAnalyzeClick={handleOpenModal}
               onAnalysisClick={handleAnalysisClick}
+              onDeleteAnalyses={handleDeleteAnalyses}
             />
           </ErrorBoundary>
 
@@ -168,6 +231,12 @@ export default function Dashboard() {
             isOpen={isModalOpen}
             onClose={handleCloseModal}
             onSuccess={handleAnalysisSuccess}
+          />
+
+          {/* Analysis Detail Modal */}
+          <AnalysisDetailModal
+            analysisId={selectedAnalysisId}
+            onClose={handleDetailModalClose}
           />
         </div>
       </div>
