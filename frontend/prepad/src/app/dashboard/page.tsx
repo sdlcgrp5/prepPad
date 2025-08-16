@@ -7,6 +7,7 @@ import Header from '@/components/layout/header';
 import JobAnalysisTable from '@/components/dashboard/JobAnalysisTable';
 import JobAnalysisModal from '@/components/dashboard/JobAnalysisModal';
 import AnalysisDetailModal from '@/components/dashboard/AnalysisDetailModal';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal';
 import AnalysisCard from '@/components/dashboard/AnalysisCard';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useAuth } from '@/context/AuthContext';
@@ -17,7 +18,10 @@ export default function Dashboard() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<number | null>(null);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
   
@@ -128,17 +132,18 @@ export default function Dashboard() {
       return;
     }
 
-    // Show confirmation dialog
-    const confirmMessage = analysisIds.length === 1 
-      ? 'Are you sure you want to delete this analysis?' 
-      : `Are you sure you want to delete ${analysisIds.length} analyses?`;
-    
-    if (!window.confirm(confirmMessage)) {
+    // Show custom confirmation modal instead of browser confirm
+    setPendingDeleteIds(analysisIds);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!token || pendingDeleteIds.length === 0) {
       return;
     }
 
     try {
-      setIsLoading(true);
+      setIsDeleting(true);
 
       // Use bulk delete endpoint for efficiency
       const response = await fetch('/api/analysis/bulk-delete', {
@@ -147,7 +152,7 @@ export default function Dashboard() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ analysisIds })
+        body: JSON.stringify({ analysisIds: pendingDeleteIds })
       });
 
       if (!response.ok) {
@@ -157,11 +162,15 @@ export default function Dashboard() {
 
       const result = await response.json();
 
+      // Close modal and clear pending deletes
+      setIsDeleteModalOpen(false);
+      setPendingDeleteIds([]);
+
       // Refresh dashboard data after successful deletion
       await fetchDashboardData();
       
       // Show success message
-      const successMessage = analysisIds.length === 1 
+      const successMessage = pendingDeleteIds.length === 1 
         ? 'Analysis deleted successfully' 
         : `${result.deletedCount} analyses deleted successfully`;
       
@@ -172,7 +181,14 @@ export default function Dashboard() {
       console.error('Error deleting analyses:', error);
       alert('Failed to delete analyses. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    if (!isDeleting) {
+      setIsDeleteModalOpen(false);
+      setPendingDeleteIds([]);
     }
   };
 
@@ -237,6 +253,15 @@ export default function Dashboard() {
           <AnalysisDetailModal
             analysisId={selectedAnalysisId}
             onClose={handleDetailModalClose}
+          />
+
+          {/* Delete Confirmation Modal */}
+          <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onConfirm={handleDeleteConfirm}
+            onCancel={handleDeleteCancel}
+            analysesToDelete={safeJobAnalyses.filter(analysis => pendingDeleteIds.includes(analysis.id))}
+            isDeleting={isDeleting}
           />
         </div>
       </div>
