@@ -6,6 +6,7 @@ import ConsentModal from '@/components/privacy/ConsentModal';
 import Image from 'next/image';
 import { AnalysisResult } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { getUserFriendlyError, getUserFriendlyProgressMessage } from '@/utils/errorMessages';
 
 interface JobAnalysisModalProps {
   isOpen: boolean;
@@ -86,7 +87,7 @@ export default function JobAnalysisModal({
       setError(null);
       setAnalysisStatus('pending');
       setProgress(0);
-      setCurrentStep('Creating analysis job...');
+      setCurrentStep(getUserFriendlyProgressMessage('Creating analysis job...'));
       
       const formData = new FormData();
       formData.append('resume', resumeFile!);
@@ -124,7 +125,7 @@ export default function JobAnalysisModal({
       console.log('📝 Job created:', data.jobId);
       setJobId(data.jobId);
       setProgress(10);
-      setCurrentStep('Job created, starting analysis...');
+      setCurrentStep(getUserFriendlyProgressMessage('Job created, starting analysis...'));
       
       // Step 2: Call Django API directly (bypasses Vercel timeout)
       await callDjangoDirectly(data.jobId, data.fileData, data.jobUrl, data.anonymizePii);
@@ -132,7 +133,7 @@ export default function JobAnalysisModal({
     } catch (err) {
       setIsLoading(false);
       setAnalysisStatus('failed');
-      setError('Failed to start job analysis. Please try again.');
+      setError(getUserFriendlyError(err instanceof Error ? err : 'Failed to start job analysis. Please try again.'));
       console.error('Job analysis error:', err);
     }
   };
@@ -140,7 +141,7 @@ export default function JobAnalysisModal({
   const callDjangoDirectly = async (jobId: string, fileData: any, jobUrl: string, anonymizePii: boolean) => {
     try {
       setProgress(20);
-      setCurrentStep('Generating authentication token...');
+      setCurrentStep(getUserFriendlyProgressMessage('Generating authentication token...'));
       
       // Generate JWT token for Django backend
       const now = Math.floor(Date.now() / 1000);
@@ -170,7 +171,7 @@ export default function JobAnalysisModal({
       }
 
       setProgress(30);
-      setCurrentStep('Calling Django backend directly...');
+      setCurrentStep(getUserFriendlyProgressMessage('Calling Django backend directly...'));
       
       // Create form data for Django API
       const djangoFormData = new FormData();
@@ -191,7 +192,7 @@ export default function JobAnalysisModal({
       }
 
       setProgress(40);
-      setCurrentStep('Processing with Django backend...');
+      setCurrentStep(getUserFriendlyProgressMessage('Processing with Django backend...'));
       
       console.log(`🚀 Calling Django directly: ${backendUrl}/api/analysis/`);
       console.log('📦 Form data:', {
@@ -219,22 +220,23 @@ export default function JobAnalysisModal({
       } catch (parseError) {
         const responseText = await djangoResponse.text();
         console.error('Failed to parse Django response as JSON:', responseText);
-        throw new Error(`Django returned non-JSON response: ${responseText.substring(0, 200)}`);
+        throw new Error(getUserFriendlyError('Django returned non-JSON response'));
       }
       
       if (!djangoResponse.ok) {
         console.error(`❌ Django error ${djangoResponse.status}:`, djangoResult);
-        throw new Error(djangoResult.error || djangoResult.detail || `Django backend error: ${djangoResponse.status} - ${JSON.stringify(djangoResult)}`);
+        const errorMessage = djangoResult.error || djangoResult.detail || `Django backend error: ${djangoResponse.status} - ${JSON.stringify(djangoResult)}`;
+        throw new Error(getUserFriendlyError(errorMessage));
       }
 
       setProgress(80);
-      setCurrentStep('Saving results...');
+      setCurrentStep(getUserFriendlyProgressMessage('Saving results...'));
       
       // Save results back to our database via Next.js API
       await saveAnalysisResults(jobId, djangoResult);
       
       setProgress(100);
-      setCurrentStep('Analysis completed!');
+      setCurrentStep(getUserFriendlyProgressMessage('Analysis completed!'));
       
       // Handle different possible Django response formats
       let analysisData = null;
@@ -259,7 +261,7 @@ export default function JobAnalysisModal({
       console.log('🎯 Extracted analysis data:', analysisData);
       
       if (!analysisData) {
-        throw new Error('Analysis data not found in Django response. Response structure: ' + JSON.stringify(Object.keys(djangoResult || {})));
+        throw new Error(getUserFriendlyError('Analysis data not found in Django response'));
       }
       
       setAnalysisResults(analysisData);
@@ -270,7 +272,7 @@ export default function JobAnalysisModal({
       console.error('❌ Django direct call failed:', error);
       setIsLoading(false);
       setAnalysisStatus('failed');
-      setError(error instanceof Error ? error.message : 'Failed to process analysis');
+      setError(getUserFriendlyError(error instanceof Error ? error : 'Failed to process analysis'));
     }
   };
 
