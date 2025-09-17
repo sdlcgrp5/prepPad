@@ -411,7 +411,7 @@ class ProfileAPIView(APIView):
     def get(self, request):
         try:
             # Import here to avoid circular imports
-            from .models import Profile, Experience, Education, Skills
+            from .models import Profile
             
             # Get the authenticated user's profile only
             profile = Profile.objects.get(user=request.user)
@@ -474,7 +474,7 @@ class ProfileDetailAPIView(APIView):
     def get(self, request, profile_id):
         try:
             # Import here to avoid circular imports
-            from .models import Profile, Experience, Education, Skills
+            from .models import Profile
             
             # Get the profile by ID, but ensure user can only access their own profile
             profile = Profile.objects.get(id=profile_id, user=request.user)
