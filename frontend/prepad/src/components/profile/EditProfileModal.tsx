@@ -303,6 +303,9 @@ export default function EditProfileModal({
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 409) {
+          throw new Error('Profile data inconsistency detected. Please refresh the page and try again, or contact support if the issue persists.');
+        }
         throw new Error(errorData.error || 'Failed to update profile');
       }
 

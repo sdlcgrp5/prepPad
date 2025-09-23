@@ -52,6 +52,11 @@ export default function Profile() {
             router.push('/resumeupload');
             return;
           }
+          if (response.status === 409) {
+            // Profile data inconsistency detected
+            setError('Profile data inconsistency detected. Please sign out and sign back in, or contact support if the issue persists.');
+            return;
+          }
           throw new Error('Failed to fetch profile');
         }
 

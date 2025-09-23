@@ -62,11 +62,31 @@ async function authenticate(request: NextRequest): Promise<{ userId: number; ema
     
     // Fallback to NextAuth session
     const session = await auth();
-    if (session?.user?.id && session?.user?.email) {
-      return { 
-        userId: Number(session.user.id), 
-        email: session.user.email 
-      };
+    console.log('NextAuth session debug:', JSON.stringify(session, null, 2));
+
+    if (session?.user?.email) {
+      // If we have an email but no user ID, we need to look up the user ID from the database
+      if (session.user.id) {
+        return {
+          userId: Number(session.user.id),
+          email: session.user.email
+        };
+      } else {
+        // Look up user ID by email
+        console.log('No user ID in session, looking up by email:', session.user.email);
+        const user = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, email: true }
+        });
+
+        if (user) {
+          console.log('Found user by email:', user);
+          return {
+            userId: user.id,
+            email: user.email
+          };
+        }
+      }
     }
     
     return null;
@@ -243,9 +263,10 @@ export async function GET(request: NextRequest) {
   try {
     // Use hybrid authentication to support both JWT and NextAuth sessions
     const authResult = await authenticate(request);
-    
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+
+    if (!authResult || !authResult.email) {
+      console.log('Authentication failed or missing email:', authResult);
+      return NextResponse.json({ error: 'Unauthorized - missing authentication or email' }, {
         status: 401,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -254,26 +275,72 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-    
-    const { userId } = authResult;
-    
-    // Get user profile with skills
-    const profile = await prisma.profile.findFirst({
-      where: { userId },
-      include: {
-        skills: true,
-        user: {
-          select: {
-            email: true
+
+    const { userId, email: authenticatedEmail } = authResult;
+    console.log('Profile GET - Authenticated user:', { userId, authenticatedEmail });
+
+    // Get user profile with skills - with fallback to email-based lookup
+    let profile;
+    if (userId) {
+      // Primary lookup by userId
+      profile = await prisma.profile.findFirst({
+        where: { userId },
+        include: {
+          skills: true,
+          user: {
+            select: {
+              email: true
+            }
           }
         }
-      }
-    });
-    
+      });
+    }
+
+    // Fallback: if no profile found by userId or userId is undefined, look up by email
     if (!profile) {
+      console.log('Profile GET - No profile found by userId, trying email lookup for:', authenticatedEmail);
+      profile = await prisma.profile.findFirst({
+        where: {
+          user: {
+            email: authenticatedEmail
+          }
+        },
+        include: {
+          skills: true,
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      });
+    }
+
+    if (!profile) {
+      console.log('Profile GET - No profile found for userId:', userId);
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
-    
+
+    console.log('Profile GET - Found profile:', {
+      profileId: profile.id,
+      profileUserId: profile.userId,
+      profileEmail: profile.user.email,
+      authenticatedEmail
+    });
+
+    // Validate that the profile email matches the authenticated user email
+    if (profile.user.email !== authenticatedEmail) {
+      console.error('Profile GET - Email mismatch:', {
+        profileEmail: profile.user.email,
+        authenticatedEmail,
+        userId,
+        profileUserId: profile.userId
+      });
+      return NextResponse.json({
+        error: 'Profile data inconsistency detected. Please contact support.'
+      }, { status: 409 });
+    }
+
     // Construct response with the profile and skills
     const profileResponse: ProfileWithStringSkills = {
       ...profile,
@@ -303,9 +370,10 @@ export async function PUT(request: NextRequest) {
   try {
     // Use hybrid authentication to support both JWT and NextAuth sessions
     const authResult = await authenticate(request);
-    
-    if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+
+    if (!authResult || !authResult.email) {
+      console.log('Authentication failed or missing email:', authResult);
+      return NextResponse.json({ error: 'Unauthorized - missing authentication or email' }, {
         status: 401,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -314,8 +382,9 @@ export async function PUT(request: NextRequest) {
         }
       });
     }
-    
-    const { userId } = authResult;
+
+    const { userId, email: authenticatedEmail } = authResult;
+    console.log('Profile PUT - Authenticated user:', { userId, authenticatedEmail });
     
     // Parse request body
     const body = await request.json();
@@ -330,13 +399,57 @@ export async function PUT(request: NextRequest) {
     
     const profileData = validationResult.data;
     
-    // Check if profile exists
-    const existingProfile = await prisma.profile.findFirst({
-      where: { userId }
-    });
-    
+    // Check if profile exists - with fallback to email-based lookup
+    let existingProfile;
+    if (userId) {
+      // Primary lookup by userId
+      existingProfile = await prisma.profile.findFirst({
+        where: { userId },
+        include: {
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      });
+    }
+
+    // Fallback: if no profile found by userId or userId is undefined, look up by email
     if (!existingProfile) {
+      console.log('Profile PUT - No profile found by userId, trying email lookup for:', authenticatedEmail);
+      existingProfile = await prisma.profile.findFirst({
+        where: {
+          user: {
+            email: authenticatedEmail
+          }
+        },
+        include: {
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      });
+    }
+
+    if (!existingProfile) {
+      console.log('Profile PUT - No profile found for userId:', userId);
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    }
+
+    // Validate that the profile email matches the authenticated user email
+    if (existingProfile.user.email !== authenticatedEmail) {
+      console.error('Profile PUT - Email mismatch:', {
+        profileEmail: existingProfile.user.email,
+        authenticatedEmail,
+        userId,
+        profileUserId: existingProfile.userId
+      });
+      return NextResponse.json({
+        error: 'Profile data inconsistency detected. Please contact support.'
+      }, { status: 409 });
     }
     
     // Update profile in transaction
@@ -379,17 +492,39 @@ export async function PUT(request: NextRequest) {
     });
     
     // Fetch updated profile with skills for response
-    const profileWithSkills = await prisma.profile.findFirst({
-      where: { userId },
-      include: { 
-        skills: true,
-        user: {
-          select: {
-            email: true
+    let profileWithSkills;
+    if (userId) {
+      profileWithSkills = await prisma.profile.findFirst({
+        where: { userId },
+        include: {
+          skills: true,
+          user: {
+            select: {
+              email: true
+            }
           }
         }
-      }
-    });
+      });
+    }
+
+    // Fallback: if no profile found by userId, look up by email
+    if (!profileWithSkills) {
+      profileWithSkills = await prisma.profile.findFirst({
+        where: {
+          user: {
+            email: authenticatedEmail
+          }
+        },
+        include: {
+          skills: true,
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      });
+    }
     
     if (!profileWithSkills) {
       return NextResponse.json({ error: 'Failed to fetch updated profile' }, { status: 500 });
