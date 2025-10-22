@@ -149,7 +149,7 @@ export default function SignIn() {
             href="#" 
             className="text-white hover:text-amber-400 transition text-sm"
           >
-            Forgot password?
+            Forgot password
           </a>
         </div>
         
