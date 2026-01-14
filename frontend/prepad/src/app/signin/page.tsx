@@ -49,43 +49,47 @@ export default function SignIn() {
 
 
      
-      <div className="absolute top-4 left-4 z-0 w-[120px] md:w-[280px] pointer-events-none">
+      {/* Top left decoration - visible on all screens but smaller on mobile */}
+      <div className="absolute top-2 left-2 md:top-4 md:left-4 z-0 w-[80px] md:w-[280px] pointer-events-none">
          <div className="relative w-full aspect-square">
             <Image
                src="/jobmatch.svg"
                alt="jobmatch"
                fill
-               sizes="(max-width: 768px) 120px, 280px"
+               sizes="(max-width: 768px) 80px, 280px"
                className="object-contain"
             />
          </div>
       </div>
-      
-      <div className="absolute bottom-0 left-0 z-0 w-[120px] md:w-[280px] pointer-events-none">
+
+      {/* Bottom left decoration - hidden on mobile, visible on desktop */}
+      <div className="hidden md:block absolute bottom-0 left-0 z-0 w-[280px] pointer-events-none">
          <div className="relative w-full aspect-square">
             <Image
                src="/dashb.svg"
                alt="dashboard"
                fill
-               sizes="(max-width: 768px) 120px, 280px"
+               sizes="280px"
                priority
             />
         </div>
       </div>
-      
-      <div className="absolute right-0 top-1/4 z-0 w-[120px] md:w-[320px] pointer-events-none">
+
+      {/* Right middle decoration - hidden on mobile, visible on desktop */}
+      <div className="hidden md:block absolute right-0 top-1/4 z-0 w-[320px] pointer-events-none">
          <div className="relative w-full aspect-square">
             <Image
                src="/joblisting.svg"
                alt="joblistiing"
                fill
-               sizes="(max-width: 500px) 120px, 280px"
+               sizes="320px"
                priority
             />
          </div>
       </div>
 
-      <div className="absolute bottom-2 right-4 z-0">
+      {/* Bottom right decoration - hidden on mobile, visible on desktop */}
+      <div className="hidden md:block absolute bottom-2 right-4 z-0">
         <Image
           src="/profile.svg"
           alt="profile"

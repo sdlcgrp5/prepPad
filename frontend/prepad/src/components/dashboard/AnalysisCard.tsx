@@ -9,7 +9,7 @@ interface AnalysisCardProps {
 
 export default function AnalysisCard({ onAnalyzeClick, loading = false }: AnalysisCardProps) {
   return (
-    <div className="bg-purple-900 rounded-lg p-6 flex flex-col mb-8 w-80 ml-auto">
+    <div className="bg-purple-900 rounded-lg p-6 flex flex-col mb-8 w-full md:w-80 md:ml-auto">
       <div className="mb-2 flex items-center">
         <span className=" bg-gray-700/60 p-1 rounded mr-2">
           <div className="w-12 h-12 rounded-lg flex items-center justify-center">

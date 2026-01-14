@@ -24,7 +24,8 @@ export default function Dashboard() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [jobAnalyses, setJobAnalyses] = useState<JobAnalysis[]>([]);
-  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Ensure jobAnalyses is always a safe array for components
   const safeJobAnalyses = Array.isArray(jobAnalyses) ? jobAnalyses : [];
   const [hasProfile, setHasProfile] = useState(false);
@@ -192,6 +193,14 @@ export default function Dashboard() {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   // Show loading state while auth is being checked
   if (authLoading || !hasProfile) {
     return (
@@ -205,12 +214,12 @@ export default function Dashboard() {
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-900 text-white">
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
 
         {/* Main content */}
-        <div className="ml-40 mr-1- p-8">
+        <div className="ml-0 md:ml-40 p-4 md:p-8">
           {/* Header */}
-          <Header title="Dashboard" />
+          <Header title="Dashboard" onMenuToggle={toggleMobileMenu} />
 
           {/* Analysis Card */}
           <ErrorBoundary fallback={
