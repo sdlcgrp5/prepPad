@@ -90,7 +90,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Bottom right decoration - hidden on mobile, visible on desktop */}
+      {/* Bottom right decoration - hidden on mobile version, visible on desktop */}
       <div className="hidden md:block absolute bottom-2 right-4 z-0">
         <Image
           src="/profile.svg"
