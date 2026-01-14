@@ -126,8 +126,8 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
         </div>
       ) : null}
       
-      {/* Regular header row */}
-      <div className="grid grid-cols-5 gap-4">
+      {/* Regular header row - hidden on mobile */}
+      <div className="hidden md:grid grid-cols-5 gap-4">
         <div className="flex items-center">
           <input 
             type="checkbox" 
@@ -191,49 +191,86 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
   return (
     <div className="bg-gray-800/50 rounded-lg overflow-hidden">
       <TableHeader />
-      
-      {/* Table rows */}
+
+      {/* Desktop Table rows - hidden on mobile */}
       {currentItems.map((analysis) => (
-        <div 
-          key={analysis.id}
-          className="grid grid-cols-5 gap-4 p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer"
-          onClick={(e) => handleRowClick(analysis.id, e)}
-        >
-          <div className="flex items-center">
-            <input 
-              type="checkbox" 
-              className="mr-2"
-              checked={selectedRows.includes(analysis.id)}
-              onChange={() => toggleRowSelection(analysis.id)}
-            />
+        <div key={analysis.id}>
+          {/* Desktop grid view */}
+          <div
+            className="hidden md:grid grid-cols-5 gap-4 p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer"
+            onClick={(e) => handleRowClick(analysis.id, e)}
+          >
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center mr-2">
-                {analysis.company.charAt(0).toUpperCase()}
+              <input
+                type="checkbox"
+                className="mr-2"
+                checked={selectedRows.includes(analysis.id)}
+                onChange={() => toggleRowSelection(analysis.id)}
+              />
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center mr-2">
+                  {analysis.company.charAt(0).toUpperCase()}
+                </div>
+                {analysis.company}
               </div>
-              {analysis.company}
+            </div>
+            <div>{formatDate(analysis.uploadedAt)}</div>
+            <div>{analysis.role}</div>
+            <div>
+              <Link href={analysis.source} className="text-blue-400 hover:underline">
+                Link
+              </Link>
+            </div>
+            <div>
+              <span className={`px-3 py-1 rounded-full text-white ${getScoreColor(analysis.score)}`}>
+                {analysis.score}/100
+              </span>
             </div>
           </div>
-          <div>{formatDate(analysis.uploadedAt)}</div>
-          <div>{analysis.role}</div>
-          <div>
-            <Link href={analysis.source} className="text-blue-400 hover:underline">
-              Link
-            </Link>
-          </div>
-          <div>
-            <span className={`px-3 py-1 rounded-full text-white ${getScoreColor(analysis.score)}`}>
-              {analysis.score}/100
-            </span>
+
+          {/* Mobile card view */}
+          <div
+            className="md:hidden p-4 border-b border-gray-700 hover:bg-gray-700/50 transition-colors cursor-pointer"
+            onClick={(e) => handleRowClick(analysis.id, e)}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start space-x-3 flex-1">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedRows.includes(analysis.id)}
+                  onChange={() => toggleRowSelection(analysis.id)}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center mr-2">
+                      {analysis.company.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-semibold">{analysis.company}</span>
+                  </div>
+                  <div className="text-sm text-gray-400 mb-1">{analysis.role}</div>
+                  <div className="text-xs text-gray-500">{formatDate(analysis.uploadedAt)}</div>
+                </div>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-white text-sm ${getScoreColor(analysis.score)}`}>
+                {analysis.score}
+              </span>
+            </div>
+            <div className="mt-2">
+              <Link href={analysis.source} className="text-blue-400 hover:underline text-sm">
+                View Source
+              </Link>
+            </div>
           </div>
         </div>
       ))}
       
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="p-4 border-t border-gray-700 flex justify-end">
+        <div className="p-4 border-t border-gray-700 flex justify-center md:justify-end">
           <div className="flex items-center space-x-1">
-            <button 
-              className="w-8 h-8 flex items-center justify-center rounded border border-gray-600"
+            <button
+              className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded border border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
             >
@@ -241,13 +278,13 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
-            
+
             {pageNumbers.map(number => (
-              <button 
+              <button
                 key={number}
-                className={`w-8 h-8 flex items-center justify-center rounded ${
-                  currentPage === number 
-                    ? 'bg-purple-700 text-white' 
+                className={`w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded ${
+                  currentPage === number
+                    ? 'bg-purple-700 text-white'
                     : 'text-gray-400 hover:bg-gray-700'
                 }`}
                 onClick={() => goToPage(number)}
@@ -255,9 +292,9 @@ export default function JobAnalysisTable({ analyses, loading = false, onAnalyzeC
                 {number}
               </button>
             ))}
-            
-            <button 
-              className="w-8 h-8 flex items-center justify-center rounded border border-gray-600"
+
+            <button
+              className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded border border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
             >

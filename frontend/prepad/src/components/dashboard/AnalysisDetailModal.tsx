@@ -106,13 +106,13 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
     return (
       <div className="fixed inset-0 z-50">
         {/* Enhanced AnalysisResults with additional context */}
-        <div className="flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm min-h-screen">
-          <div className="bg-gray-800/95 backdrop-blur-md rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700/50">
-            <div className="relative p-8">
+        <div className="flex items-center justify-center p-2 md:p-4 bg-black/70 backdrop-blur-sm min-h-screen">
+          <div className="bg-gray-800/95 backdrop-blur-md rounded-lg w-full max-w-4xl max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700/50">
+            <div className="relative p-4 md:p-8">
               {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute top-6 right-6 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-2 z-10 font-medium transition-colors duration-200"
+                className="absolute top-4 right-4 md:top-6 md:right-6 text-gray-400 hover:text-white rounded-full bg-gray-700/50 p-2 z-10 font-medium transition-colors duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -128,21 +128,21 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
               </div>
 
               {/* Circular Match Score */}
-              <div className="flex justify-center mb-8">
+              <div className="flex justify-center mb-6 md:mb-8">
                 <div className="relative">
-                  <div className={`w-48 h-48 rounded-full backdrop-blur-md border-4 flex items-center justify-center shadow-2xl ${
-                    analysis.score >= 80 
-                      ? 'bg-green-500/20 border-green-500/30' 
-                      : analysis.score >= 60 
+                  <div className={`w-36 h-36 md:w-48 md:h-48 rounded-full backdrop-blur-md border-4 flex items-center justify-center shadow-2xl ${
+                    analysis.score >= 80
+                      ? 'bg-green-500/20 border-green-500/30'
+                      : analysis.score >= 60
                         ? 'bg-yellow-500/20 border-yellow-500/30'
                         : 'bg-red-500/20 border-red-500/30'
                   }`}>
                     <div className="text-center">
-                      <div className="text-gray-300 text-sm font-medium mb-2">Match Score</div>
-                      <div className={`text-5xl font-bold ${
-                        analysis.score >= 80 
-                          ? 'text-green-400' 
-                          : analysis.score >= 60 
+                      <div className="text-gray-300 text-xs md:text-sm font-medium mb-1 md:mb-2">Match Score</div>
+                      <div className={`text-4xl md:text-5xl font-bold ${
+                        analysis.score >= 80
+                          ? 'text-green-400'
+                          : analysis.score >= 60
                             ? 'text-yellow-400'
                             : 'text-red-400'
                       }`}>
@@ -162,9 +162,9 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
               </div>
 
               {/* Company and Role Info Card */}
-              <div className="flex justify-center mb-8">
-                <div className="bg-gray-700/60 backdrop-blur-sm rounded-lg px-8 py-4 border border-gray-600/40 min-w-96">
-                  <div className="grid grid-cols-2 gap-8">
+              <div className="flex justify-center mb-6 md:mb-8">
+                <div className="bg-gray-700/60 backdrop-blur-sm rounded-lg px-4 md:px-8 py-4 border border-gray-600/40 w-full md:w-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                     <div>
                       <div className="text-gray-400 text-sm font-medium mb-1">COMPANY</div>
                       <div className="text-white text-lg font-semibold">{analysis.company}</div>
@@ -261,12 +261,12 @@ export default function AnalysisDetailModal({ analysisId, onClose }: AnalysisDet
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col md:flex-row justify-center gap-3 md:gap-4">
                 <a
                   href={analysis.source}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-purple-500/30"
+                  className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm border border-purple-500/30 text-center"
                 >
                   View job posting
                 </a>

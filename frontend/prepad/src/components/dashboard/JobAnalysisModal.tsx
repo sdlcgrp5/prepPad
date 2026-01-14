@@ -329,9 +329,9 @@ export default function JobAnalysisModal({
   }
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
-      <div className="bg-gray-900 rounded-md w-full max-w-lg border border-gray-500/50">
-        <div className="relative p-12">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/70">
+      <div className="bg-gray-900 rounded-md w-full max-w-lg border border-gray-500/50 max-h-[95vh] overflow-y-auto">
+        <div className="relative p-6 md:p-12">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -349,8 +349,8 @@ export default function JobAnalysisModal({
           </button>
           
           {/* Title */}
-          <div className="flex justify-center mb-8 mt-2">
-            <div className="bg-gray-700/50 text-white py-2 px-6 rounded-md border border-gray-500/50">
+          <div className="flex justify-center mb-6 md:mb-8 mt-2">
+            <div className="bg-gray-700/50 text-white py-2 px-4 md:px-6 rounded-md border border-gray-500/50 text-sm md:text-base">
               Job Analysis
             </div>
           </div>

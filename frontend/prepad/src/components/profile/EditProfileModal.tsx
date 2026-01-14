@@ -322,9 +322,9 @@ export default function EditProfileModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="bg-gray-800/95 backdrop-blur-md rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700/50">
-        <div className="relative p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-gray-800/95 backdrop-blur-md rounded-lg w-full max-w-lg max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700/50">
+        <div className="relative p-4 md:p-6">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -342,9 +342,9 @@ export default function EditProfileModal({
           </button>
 
           {/* Title */}
-          <div className="flex justify-center mb-8 mt-2">
-            <div className="bg-gray-700/80 backdrop-blur-sm px-6 py-2 rounded-full border border-gray-600/50">
-              <span className="text-white font-medium">Edit Profile</span>
+          <div className="flex justify-center mb-6 md:mb-8 mt-2">
+            <div className="bg-gray-700/80 backdrop-blur-sm px-4 md:px-6 py-2 rounded-full border border-gray-600/50">
+              <span className="text-white font-medium text-sm md:text-base">Edit Profile</span>
             </div>
           </div>
 
@@ -362,7 +362,7 @@ export default function EditProfileModal({
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <input
                       type="text"
@@ -405,7 +405,7 @@ export default function EditProfileModal({
                   <p className="text-gray-400 text-xs mt-1">Email cannot be changed</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <input
                       type="tel"
@@ -497,7 +497,7 @@ export default function EditProfileModal({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                   <button
                     type="button"
                     onClick={handleBack}
@@ -531,7 +531,7 @@ export default function EditProfileModal({
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                     <select
                       name="highestDegree"
@@ -566,7 +566,7 @@ export default function EditProfileModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <input
                       type="text"
@@ -594,7 +594,7 @@ export default function EditProfileModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                   <button
                     type="button"
                     onClick={handleBack}
@@ -681,7 +681,7 @@ export default function EditProfileModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                   <button
                     type="button"
                     onClick={handleBack}
