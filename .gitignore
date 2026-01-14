@@ -126,3 +126,4 @@ frontend/prepad/DEPLOYMENT-CHECKLIST.md
 secrets.md
 generate_secret.py
 claude_migration.md
+GEMINI.md
