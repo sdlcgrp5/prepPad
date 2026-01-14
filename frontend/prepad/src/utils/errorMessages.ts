@@ -101,7 +101,7 @@ export function getUserFriendlyError(error: string | Error): string {
   const errorMessage = typeof error === 'string' ? error : error.message;
   
   // Remove technical prefixes and clean up the message
-  let cleanedError = errorMessage
+  const cleanedError = errorMessage
     .replace(/^Error:\s*/i, '')
     .replace(/^Django\s+/i, '')
     .replace(/backend\s+error:\s*/i, '')

@@ -107,9 +107,10 @@ export default function SignIn() {
       </div>
       
       {/* Main heading */}
-      <h1 className="text-5xl md:text-6xl font-semibold text-center mb-6 max-w-3xl">
-        Seamless resume 
-        <br /> optimization for <span className="text-amber-200 italic">free</span>
+      <h1 className="text-4xl md:text-6xl font-semibold text-center mb-6 max-w-3xl">
+        Seamless Resume
+        <br /> Optimization
+        <br /> <span className="text-amber-200 italic">for free</span>
       </h1>
       
       
