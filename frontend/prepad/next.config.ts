@@ -54,12 +54,6 @@ const nextConfig: NextConfig = {
   
   // External packages for server components
   serverExternalPackages: ['@prisma/client'],
-  
-  // ESLint configuration
-  eslint: {
-    // Allow console statements in production
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
