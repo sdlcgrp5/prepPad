@@ -13,7 +13,8 @@
   },
   "overrides": {
     "glob": ">=10.5.0",
-    "js-yaml": ">=4.1.1"
+    "js-yaml": ">=4.1.1",
+    "jws": ">=3.2.3"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
