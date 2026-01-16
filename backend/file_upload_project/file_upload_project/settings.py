@@ -22,10 +22,14 @@ for var in REQUIRED_ENV_VARS:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # DEVELOPMENT SETTINGS
-SECRET_KEY = 'django-insecure-p)k-z9^*%a#$72=kkexf24$e^1%sxa1b@j=@$l!0)_2$(u80f+'
+#SECRET_KEY = 'django-insecure-p)k-z9^*%a#$72=kkexf24$e^1%sxa1b@j=@$l!0)_2$(u80f+'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-for-dev-only')
 
 # DEVELOPMENT: Enable debug mode
-DEBUG = True
+#DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# WARNING: NEVER set DEBUG=True in production
+# This exposes sensitive error information and stack traces
 
 # DEVELOPMENT: Allow all hosts for local development
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']

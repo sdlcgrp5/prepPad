@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '../../../../auth';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { getCorsHeaders } from '@/utils/cors';
 
 const prisma = new PrismaClient();
 
@@ -46,13 +47,9 @@ export async function POST(request: NextRequest) {
         const secret = process.env.JWT_SECRET as string;
         if (!secret) {
           console.error('JWT_SECRET environment variable is not set');
-          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
+          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, {
             status: 500,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
+            headers: getCorsHeaders(request.headers.get('origin'))
           });
         }
         
@@ -65,13 +62,9 @@ export async function POST(request: NextRequest) {
     
     // If neither authentication method worked, return unauthorized
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, { 
+      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, {
         status: 401,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+        headers: getCorsHeaders(request.headers.get('origin'))
       });
     }
     
@@ -190,11 +183,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(result, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
+      headers: getCorsHeaders(request.headers.get('origin'))
     });
 
   } catch (error) {
@@ -238,13 +227,9 @@ export async function GET(request: NextRequest) {
         const secret = process.env.JWT_SECRET as string;
         if (!secret) {
           console.error('JWT_SECRET environment variable is not set');
-          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, { 
+          return NextResponse.json({ error: 'Server error: JWT secret not configured' }, {
             status: 500,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
+            headers: getCorsHeaders(request.headers.get('origin'))
           });
         }
         
@@ -257,13 +242,9 @@ export async function GET(request: NextRequest) {
     
     // If neither authentication method worked, return unauthorized
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, { 
+      return NextResponse.json({ error: 'Unauthorized - No valid session or token found' }, {
         status: 401,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+        headers: getCorsHeaders(request.headers.get('origin'))
       });
     }
 
@@ -290,11 +271,7 @@ export async function GET(request: NextRequest) {
       fileType: profile.resumeFileType,
       updatedAt: profile.updatedAt
     }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
+      headers: getCorsHeaders(request.headers.get('origin'))
     });
 
   } catch (error) {
@@ -303,13 +280,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(_request: NextRequest) {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
+    headers: getCorsHeaders(request.headers.get('origin'))
   });
 }

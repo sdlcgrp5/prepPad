@@ -4,6 +4,7 @@ import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import type { Prisma } from '@prisma/client';
 import { auth } from '../../../../auth';
+import { getCorsHeaders } from '@/utils/cors';
 
 // Define a type for the profile with skills as a string array
 type ProfileWithStringSkills = Omit<
@@ -118,13 +119,9 @@ export async function POST(request: NextRequest) {
     const authResult = await authenticate(request);
     
     if (!authResult) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+        headers: getCorsHeaders(request.headers.get('origin'))
       });
     }
     
@@ -242,15 +239,11 @@ export async function POST(request: NextRequest) {
         email: user.user.email
       };
       
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         profile: profileResponse
       }, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+        headers: getCorsHeaders(request.headers.get('origin'))
       });
       
   } catch (error) {
@@ -268,11 +261,7 @@ export async function GET(request: NextRequest) {
       console.log('Authentication failed or missing email:', authResult);
       return NextResponse.json({ error: 'Unauthorized - missing authentication or email' }, {
         status: 401,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+        headers: getCorsHeaders(request.headers.get('origin'))
       });
     }
 
@@ -349,15 +338,11 @@ export async function GET(request: NextRequest) {
     };
     
     // Return the profile data with CORS headers
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       profile: profileResponse
     }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
+      headers: getCorsHeaders(request.headers.get('origin'))
     });
     
   } catch (error) {
@@ -557,16 +542,12 @@ export async function PUT(request: NextRequest) {
       skills: profileWithSkills.skills.map(skill => skill.name)
     };
     
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Profile updated successfully',
       profile: profileResponse
     }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
+      headers: getCorsHeaders(request.headers.get('origin'))
     });
     
   } catch (error) {
@@ -576,12 +557,8 @@ export async function PUT(request: NextRequest) {
 }
 
 // Handle OPTIONS requests for CORS
-export async function OPTIONS(_request: NextRequest) {
+export async function OPTIONS(request: NextRequest) {
   return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
+    headers: getCorsHeaders(request.headers.get('origin'))
   });
 }
