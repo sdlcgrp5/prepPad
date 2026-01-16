@@ -1,6 +1,4 @@
-# prepPad - Scale your Job Fit
-
-**Software Development Project | S25**
+# prepPad - Optimize your Resume Seamlessly for Specific Job Posting
 
 Team: <br>
 Cristian Mejia <br>
